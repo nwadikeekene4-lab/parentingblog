@@ -5,7 +5,7 @@ export default function Hero() {
   return (
     <section 
       className="relative min-h-screen flex flex-col items-center justify-center bg-cover bg-center px-6 py-20"
-      style={{ backgroundImage: "url('/images/brazilian-people-celebrating-easter.jpg')" }}
+      style={{ backgroundImage: "url('/images/brazilian-people-celebrating-easter-300kb-1.jpg')" }}
     >
       <div className="absolute inset-0 bg-black/60 z-0"></div>
 
