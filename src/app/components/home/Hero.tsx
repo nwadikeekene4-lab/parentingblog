@@ -1,57 +1,130 @@
 'use client';
+
 import { motion } from 'framer-motion';
+import RotatingText from './RotatingText';
 
 export default function Hero() {
   return (
-    <section 
-      className="relative min-h-screen flex flex-col items-center justify-center bg-cover bg-center px-6 py-20"
-      style={{ backgroundImage: "url('/Images/brazilian-people-celebrating-easter-300kb-1.jpg')" }}
-    >
-      <div className="absolute inset-0 bg-black/60 z-0"></div>
+    <section className="relative min-h-screen overflow-hidden flex items-center justify-center">
 
-      {/* Hero Content - Centralized for maximum impact */}
-      <motion.div 
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 text-center max-w-4xl mb-16"
-      >
-        <h1 className="text-4xl md:text-7xl font-extrabold text-white mb-8 tracking-tight">
-          Welcome to Parenting Together
-        </h1>
-        <p className="text-lg md:text-2xl text-gray-200 leading-relaxed font-medium max-w-2xl mx-auto">
-          Parenting is one of life's greatest journeys. Whether you're seeking advice or 
-          looking to share your own story, you've found a community that cares.
-        </p>
-      </motion.div>
+      {/* Animated Background */}
+      <motion.div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{
+          backgroundImage:
+            "url('/Images/brazilian-people-celebrating-easter-300kb-1.jpg')",
+        }}
+        animate={{
+          scale: [1, 1.05, 1],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
 
-      {/* Interaction Cards */}
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
-        
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          initial={{ opacity: 0, y: 20 }}
+      {/* Dark Overlay */}
+      <div className="absolute inset-0 bg-black/60" />
+
+      {/* Hero Content */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-20">
+
+        <motion.div
+          initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-3xl text-white text-center hover:bg-white/20 transition-all shadow-xl"
+          transition={{ duration: 0.6 }}
+          className="text-center max-w-4xl mx-auto"
         >
-          <h2 className="text-xl md:text-2xl font-bold mb-2">See parenting stories</h2>
-          <p className="text-white/70">Read heartwarming experiences from others.</p>
-        </motion.button>
 
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="bg-pink-600/70 backdrop-blur-md border border-pink-400/30 p-8 rounded-3xl text-white text-center hover:bg-pink-600 transition-all shadow-xl"
-        >
-          <h2 className="text-xl md:text-2xl font-bold mb-2">Post your story</h2>
-          <p className="text-pink-100">Inspire the community with your journey.</p>
-        </motion.button>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight">
+            Welcome to
+            <span className="block text-pink-400 mt-2">
+              Parenting Together
+            </span>
+          </h1>
+
+          <div className="mt-6">
+            <RotatingText />
+          </div>
+
+          <p className="mt-8 text-base sm:text-lg md:text-xl text-gray-200 leading-8 max-w-3xl mx-auto">
+            Parenting is one of life's greatest journeys.
+            Learn from other parents, share your experiences,
+            and become part of a supportive community built
+            to help every family grow together.
+          </p>
+
+        </motion.div>
+
+        {/* Navigation Cards */}
+
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+
+          <motion.button
+            whileHover={{
+              scale: 1.03,
+              y: -5,
+            }}
+            whileTap={{
+              scale: 0.97,
+            }}
+            className="group rounded-3xl border border-white/20 bg-white/10 backdrop-blur-lg p-8 text-left transition-all duration-300 hover:bg-white/20 hover:shadow-2xl"
+          >
+
+            <div className="text-4xl mb-4">
+                📖
+            </div>
+
+            <h2 className="text-2xl font-bold text-white">
+              See Parenting Stories
+            </h2>
+
+            <p className="mt-3 text-gray-200">
+              Discover inspiring stories, parenting advice,
+              and real-life experiences from parents around the world.
+            </p>
+
+            <div className="mt-6 text-pink-300 font-semibold group-hover:translate-x-2 transition-transform">
+              Explore →
+            </div>
+
+          </motion.button>
+
+          <motion.button
+            whileHover={{
+              scale: 1.03,
+              y: -5,
+            }}
+            whileTap={{
+              scale: 0.97,
+            }}
+            className="group rounded-3xl bg-pink-600/80 backdrop-blur-lg p-8 text-left transition-all duration-300 hover:bg-pink-600 hover:shadow-2xl"
+          >
+
+            <div className="text-4xl mb-4">
+                ✍️
+            </div>
+
+            <h2 className="text-2xl font-bold text-white">
+              Post Your Story
+            </h2>
+
+            <p className="mt-3 text-pink-100">
+              Share your parenting journey and encourage
+              families who may be facing similar experiences.
+            </p>
+
+            <div className="mt-6 font-semibold text-white group-hover:translate-x-2 transition-transform">
+              Share →
+            </div>
+
+          </motion.button>
+
+        </div>
+
       </div>
+
     </section>
   );
-}
+          }
