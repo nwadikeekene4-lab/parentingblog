@@ -7,7 +7,7 @@ const messages = [
   "❤️ Every parent's journey matters.",
   "👶 Learn. Share. Grow together.",
   "🏡 Raising children is easier together.",
-  "🤝 A caring community for every parent.",
+  "🤝 A caring community for every parent."
 ];
 
 export default function RotatingText() {
