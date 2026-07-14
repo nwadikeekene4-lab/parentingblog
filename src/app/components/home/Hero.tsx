@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+importt { motion } from 'framer-motion';
 import RotatingText from './RotatingText';
 
 export default function Hero() {
