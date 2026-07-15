@@ -1,10 +1,12 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import RotatingText from './RotatingText';
 
 export default function Hero() {
+  const router = useRouter();
+
   return (
     <section className="relative min-h-screen overflow-hidden flex items-center justify-center">
 
@@ -62,57 +64,68 @@ export default function Hero() {
 
         <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
 
-          <Link href="/stories" className="block">
-            <motion.div
-              whileHover={{
-                scale: 1.03,
-                y: -5,
-              }}
-              whileTap={{
-                scale: 0.96,
-                rotate: -1,
-              }}
-              transition={{
-                type: 'spring',
-                stiffness: 300,
-                damping: 20,
-              }}
-              className="group cursor-pointer rounded-3xl border border-white/20 bg-white/10 backdrop-blur-lg p-8 text-left transition-all duration-300 hover:bg-white/20 hover:shadow-2xl"
-            >
+          {/* See Parenting Stories */}
+          <motion.div
+            whileHover={{
+              scale: 1.03,
+              y: -5,
+            }}
+            whileTap={{
+              scale: 0.96,
+              y: 2,
+            }}
+            transition={{
+              type: 'spring',
+              stiffness: 350,
+              damping: 25,
+            }}
+            onClick={() => {
+              setTimeout(() => {
+                router.push('/stories');
+              }, 80);
+            }}
+            className="group cursor-pointer rounded-3xl border border-white/20 bg-white/10 backdrop-blur-lg p-8 text-left transition-all duration-300 hover:bg-white/20 hover:shadow-2xl"
+          >
 
-              <div className="text-4xl mb-4">
-                📖
-              </div>
+            <div className="text-4xl mb-4">
+              📖
+            </div>
 
-              <h2 className="text-2xl font-bold text-white">
-                See Parenting Stories
-              </h2>
+            <h2 className="text-2xl font-bold text-white">
+              See Parenting Stories
+            </h2>
 
-              <p className="mt-3 text-gray-200">
-                Discover inspiring stories, parenting advice,
-                and real-life experiences from parents around the world.
-              </p>
+            <p className="mt-3 text-gray-200">
+              Discover inspiring stories, parenting advice,
+              and real-life experiences from parents around the world.
+            </p>
 
-              <div className="mt-6 flex items-center justify-between">
-                <span className="text-pink-300 font-semibold group-hover:translate-x-2 transition-transform">
-                  Explore →
-                </span>
+            <div className="mt-6 flex items-center justify-between">
+              <span className="text-pink-300 font-semibold group-hover:translate-x-2 transition-transform duration-300">
+                Explore →
+              </span>
 
-                <span className="text-white/70 text-sm">
-                  Browse stories
-                </span>
-              </div>
+              <span className="text-white/70 text-sm">
+                Browse stories
+              </span>
+            </div>
 
-            </motion.div>
-          </Link>
+          </motion.div>
 
+          {/* Post Your Story */}
           <motion.button
             whileHover={{
               scale: 1.03,
               y: -5,
             }}
             whileTap={{
-              scale: 0.97,
+              scale: 0.96,
+              y: 2,
+            }}
+            transition={{
+              type: 'spring',
+              stiffness: 350,
+              damping: 25,
             }}
             className="group rounded-3xl bg-pink-600/80 backdrop-blur-lg p-8 text-left transition-all duration-300 hover:bg-pink-600 hover:shadow-2xl"
           >
@@ -130,7 +143,7 @@ export default function Hero() {
               families who may be facing similar experiences.
             </p>
 
-            <div className="mt-6 font-semibold text-white group-hover:translate-x-2 transition-transform">
+            <div className="mt-6 font-semibold text-white group-hover:translate-x-2 transition-transform duration-300">
               Share →
             </div>
 
@@ -142,4 +155,4 @@ export default function Hero() {
 
     </section>
   );
-      }
+          }
