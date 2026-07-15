@@ -39,7 +39,6 @@ export default function Hero() {
           transition={{ duration: 0.6 }}
           className="text-center max-w-4xl mx-auto"
         >
-
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight">
             Welcome to
             <span className="block text-pink-400 mt-2">
@@ -57,11 +56,9 @@ export default function Hero() {
             and become part of a supportive community built
             to help every family grow together.
           </p>
-
         </motion.div>
 
         {/* Navigation Cards */}
-
         <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
 
           {/* See Parenting Stories */}
@@ -71,8 +68,8 @@ export default function Hero() {
               y: -5,
             }}
             whileTap={{
-              scale: 0.96,
-              y: 2,
+              scale: 0.95,
+              y: 3,
             }}
             transition={{
               type: 'spring',
@@ -82,11 +79,10 @@ export default function Hero() {
             onClick={() => {
               setTimeout(() => {
                 router.push('/stories');
-              }, 80);
+              }, 150);
             }}
             className="group cursor-pointer rounded-3xl border border-white/20 bg-white/10 backdrop-blur-lg p-8 text-left transition-all duration-300 hover:bg-white/20 hover:shadow-2xl"
           >
-
             <div className="text-4xl mb-4">
               📖
             </div>
@@ -109,7 +105,6 @@ export default function Hero() {
                 Browse stories
               </span>
             </div>
-
           </motion.div>
 
           {/* Post Your Story */}
@@ -119,40 +114,12 @@ export default function Hero() {
               y: -5,
             }}
             whileTap={{
-              scale: 0.96,
-              y: 2,
+              scale: 0.95,
+              y: 3,
             }}
             transition={{
               type: 'spring',
               stiffness: 350,
               damping: 25,
             }}
-            className="group rounded-3xl bg-pink-600/80 backdrop-blur-lg p-8 text-left transition-all duration-300 hover:bg-pink-600 hover:shadow-2xl"
-          >
-
-            <div className="text-4xl mb-4">
-              ✍️
-            </div>
-
-            <h2 className="text-2xl font-bold text-white">
-              Post Your Story
-            </h2>
-
-            <p className="mt-3 text-pink-100">
-              Share your parenting journey and encourage
-              families who may be facing similar experiences.
-            </p>
-
-            <div className="mt-6 font-semibold text-white group-hover:translate-x-2 transition-transform duration-300">
-              Share →
-            </div>
-
-          </motion.button>
-
-        </div>
-
-      </div>
-
-    </section>
-  );
-          }
+            className="group rounded-3xl bg
