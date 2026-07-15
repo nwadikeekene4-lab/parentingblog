@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import RotatingText from './RotatingText';
 
@@ -61,35 +62,49 @@ export default function Hero() {
 
         <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
 
-          <motion.button
-            whileHover={{
-              scale: 1.03,
-              y: -5,
-            }}
-            whileTap={{
-              scale: 0.97,
-            }}
-            className="group rounded-3xl border border-white/20 bg-white/10 backdrop-blur-lg p-8 text-left transition-all duration-300 hover:bg-white/20 hover:shadow-2xl"
-          >
+          <Link href="/stories" className="block">
+            <motion.div
+              whileHover={{
+                scale: 1.03,
+                y: -5,
+              }}
+              whileTap={{
+                scale: 0.96,
+                rotate: -1,
+              }}
+              transition={{
+                type: 'spring',
+                stiffness: 300,
+                damping: 20,
+              }}
+              className="group cursor-pointer rounded-3xl border border-white/20 bg-white/10 backdrop-blur-lg p-8 text-left transition-all duration-300 hover:bg-white/20 hover:shadow-2xl"
+            >
 
-            <div className="text-4xl mb-4">
+              <div className="text-4xl mb-4">
                 📖
-            </div>
+              </div>
 
-            <h2 className="text-2xl font-bold text-white">
-              See Parenting Stories
-            </h2>
+              <h2 className="text-2xl font-bold text-white">
+                See Parenting Stories
+              </h2>
 
-            <p className="mt-3 text-gray-200">
-              Discover inspiring stories, parenting advice,
-              and real-life experiences from parents around the world.
-            </p>
+              <p className="mt-3 text-gray-200">
+                Discover inspiring stories, parenting advice,
+                and real-life experiences from parents around the world.
+              </p>
 
-            <div className="mt-6 text-pink-300 font-semibold group-hover:translate-x-2 transition-transform">
-              Explore →
-            </div>
+              <div className="mt-6 flex items-center justify-between">
+                <span className="text-pink-300 font-semibold group-hover:translate-x-2 transition-transform">
+                  Explore →
+                </span>
 
-          </motion.button>
+                <span className="text-white/70 text-sm">
+                  Browse stories
+                </span>
+              </div>
+
+            </motion.div>
+          </Link>
 
           <motion.button
             whileHover={{
@@ -103,7 +118,7 @@ export default function Hero() {
           >
 
             <div className="text-4xl mb-4">
-                ✍️
+              ✍️
             </div>
 
             <h2 className="text-2xl font-bold text-white">
@@ -127,4 +142,4 @@ export default function Hero() {
 
     </section>
   );
-          }
+      }
