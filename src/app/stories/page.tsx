@@ -1,5 +1,6 @@
 import StoryIntroduction from "./components/StoryIntroduction";
 import StoryCategories from "./components/StoryCategories";
+import FeaturedStories from "./components/FeaturedStories";
 
 export default function StoriesPage() {
   return (
@@ -8,6 +9,7 @@ export default function StoriesPage() {
 
       <section className="mx-auto max-w-6xl">
         <StoryCategories />
+        <FeaturedStories />
       </section>
     </main>
   );
