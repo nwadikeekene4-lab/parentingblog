@@ -58,6 +58,7 @@ export default function Hero() {
           </p>
         </motion.div>
 
+
         {/* Navigation Cards */}
         <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
 
@@ -107,6 +108,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
+
           {/* Post Your Story */}
           <motion.button
             whileHover={{
@@ -122,4 +124,36 @@ export default function Hero() {
               stiffness: 350,
               damping: 25,
             }}
-            className="group rounded-3xl bg
+            onClick={() => {
+              router.push('/stories/my-stories');
+            }}
+            className="group rounded-3xl bg-pink-500/90 backdrop-blur-lg p-8 text-left transition-all duration-300 hover:bg-pink-600 hover:shadow-2xl"
+          >
+            <div className="text-4xl mb-4">
+              ✍️
+            </div>
+
+            <h2 className="text-2xl font-bold text-white">
+              Post Your Story
+            </h2>
+
+            <p className="mt-3 text-gray-100">
+              Share your parenting journey and connect with other parents.
+            </p>
+
+            <div className="mt-6 flex items-center justify-between">
+              <span className="text-white font-semibold group-hover:translate-x-2 transition-transform duration-300">
+                Share →
+              </span>
+
+              <span className="text-white/80 text-sm">
+                Create a story
+              </span>
+            </div>
+          </motion.button>
+
+        </div>
+      </div>
+    </section>
+  );
+          }
