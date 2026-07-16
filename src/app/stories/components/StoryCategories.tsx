@@ -5,83 +5,83 @@ export default function StoryCategories() {
     {
       title: "Single Dads",
       description:
-        "Stories and experiences from fathers raising children on their own.",
-      icon: "👨‍👧",
+        "Real stories, challenges and victories from fathers raising children on their own.",
+      image: "/Images/stories/singledad.jpg",
       link: "/stories/single-dads",
     },
     {
       title: "Single Moms",
       description:
-        "Real journeys, challenges, and lessons from single mothers.",
-      icon: "👩‍👧",
+        "Inspiring experiences and practical advice from single mothers.",
+      image: "/Images/stories/singlemum.jpg",
       link: "/stories/single-moms",
     },
     {
       title: "Pregnancy",
       description:
-        "Stories about pregnancy journeys and becoming a parent.",
-      icon: "🤰",
+        "Pregnancy journeys, preparation, health and memorable moments.",
+      image: "/Images/stories/pregnantwoman.jpeg",
       link: "/stories/pregnancy",
     },
     {
       title: "Newborn",
       description:
-        "Experiences and advice from the early days of parenting.",
-      icon: "👶",
+        "Helpful experiences from the first days and months with a newborn.",
+      image: "/Images/stories/newborn.jpeg",
       link: "/stories/newborn",
     },
     {
       title: "Toddlers",
       description:
-        "Stories about raising and understanding toddlers.",
-      icon: "🧸",
+        "Navigate toddler milestones, learning and everyday adventures.",
+      image: "/Images/stories/toddlerorg.jpeg",
       link: "/stories/toddlers",
     },
     {
       title: "School Age",
       description:
-        "Parenting experiences during children's school years.",
-      icon: "🎒",
+        "Parenting stories about school life, friendships and growth.",
+      image: "/Images/stories/schoolage.jpeg",
       link: "/stories/school-age",
     },
     {
       title: "Teenagers",
       description:
-        "Stories about guiding and supporting teenagers.",
-      icon: "🧑",
+        "Guidance and experiences on raising confident teenagers.",
+      image: "/Images/stories/schoolage.jpeg", // Placeholder
       link: "/stories/teenagers",
     },
     {
       title: "Parenting Tips",
       description:
-        "Helpful lessons and advice shared by parents.",
-      icon: "💡",
+        "Practical advice and everyday parenting wisdom from families.",
+      image: "/Images/stories/parentingtips.jpeg",
       link: "/stories/parenting-tips",
     },
     {
       title: "Success Stories",
       description:
-        "Inspiring stories from different parenting journeys.",
-      icon: "⭐",
+        "Celebrate inspiring parenting achievements and family milestones.",
+      image: "/Images/stories/schoolage.jpeg", // Placeholder
       link: "/stories/success-stories",
     },
     {
       title: "My Stories",
       description:
-        "A place to share and manage your own parenting experiences.",
-      icon: "✍️",
+        "Share your own parenting journey and inspire other families.",
+      image: "/Images/stories/schoolage.jpeg", // Placeholder
       link: "/stories/my-stories",
     },
   ];
 
   return (
-    <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <section className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
       {categories.map((category) => (
         <StoryCard
           key={category.title}
           title={category.title}
           description={category.description}
-          icon={category.icon}
+          image={category.image}
           link={category.link}
         />
       ))}
