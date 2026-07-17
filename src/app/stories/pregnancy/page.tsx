@@ -4,7 +4,7 @@ export default function PregnancyPage() {
   return (
     <StoryCategoryLayout
       title="Pregnancy"
-      description="Follow pregnancy journeys, health tips, emotional experiences and memorable moments from expecting parents."
+      description="Discover pregnancy journeys, preparation, emotional moments and helpful experiences from expecting parents."
       image="/Images/stories/pregnantwoman.jpeg"
     />
   );
