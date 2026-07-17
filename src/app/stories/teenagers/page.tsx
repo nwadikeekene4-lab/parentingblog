@@ -5,7 +5,7 @@ export default function TeenagersPage() {
     <StoryCategoryLayout
       title="Teenagers"
       description="Stories about guiding teenagers through growth, responsibility and confidence."
-      image="/Images/stories/schoolage.jpeg"
+      image="/Images/stories/newborn.jpeg"
     />
   );
 }
