@@ -32,21 +32,21 @@ export default function FeaturedStories() {
   ];
 
   return (
-    <section className="mt-20 rounded-[36px] bg-gradient-to-br from-stone-100 via-amber-50 to-stone-200 px-5 py-10 shadow-lg sm:px-8 md:px-10 md:py-14 lg:px-12 lg:py-16">
+    <section className="mt-2 rounded-[36px] bg-gradient-to-br from-stone-100 via-amber-50 to-stone-200 px-5 py-10 shadow-lg sm:px-8 md:px-10 md:py-14 lg:px-12 lg:py-16">
 
       <div className="mx-auto max-w-3xl text-center">
         <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
           Featured Stories
         </h2>
 
-        <p className="mt-5 text-base leading-8 text-slate-600 sm:text-lg">
+        <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
           Explore inspiring parenting stories carefully selected to educate,
           encourage and connect families around the world. Every featured
           story offers meaningful lessons and authentic experiences.
         </p>
       </div>
 
-      <div className="mt-14 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
         {featuredStories.map((story) => (
           <StoryPreviewCard
             key={story.title}
@@ -59,6 +59,7 @@ export default function FeaturedStories() {
           />
         ))}
       </div>
+
     </section>
   );
-}
+        }
