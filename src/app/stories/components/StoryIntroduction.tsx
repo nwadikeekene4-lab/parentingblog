@@ -1,16 +1,22 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import Image from "next/image";
+import { motion } from "framer-motion";
 
 export default function StoryIntroduction() {
   return (
-    <section
-      className="relative overflow-hidden rounded-[32px] bg-cover bg-center bg-no-repeat"
-      style={{
-        backgroundImage: "url('/Images/stories/parentingtips.jpeg')",
-      }}
-    >
-      {/* Dark Overlay */}
+    <section className="relative overflow-hidden rounded-[32px]">
+      {/* Background Image */}
+      <Image
+        src="/Images/stories/parentingtips.jpeg"
+        alt="Parents spending quality time with their child"
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center"
+      />
+
+      {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/55 to-black/45" />
 
       {/* Content */}
@@ -18,24 +24,7 @@ export default function StoryIntroduction() {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="
-          relative z-10
-          mx-auto
-          flex
-          min-h-[380px]
-          sm:min-h-[450px]
-          md:min-h-[520px]
-          lg:min-h-[580px]
-          xl:min-h-[640px]
-          max-w-7xl
-          flex-col
-          items-center
-          justify-center
-          px-6
-          sm:px-10
-          lg:px-16
-          text-center
-        "
+        className="relative z-10 mx-auto flex min-h-[380px] sm:min-h-[450px] md:min-h-[520px] lg:min-h-[580px] xl:min-h-[640px] max-w-7xl flex-col items-center justify-center px-6 sm:px-10 lg:px-16 text-center"
       >
         <h1 className="max-w-4xl text-4xl font-extrabold leading-tight text-white sm:text-5xl lg:text-6xl xl:text-7xl">
           Parenting Stories
@@ -53,4 +42,4 @@ export default function StoryIntroduction() {
       </motion.div>
     </section>
   );
-                     }
+}
