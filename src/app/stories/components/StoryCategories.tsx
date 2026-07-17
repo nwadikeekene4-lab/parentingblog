@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function StoryCategories() {
-  const router = useRouter();
   const pathname = usePathname();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -43,48 +43,43 @@ export default function StoryCategories() {
 
     container.addEventListener('scroll', handleScroll);
 
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-    };
+    return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
     <section className="mb-12">
       <div className="relative">
-        {/* Scrollable Tabs */}
         <div
           ref={scrollRef}
-          className="flex gap-4 overflow-x-auto pb-3 pr-16 scrollbar-hide scroll-smooth"
+          className="flex gap-3 overflow-x-auto pb-3 pr-16 scrollbar-hide scroll-smooth"
         >
           {categories.map((category) => {
             const active = pathname === category.link;
 
             return (
-              <button
+              <Link
                 key={category.name}
-                onClick={() => router.push(category.link)}
-                className={`whitespace-nowrap rounded-2xl px-6 py-3 text-sm font-semibold transition-all duration-200 ease-out shadow-sm active:scale-90 active:translate-y-1 ${
+                href={category.link}
+                className={`whitespace-nowrap rounded-full px-5 py-3 text-sm font-semibold transition-all duration-300 active:scale-95 ${
                   active
-                    ? 'bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg'
-                    : 'border border-pink-200 bg-pink-50 text-gray-700 hover:-translate-y-0.5 hover:border-pink-400 hover:bg-pink-100 hover:shadow-md'
+                    ? 'bg-slate-900 text-white shadow-lg'
+                    : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
                 }`}
               >
                 {category.name}
-              </button>
+              </Link>
             );
           })}
         </div>
 
-        {/* Right Fade */}
         <div
           className={`pointer-events-none absolute right-0 top-0 h-full w-20 bg-gradient-to-l from-gray-50 to-transparent transition-opacity duration-300 ${
             showIndicator ? 'opacity-100' : 'opacity-0'
           }`}
         />
 
-        {/* Scroll Indicator */}
         <div
-          className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-2 py-1 text-xl font-bold text-pink-600 shadow-lg transition-all duration-300 ${
+          className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-2 py-1 text-xl font-bold text-slate-700 shadow-lg transition-all duration-300 ${
             showIndicator ? 'opacity-100' : 'opacity-0'
           } ${animateArrow && showIndicator ? 'animate-bounce' : ''}`}
         >
@@ -93,4 +88,4 @@ export default function StoryCategories() {
       </div>
     </section>
   );
-          }
+}
