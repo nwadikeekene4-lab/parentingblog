@@ -5,7 +5,6 @@ import FeaturedStories from "./components/FeaturedStories";
 export default function StoriesPage() {
   return (
     <main className="min-h-screen bg-gray-50">
-
       {/* Hero */}
       <StoryIntroduction />
 
@@ -13,7 +12,7 @@ export default function StoriesPage() {
       <section className="mx-auto max-w-7xl px-6">
 
         {/* Categories */}
-        <div className="mt-12 md:mt-16 lg:mt-20 mb-12">
+        <div className="mt-6 md:mt-8 lg:mt-10 mb-6 md:mb-8">
           <StoryCategories />
         </div>
 
@@ -21,7 +20,6 @@ export default function StoriesPage() {
         <FeaturedStories />
 
       </section>
-
     </main>
   );
-}
+          }
