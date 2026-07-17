@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type StoryPreviewCardProps = {
   image: string;
   title: string;
@@ -19,17 +21,23 @@ export default function StoryPreviewCard({
     <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
 
       {/* Story Image */}
-      <div className="relative overflow-hidden">
-        <img
+      <div className="relative h-56 w-full overflow-hidden">
+
+        <Image
           src={image}
           alt={title}
-          className="h-56 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          fill
+          sizes="(max-width: 768px) 100vw,
+                 (max-width: 1200px) 50vw,
+                 33vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
 
         {/* Category Badge */}
-        <span className="absolute left-4 top-4 rounded-full bg-white/90 px-4 py-1.5 text-xs font-semibold text-slate-700 shadow-md backdrop-blur-sm">
+        <span className="absolute left-4 top-4 z-10 rounded-full bg-white/90 px-4 py-1.5 text-xs font-semibold text-slate-700 shadow-md backdrop-blur-sm">
           {category}
         </span>
+
       </div>
 
       {/* Card Content */}
@@ -48,7 +56,6 @@ export default function StoryPreviewCard({
 
           <div className="flex items-center justify-between text-sm text-slate-500">
             <span className="font-medium">{author}</span>
-
             <span>{readTime}</span>
           </div>
 
@@ -62,4 +69,4 @@ export default function StoryPreviewCard({
 
     </article>
   );
-        }
+}
