@@ -4,13 +4,24 @@ import FeaturedStories from "./components/FeaturedStories";
 
 export default function StoriesPage() {
   return (
-    <main className="min-h-screen bg-gray-50 px-6 py-10">
+    <main className="min-h-screen bg-gray-50">
+
+      {/* Hero */}
       <StoryIntroduction />
 
-      <section className="mx-auto max-w-6xl">
-        <StoryCategories />
+      {/* Main Content */}
+      <section className="mx-auto max-w-7xl px-6">
+
+        {/* Categories */}
+        <div className="mt-12 md:mt-16 lg:mt-20 mb-12">
+          <StoryCategories />
+        </div>
+
+        {/* Featured Stories */}
         <FeaturedStories />
+
       </section>
+
     </main>
   );
 }
