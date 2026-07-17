@@ -32,15 +32,24 @@ export default function FeaturedStories() {
   ];
 
   return (
-    <section className="mt-20">
-      <div className="mb-8 text-center">
-        <h2 className="text-3xl font-bold text-gray-900">
+    <section className="mt-20 rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-blue-50 p-6 md:p-10 shadow-sm">
+
+      <div className="mb-10 text-center">
+
+        <span className="inline-flex items-center rounded-full bg-amber-100 px-4 py-1.5 text-sm font-semibold text-amber-700">
+          ⭐ Editor's Picks
+        </span>
+
+        <h2 className="mt-5 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
           Featured Stories
         </h2>
 
-        <p className="mt-3 text-gray-600">
-          Read inspiring parenting stories from our community.
+        <p className="mx-auto mt-4 max-w-2xl text-slate-600 leading-7">
+          Inspiring parenting stories carefully selected by our editorial team.
+          Discover meaningful experiences, practical lessons and uplifting journeys
+          from families around the world.
         </p>
+
       </div>
 
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -56,6 +65,7 @@ export default function FeaturedStories() {
           />
         ))}
       </div>
+
     </section>
   );
-      }
+}
