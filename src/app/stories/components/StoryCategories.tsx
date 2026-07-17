@@ -19,11 +19,8 @@ export default function StoryCategories() {
     { name: 'Pregnancy', link: '/stories/pregnancy' },
     { name: 'Newborn', link: '/stories/newborn' },
     { name: 'Toddlers', link: '/stories/toddlers' },
-    { name: 'School Age', link: '/stories/school-age' },
     { name: 'Teenagers', link: '/stories/teenagers' },
-    { name: 'Parenting Tips', link: '/stories/parenting-tips' },
     { name: 'Success Stories', link: '/stories/success-stories' },
-    { name: 'My Stories', link: '/stories/my-stories' },
   ];
 
   useEffect(() => {
@@ -88,14 +85,8 @@ export default function StoryCategories() {
         {/* Animated Scroll Indicator */}
         <div
           className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-2 py-1 text-xl font-bold text-pink-600 shadow-lg transition-all duration-300 ${
-            showIndicator
-              ? 'opacity-100'
-              : 'opacity-0'
-          } ${
-            animateArrow && showIndicator
-              ? 'animate-bounce'
-              : ''
-          }`}
+            showIndicator ? 'opacity-100' : 'opacity-0'
+          } ${animateArrow && showIndicator ? 'animate-bounce' : ''}`}
         >
           ›
         </div>
@@ -103,4 +94,4 @@ export default function StoryCategories() {
       </div>
     </section>
   );
-          }
+}
