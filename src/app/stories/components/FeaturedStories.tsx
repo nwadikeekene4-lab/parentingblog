@@ -32,16 +32,17 @@ export default function FeaturedStories() {
   ];
 
   return (
-    <section className="mt-20 rounded-[32px] bg-gradient-to-br from-blue-800 via-slate-700 to-slate-600 px-6 py-12 shadow-xl md:px-10 md:py-16">
+    <section className="mt-20 rounded-[32px] bg-gradient-to-br from-stone-100 via-amber-50 to-stone-200 px-6 py-12 shadow-lg md:px-10 md:py-16">
       <div className="text-center">
-        <h2 className="text-3xl font-bold text-white md:text-4xl">
+        <h2 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
           Featured Stories
         </h2>
 
-        <p className="mx-auto mt-4 max-w-2xl text-lg leading-7 text-slate-200">
+        <p className="mx-auto mt-4 max-w-2xl text-lg leading-7 text-slate-600">
           Explore inspiring parenting stories handpicked to educate, encourage
           and connect families from around the world. Every featured story is
-          selected to provide meaningful insights and memorable experiences.
+          selected to provide meaningful insights, practical lessons and
+          memorable experiences.
         </p>
       </div>
 
@@ -60,4 +61,4 @@ export default function FeaturedStories() {
       </div>
     </section>
   );
-      }
+}
