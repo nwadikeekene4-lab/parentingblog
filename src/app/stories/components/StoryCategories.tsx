@@ -13,7 +13,6 @@ export default function StoryCategories() {
   const [animateArrow, setAnimateArrow] = useState(true);
 
   const categories = [
-    { name: 'All', link: '/stories' },
     { name: 'Single Dads', link: '/stories/single-dads' },
     { name: 'Single Moms', link: '/stories/single-moms' },
     { name: 'Pregnancy', link: '/stories/pregnancy' },
@@ -82,7 +81,7 @@ export default function StoryCategories() {
           }`}
         />
 
-        {/* Animated Scroll Indicator */}
+        {/* Scroll Indicator */}
         <div
           className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-2 py-1 text-xl font-bold text-pink-600 shadow-lg transition-all duration-300 ${
             showIndicator ? 'opacity-100' : 'opacity-0'
@@ -94,4 +93,4 @@ export default function StoryCategories() {
       </div>
     </section>
   );
-}
+      }
