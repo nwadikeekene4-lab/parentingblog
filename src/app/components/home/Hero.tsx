@@ -23,19 +23,24 @@ export default function Hero() {
       <div className="absolute inset-0 z-0 overflow-hidden">
 
         <motion.img
-          src="/Images/stories/homebg.jpeg"
+          src="/Images/stories/homebg.jpg"
           alt="Family background"
           className="
+            absolute
+            inset-0
             w-full
             h-full
             object-cover
             object-center
           "
+          style={{
+            objectPosition: "center center",
+          }}
           animate={{
-            scale: [1, 1.03, 1],
+            scale: [1, 1.01, 1],
           }}
           transition={{
-            duration: 35,
+            duration: 40,
             repeat: Infinity,
             ease: "easeInOut",
           }}
@@ -44,7 +49,7 @@ export default function Hero() {
       </div>
 
 
-      {/* Image Overlay */}
+      {/* Background Overlay */}
       <div
         className="
           absolute
@@ -71,6 +76,7 @@ export default function Hero() {
           xl:py-32
         "
       >
+
 
         {/* Hero Text */}
         <motion.div
@@ -105,6 +111,7 @@ export default function Hero() {
               text-white
             "
           >
+
             Welcome to
 
             <span
@@ -144,7 +151,6 @@ export default function Hero() {
             to help every family grow together.
           </p>
 
-
         </motion.div>
 
 
@@ -161,6 +167,7 @@ export default function Hero() {
             mx-auto
           "
         >
+
 
           {/* Stories Card */}
           <motion.div
@@ -230,7 +237,9 @@ export default function Hero() {
               Browse stories →
             </span>
 
+
           </motion.div>
+
 
 
 
@@ -309,6 +318,7 @@ export default function Hero() {
 
       </div>
 
+
     </section>
   );
-              }
+          }
