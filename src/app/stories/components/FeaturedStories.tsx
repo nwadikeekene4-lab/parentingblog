@@ -1,6 +1,11 @@
+"use client";
+
+import { useState } from "react";
 import StoryPreviewCard from "./StoryPreviewCard";
 
 export default function FeaturedStories() {
+  const [searchTerm, setSearchTerm] = useState("");
+
   const featuredStories = [
     {
       image: "/Images/stories/dadandbaby.jpeg",
@@ -31,6 +36,23 @@ export default function FeaturedStories() {
     },
   ];
 
+  // Very forgiving search
+  const cleanText = (text: string) =>
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "")
+      .trim();
+
+  const filteredStories = featuredStories.filter((story) => {
+    const searchableContent = cleanText(
+      `${story.title} ${story.category} ${story.excerpt} ${story.author} ${story.readTime}`
+    );
+
+    const search = cleanText(searchTerm);
+
+    return searchableContent.includes(search);
+  });
+
   return (
     <section className="mt-2 rounded-[36px] bg-gradient-to-br from-stone-100 via-amber-50 to-stone-200 px-5 py-10 shadow-lg sm:px-8 md:px-10 md:py-14 lg:px-12 lg:py-16">
 
@@ -41,25 +63,45 @@ export default function FeaturedStories() {
 
         <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
           Explore inspiring parenting stories carefully selected to educate,
-          encourage and connect families around the world. Every featured
-          story offers meaningful lessons and authentic experiences.
+          encourage and connect families around the world.
         </p>
       </div>
 
+
+      {/* Search Bar */}
+      <div className="mx-auto mt-8 max-w-xl">
+        <input
+          type="text"
+          placeholder="Search featured stories by title, category, author..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full rounded-full border border-stone-300 bg-white px-6 py-4 text-slate-700 shadow-md outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+        />
+      </div>
+
+
       <div className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
-        {featuredStories.map((story) => (
-          <StoryPreviewCard
-            key={story.title}
-            image={story.image}
-            title={story.title}
-            category={story.category}
-            excerpt={story.excerpt}
-            author={story.author}
-            readTime={story.readTime}
-          />
-        ))}
+
+        {filteredStories.length > 0 ? (
+          filteredStories.map((story) => (
+            <StoryPreviewCard
+              key={story.title}
+              image={story.image}
+              title={story.title}
+              category={story.category}
+              excerpt={story.excerpt}
+              author={story.author}
+              readTime={story.readTime}
+            />
+          ))
+        ) : (
+          <p className="col-span-full mt-5 text-center text-slate-600">
+            No featured stories found. Try another search.
+          </p>
+        )}
+
       </div>
 
     </section>
   );
-}
+      }
