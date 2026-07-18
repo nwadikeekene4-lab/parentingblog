@@ -11,23 +11,28 @@ export default function Hero() {
     <section
       className="
         relative
-        min-h-[720px]
-        sm:min-h-[760px]
-        lg:min-h-[850px]
-        xl:min-h-[900px]
+        min-h-screen
+        lg:min-h-[900px]
         overflow-hidden
         flex
         items-center
       "
     >
+
       {/* Background Image */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 overflow-hidden">
+
         <motion.img
-          src="/Images/stories/familysize1.jpeg"
-          alt="Hero Background"
-          className="w-full h-full object-cover"
+          src="/Images/stories/homebg.jpeg"
+          alt="Family background"
+          className="
+            w-full
+            h-full
+            object-cover
+            object-center
+          "
           animate={{
-            scale: [1, 1.02, 1],
+            scale: [1, 1.03, 1],
           }}
           transition={{
             duration: 35,
@@ -35,10 +40,20 @@ export default function Hero() {
             ease: "easeInOut",
           }}
         />
+
       </div>
 
+
       {/* Image Overlay */}
-      <div className="absolute inset-0 z-[1] bg-black/45" />
+      <div
+        className="
+          absolute
+          inset-0
+          z-[1]
+          bg-black/45
+        "
+      />
+
 
       {/* Content */}
       <div
@@ -51,11 +66,12 @@ export default function Hero() {
           px-5
           sm:px-8
           lg:px-12
-          py-16
-          lg:py-24
-          xl:py-28
+          py-20
+          lg:py-28
+          xl:py-32
         "
       >
+
         {/* Hero Text */}
         <motion.div
           initial={{
@@ -75,6 +91,7 @@ export default function Hero() {
             text-center
           "
         >
+
           <h1
             className="
               text-4xl
@@ -99,11 +116,14 @@ export default function Hero() {
             >
               Parenting Together
             </span>
+
           </h1>
+
 
           <div className="mt-6">
             <RotatingText />
           </div>
+
 
           <p
             className="
@@ -123,7 +143,11 @@ export default function Hero() {
             and become part of a supportive community built
             to help every family grow together.
           </p>
+
+
         </motion.div>
+
+
 
         {/* Action Cards */}
         <div
@@ -137,6 +161,7 @@ export default function Hero() {
             mx-auto
           "
         >
+
           {/* Stories Card */}
           <motion.div
             whileHover={{
@@ -162,9 +187,11 @@ export default function Hero() {
               transition
             "
           >
+
             <div className="text-4xl">
               📖
             </div>
+
 
             <h2
               className="
@@ -178,6 +205,7 @@ export default function Hero() {
               Explore Parenting Stories
             </h2>
 
+
             <p
               className="
                 mt-3
@@ -190,6 +218,7 @@ export default function Hero() {
               Discover experiences, lessons and advice from parents around the world.
             </p>
 
+
             <span
               className="
                 mt-5
@@ -200,7 +229,10 @@ export default function Hero() {
             >
               Browse stories →
             </span>
+
           </motion.div>
+
+
 
           {/* Share Card */}
           <motion.div
@@ -225,9 +257,11 @@ export default function Hero() {
               transition
             "
           >
+
             <div className="text-4xl">
               ✍️
             </div>
+
 
             <h2
               className="
@@ -241,6 +275,7 @@ export default function Hero() {
               Share Your Story
             </h2>
 
+
             <p
               className="
                 mt-3
@@ -253,6 +288,7 @@ export default function Hero() {
               Tell your parenting journey and inspire another family.
             </p>
 
+
             <span
               className="
                 mt-5
@@ -263,9 +299,16 @@ export default function Hero() {
             >
               Create a story →
             </span>
+
+
           </motion.div>
+
+
         </div>
+
+
       </div>
+
     </section>
   );
-}
+              }
