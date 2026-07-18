@@ -32,15 +32,12 @@ export default function Hero() {
         style={{
           backgroundImage:
             "url('/Images/stories/familysize1.jpeg')",
-
           backgroundPosition:
             "center center",
         }}
-
         animate={{
           scale: [1, 1.02, 1],
         }}
-
         transition={{
           duration: 35,
           repeat: Infinity,
@@ -50,13 +47,7 @@ export default function Hero() {
 
 
       {/* Image Overlay */}
-      <div
-        className="
-          absolute
-          inset-0
-          bg-black/45
-        "
-      />
+      <div className="absolute inset-0 bg-black/45" />
 
 
       {/* Content */}
@@ -76,23 +67,19 @@ export default function Hero() {
         "
       >
 
-
         {/* Hero Text */}
         <motion.div
           initial={{
-            opacity:0,
-            y:20
+            opacity: 0,
+            y: 20,
           }}
-
           animate={{
-            opacity:1,
-            y:0
+            opacity: 1,
+            y: 0,
           }}
-
           transition={{
-            duration:0.8
+            duration: 0.8,
           }}
-
           className="
             max-w-5xl
             mx-auto
@@ -113,7 +100,6 @@ export default function Hero() {
               text-white
             "
           >
-
             Welcome to
 
             <span
@@ -153,9 +139,7 @@ export default function Hero() {
             to help every family grow together.
           </p>
 
-
         </motion.div>
-
 
 
 
@@ -172,22 +156,17 @@ export default function Hero() {
           "
         >
 
-
           {/* Stories Card */}
           <motion.div
-
             whileHover={{
-              y:-6
+              y: -6,
             }}
-
             whileTap={{
-              scale:0.97
+              scale: 0.97,
             }}
-
-            onClick={() =>
-              router.push('/stories')
-            }
-
+            onClick={() => {
+              router.push('/stories');
+            }}
             className="
               cursor-pointer
               rounded-3xl
@@ -250,22 +229,17 @@ export default function Hero() {
 
 
 
-
           {/* Share Card */}
           <motion.div
-
             whileHover={{
-              y:-6
+              y: -6,
             }}
-
             whileTap={{
-              scale:0.97
+              scale: 0.97,
             }}
-
-            onClick={() =>
-              router.push('/stories/my-stories')
+            onClick={() => {
+              router.push('/stories/my-stories');
             }}
-
             className="
               cursor-pointer
               rounded-3xl
@@ -332,4 +306,4 @@ export default function Hero() {
 
     </section>
   );
-          }
+}
