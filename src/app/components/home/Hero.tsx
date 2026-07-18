@@ -11,44 +11,52 @@ export default function Hero() {
     <section
       className="
         relative
-        min-h-[700px]
+        min-h-[720px]
         sm:min-h-[760px]
-        lg:min-h-[820px]
-        xl:min-h-[850px]
+        lg:min-h-[850px]
+        xl:min-h-[900px]
         overflow-hidden
         flex
         items-center
       "
     >
 
-      {/* Background */}
+      {/* Background Image */}
       <motion.div
         className="
           absolute
           inset-0
           bg-cover
           bg-center
-          lg:bg-[length:100%_auto]
         "
         style={{
           backgroundImage:
-            "url('/Images/stories/familysize.jpeg')",
+            "url('/Images/stories/familysize1.jpeg')",
+
           backgroundPosition:
             "center center",
         }}
+
         animate={{
-          scale: [1, 1.015, 1],
+          scale: [1, 1.02, 1],
         }}
+
         transition={{
-          duration: 30,
+          duration: 35,
           repeat: Infinity,
           ease: "easeInOut",
         }}
       />
 
 
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/40" />
+      {/* Image Overlay */}
+      <div
+        className="
+          absolute
+          inset-0
+          bg-black/45
+        "
+      />
 
 
       {/* Content */}
@@ -59,29 +67,32 @@ export default function Hero() {
           w-full
           max-w-7xl
           mx-auto
-          px-4
-          sm:px-6
+          px-5
+          sm:px-8
           lg:px-12
-          py-12
-          sm:py-16
-          lg:py-28
-          xl:py-32
+          py-16
+          lg:py-24
+          xl:py-28
         "
       >
+
 
         {/* Hero Text */}
         <motion.div
           initial={{
-            opacity: 0,
-            y: 20,
+            opacity:0,
+            y:20
           }}
+
           animate={{
-            opacity: 1,
-            y: 0,
+            opacity:1,
+            y:0
           }}
+
           transition={{
-            duration: 0.8,
+            duration:0.8
           }}
+
           className="
             max-w-5xl
             mx-auto
@@ -91,7 +102,7 @@ export default function Hero() {
 
           <h1
             className="
-              text-3xl
+              text-4xl
               leading-tight
               sm:text-5xl
               md:text-6xl
@@ -102,12 +113,13 @@ export default function Hero() {
               text-white
             "
           >
+
             Welcome to
 
             <span
               className="
                 block
-                mt-2
+                mt-3
                 text-pink-300
               "
             >
@@ -117,18 +129,18 @@ export default function Hero() {
           </h1>
 
 
-          <div className="mt-5 sm:mt-6">
+          <div className="mt-6">
             <RotatingText />
           </div>
 
 
           <p
             className="
-              mt-6
+              mt-7
+              max-w-3xl
               mx-auto
-              max-w-4xl
-              text-sm
-              leading-6
+              text-base
+              leading-7
               sm:text-lg
               md:text-xl
               md:leading-8
@@ -146,33 +158,36 @@ export default function Hero() {
 
 
 
+
         {/* Action Cards */}
         <div
           className="
-            mt-10
-            sm:mt-14
+            mt-12
             grid
             grid-cols-1
             md:grid-cols-2
-            gap-5
-            lg:gap-7
+            gap-6
             max-w-5xl
             mx-auto
           "
         >
 
 
-          {/* Explore Stories */}
+          {/* Stories Card */}
           <motion.div
+
             whileHover={{
-              y: -6,
+              y:-6
             }}
+
             whileTap={{
-              scale: 0.97,
+              scale:0.97
             }}
+
             onClick={() =>
               router.push('/stories')
             }
+
             className="
               cursor-pointer
               rounded-3xl
@@ -182,10 +197,9 @@ export default function Hero() {
               backdrop-blur-xl
               p-6
               lg:p-10
-              xl:p-12
-              shadow-xl
-              transition
+              shadow-2xl
               hover:bg-white/25
+              transition
             "
           >
 
@@ -222,8 +236,8 @@ export default function Hero() {
 
             <span
               className="
-                inline-block
                 mt-5
+                inline-block
                 font-semibold
                 text-pink-200
               "
@@ -231,22 +245,27 @@ export default function Hero() {
               Browse stories →
             </span>
 
+
           </motion.div>
 
 
 
 
-          {/* Share Story */}
+          {/* Share Card */}
           <motion.div
+
             whileHover={{
-              y: -6,
+              y:-6
             }}
+
             whileTap={{
-              scale: 0.97,
+              scale:0.97
             }}
+
             onClick={() =>
               router.push('/stories/my-stories')
-            }
+            }}
+
             className="
               cursor-pointer
               rounded-3xl
@@ -254,10 +273,9 @@ export default function Hero() {
               backdrop-blur-xl
               p-6
               lg:p-10
-              xl:p-12
-              shadow-xl
-              transition
+              shadow-2xl
               hover:bg-pink-600
+              transition
             "
           >
 
@@ -294,14 +312,15 @@ export default function Hero() {
 
             <span
               className="
-                inline-block
                 mt-5
+                inline-block
                 font-semibold
                 text-white
               "
             >
               Create a story →
             </span>
+
 
           </motion.div>
 
@@ -313,4 +332,4 @@ export default function Hero() {
 
     </section>
   );
-}
+          }
