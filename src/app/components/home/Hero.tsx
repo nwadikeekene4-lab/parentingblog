@@ -11,10 +11,10 @@ export default function Hero() {
     <section
       className="
         relative
-        min-h-[720px]
-        sm:min-h-[780px]
-        lg:min-h-[900px]
-        xl:min-h-screen
+        min-h-[700px]
+        sm:min-h-[760px]
+        lg:min-h-[820px]
+        xl:min-h-[850px]
         overflow-hidden
         flex
         items-center
@@ -28,12 +28,13 @@ export default function Hero() {
           inset-0
           bg-cover
           bg-center
+          lg:bg-[length:100%_auto]
         "
         style={{
           backgroundImage:
             "url('/Images/stories/familysize.jpeg')",
           backgroundPosition:
-            "center 40%",
+            "center center",
         }}
         animate={{
           scale: [1, 1.015, 1],
@@ -63,8 +64,8 @@ export default function Hero() {
           lg:px-12
           py-12
           sm:py-16
-          lg:py-32
-          xl:py-36
+          lg:py-28
+          xl:py-32
         "
       >
 
@@ -116,12 +117,7 @@ export default function Hero() {
           </h1>
 
 
-          <div
-            className="
-              mt-5
-              sm:mt-6
-            "
-          >
+          <div className="mt-5 sm:mt-6">
             <RotatingText />
           </div>
 
@@ -144,6 +140,7 @@ export default function Hero() {
             and become part of a supportive community built
             to help every family grow together.
           </p>
+
 
         </motion.div>
 
