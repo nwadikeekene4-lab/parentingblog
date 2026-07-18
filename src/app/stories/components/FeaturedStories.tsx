@@ -3,7 +3,7 @@ import StoryPreviewCard from "./StoryPreviewCard";
 export default function FeaturedStories() {
   const featuredStories = [
     {
-      image: "/Images/story-1.jpg",
+      image: "/Images/stories/dadandbaby.jpeg",
       title: "My Journey as a First-Time Dad",
       category: "Single Dads",
       excerpt:
@@ -12,7 +12,7 @@ export default function FeaturedStories() {
       readTime: "5 min read",
     },
     {
-      image: "/Images/story-2.jpg",
+      image: "/Images/stories/preparingbaby.jpeg",
       title: "Preparing for Our New Baby",
       category: "Pregnancy",
       excerpt:
@@ -21,7 +21,7 @@ export default function FeaturedStories() {
       readTime: "6 min read",
     },
     {
-      image: "/Images/story-3.jpg",
+      image: "/Images/stories/teen.jpeg",
       title: "Helping My Teenager Build Confidence",
       category: "Teenagers",
       excerpt:
@@ -62,4 +62,4 @@ export default function FeaturedStories() {
 
     </section>
   );
-        }
+}
