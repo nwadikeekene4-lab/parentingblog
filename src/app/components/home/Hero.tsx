@@ -20,35 +20,25 @@ export default function Hero() {
         items-center
       "
     >
-
       {/* Background Image */}
-      <motion.div
-        className="
-          absolute
-          inset-0
-          bg-cover
-          bg-center
-        "
-        style={{
-          backgroundImage:
-            "url('/Images/stories/familysize1.jpeg')",
-          backgroundPosition:
-            "center center",
-        }}
-        animate={{
-          scale: [1, 1.02, 1],
-        }}
-        transition={{
-          duration: 35,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-
+      <div className="absolute inset-0 z-0">
+        <motion.img
+          src="/Images/stories/familysize1.jpeg"
+          alt="Hero Background"
+          className="w-full h-full object-cover"
+          animate={{
+            scale: [1, 1.02, 1],
+          }}
+          transition={{
+            duration: 35,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      </div>
 
       {/* Image Overlay */}
-      <div className="absolute inset-0 bg-black/45" />
-
+      <div className="absolute inset-0 z-[1] bg-black/45" />
 
       {/* Content */}
       <div
@@ -66,7 +56,6 @@ export default function Hero() {
           xl:py-28
         "
       >
-
         {/* Hero Text */}
         <motion.div
           initial={{
@@ -86,7 +75,6 @@ export default function Hero() {
             text-center
           "
         >
-
           <h1
             className="
               text-4xl
@@ -111,14 +99,11 @@ export default function Hero() {
             >
               Parenting Together
             </span>
-
           </h1>
-
 
           <div className="mt-6">
             <RotatingText />
           </div>
-
 
           <p
             className="
@@ -138,10 +123,7 @@ export default function Hero() {
             and become part of a supportive community built
             to help every family grow together.
           </p>
-
         </motion.div>
-
-
 
         {/* Action Cards */}
         <div
@@ -155,7 +137,6 @@ export default function Hero() {
             mx-auto
           "
         >
-
           {/* Stories Card */}
           <motion.div
             whileHover={{
@@ -181,11 +162,9 @@ export default function Hero() {
               transition
             "
           >
-
             <div className="text-4xl">
               📖
             </div>
-
 
             <h2
               className="
@@ -199,7 +178,6 @@ export default function Hero() {
               Explore Parenting Stories
             </h2>
 
-
             <p
               className="
                 mt-3
@@ -212,7 +190,6 @@ export default function Hero() {
               Discover experiences, lessons and advice from parents around the world.
             </p>
 
-
             <span
               className="
                 mt-5
@@ -223,11 +200,7 @@ export default function Hero() {
             >
               Browse stories →
             </span>
-
-
           </motion.div>
-
-
 
           {/* Share Card */}
           <motion.div
@@ -252,11 +225,9 @@ export default function Hero() {
               transition
             "
           >
-
             <div className="text-4xl">
               ✍️
             </div>
-
 
             <h2
               className="
@@ -270,7 +241,6 @@ export default function Hero() {
               Share Your Story
             </h2>
 
-
             <p
               className="
                 mt-3
@@ -283,7 +253,6 @@ export default function Hero() {
               Tell your parenting journey and inspire another family.
             </p>
 
-
             <span
               className="
                 mt-5
@@ -294,16 +263,9 @@ export default function Hero() {
             >
               Create a story →
             </span>
-
-
           </motion.div>
-
-
         </div>
-
-
       </div>
-
     </section>
   );
 }
