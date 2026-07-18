@@ -36,7 +36,6 @@ export default function FeaturedStories() {
     },
   ];
 
-  // Very forgiving search
   const cleanText = (text: string) =>
     text
       .toLowerCase()
@@ -63,20 +62,42 @@ export default function FeaturedStories() {
 
         <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
           Explore inspiring parenting stories carefully selected to educate,
-          encourage and connect families around the world.
+          encourage and connect families around the world. Every featured
+          story offers meaningful lessons and authentic experiences.
         </p>
       </div>
 
 
       {/* Search Bar */}
       <div className="mx-auto mt-8 max-w-xl">
-        <input
-          type="text"
-          placeholder="Search featured stories by title, category, author..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full rounded-full border border-stone-300 bg-white px-6 py-4 text-slate-700 shadow-md outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
-        />
+        <div className="relative">
+
+          <svg
+            className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M21 21L16.65 16.65M19 11C19 15.4183 15.4183 19 11 19C6.58172 19 3 15.4183 3 11C3 6.58172 6.58172 3 11 3C15.4183 3 19 6.5813 19 11Z"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+
+          <input
+            type="text"
+            placeholder="Search featured stories..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full rounded-full border border-stone-300 bg-white py-4 pl-14 pr-6 text-slate-700 shadow-md outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+          />
+
+        </div>
       </div>
 
 
