@@ -12,15 +12,15 @@ export default function Hero() {
       className="
         relative
         min-h-[720px]
-        sm:min-h-[760px]
-        lg:min-h-[85vh]
+        sm:min-h-[780px]
+        lg:min-h-screen
         overflow-hidden
         flex
         items-center
       "
     >
 
-      {/* Background */}
+      {/* Background Image */}
       <motion.div
         className="
           absolute
@@ -30,8 +30,9 @@ export default function Hero() {
         "
         style={{
           backgroundImage:
-            "url('/Images/stories/familybg.jpeg')",
-          backgroundPosition: "center center",
+            "url('/Images/stories/familysize.jpeg')",
+          backgroundPosition:
+            "center center",
         }}
         animate={{
           scale: [1, 1.015, 1],
@@ -54,17 +55,18 @@ export default function Hero() {
           relative
           z-10
           w-full
-          max-w-6xl
+          max-w-7xl
           mx-auto
           px-4
           sm:px-6
-          lg:px-8
+          lg:px-12
           py-12
           sm:py-16
+          lg:py-24
         "
       >
 
-        {/* Heading Section */}
+        {/* Hero Text */}
         <motion.div
           initial={{
             opacity: 0,
@@ -75,12 +77,12 @@ export default function Hero() {
             y: 0,
           }}
           transition={{
-            duration: 0.7,
+            duration: 0.8,
           }}
           className="
-            text-center
-            max-w-4xl
+            max-w-5xl
             mx-auto
+            text-center
           "
         >
 
@@ -88,10 +90,11 @@ export default function Hero() {
             className="
               text-3xl
               leading-tight
-              sm:text-4xl
-              md:text-5xl
-              lg:text-6xl
+              sm:text-5xl
+              md:text-6xl
+              lg:text-7xl
               font-extrabold
+              tracking-tight
               text-white
             "
           >
@@ -110,35 +113,29 @@ export default function Hero() {
           </h1>
 
 
-          <div
-            className="
-              mt-4
-              sm:mt-5
-            "
-          >
+          <div className="mt-5 sm:mt-6">
             <RotatingText />
           </div>
 
 
           <p
             className="
-              mt-5
-              sm:mt-6
-              max-w-2xl
+              mt-6
               mx-auto
+              max-w-3xl
               text-sm
               leading-6
-              sm:text-base
-              sm:leading-7
-              md:text-lg
+              sm:text-lg
+              md:text-xl
+              md:leading-8
               text-gray-100
             "
           >
             Parenting is one of life's greatest journeys.
             Learn from real parents, share your experiences,
-            and become part of a community helping families grow together.
+            and become part of a supportive community built
+            to help every family grow together.
           </p>
-
 
         </motion.div>
 
@@ -147,34 +144,30 @@ export default function Hero() {
         {/* Action Cards */}
         <div
           className="
-            mt-8
-            sm:mt-10
+            mt-10
+            sm:mt-14
             grid
             grid-cols-1
-            gap-4
-            sm:gap-5
             md:grid-cols-2
-            max-w-4xl
+            gap-5
+            lg:gap-7
+            max-w-5xl
             mx-auto
           "
         >
 
 
-          {/* Stories Card */}
+          {/* Explore Stories */}
           <motion.div
-
             whileHover={{
-              y:-5,
+              y: -6,
             }}
-
             whileTap={{
-              scale:0.97,
+              scale: 0.97,
             }}
-
             onClick={() =>
               router.push('/stories')
             }
-
             className="
               cursor-pointer
               rounded-3xl
@@ -182,24 +175,24 @@ export default function Hero() {
               border-white/30
               bg-white/15
               backdrop-blur-xl
-              p-5
-              sm:p-6
+              p-6
+              lg:p-8
               shadow-xl
               transition
               hover:bg-white/25
             "
           >
 
-            <div className="text-3xl">
+            <div className="text-4xl">
               📖
             </div>
 
 
             <h2
               className="
-                mt-3
-                text-lg
-                sm:text-xl
+                mt-4
+                text-xl
+                lg:text-2xl
                 font-bold
                 text-white
               "
@@ -210,9 +203,10 @@ export default function Hero() {
 
             <p
               className="
-                mt-2
+                mt-3
                 text-sm
-                leading-6
+                lg:text-base
+                leading-7
                 text-gray-100
               "
             >
@@ -223,8 +217,7 @@ export default function Hero() {
             <span
               className="
                 inline-block
-                mt-4
-                text-sm
+                mt-5
                 font-semibold
                 text-pink-200
               "
@@ -232,50 +225,45 @@ export default function Hero() {
               Browse stories →
             </span>
 
-
           </motion.div>
 
 
 
 
-          {/* Share Card */}
+          {/* Share Story */}
           <motion.div
-
             whileHover={{
-              y:-5,
+              y: -6,
             }}
-
             whileTap={{
-              scale:0.97,
+              scale: 0.97,
             }}
-
             onClick={() =>
               router.push('/stories/my-stories')
             }
-
             className="
               cursor-pointer
               rounded-3xl
               bg-pink-500/90
               backdrop-blur-xl
-              p-5
-              sm:p-6
+              p-6
+              lg:p-8
               shadow-xl
               transition
               hover:bg-pink-600
             "
           >
 
-            <div className="text-3xl">
+            <div className="text-4xl">
               ✍️
             </div>
 
 
             <h2
               className="
-                mt-3
-                text-lg
-                sm:text-xl
+                mt-4
+                text-xl
+                lg:text-2xl
                 font-bold
                 text-white
               "
@@ -286,9 +274,10 @@ export default function Hero() {
 
             <p
               className="
-                mt-2
+                mt-3
                 text-sm
-                leading-6
+                lg:text-base
+                leading-7
                 text-white
               "
             >
@@ -299,15 +288,13 @@ export default function Hero() {
             <span
               className="
                 inline-block
-                mt-4
-                text-sm
+                mt-5
                 font-semibold
                 text-white
               "
             >
               Create a story →
             </span>
-
 
           </motion.div>
 
@@ -319,4 +306,4 @@ export default function Hero() {
 
     </section>
   );
-        }
+          }
