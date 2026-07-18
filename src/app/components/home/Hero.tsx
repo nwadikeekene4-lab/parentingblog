@@ -13,14 +13,15 @@ export default function Hero() {
         relative
         min-h-[720px]
         sm:min-h-[780px]
-        lg:min-h-screen
+        lg:min-h-[900px]
+        xl:min-h-screen
         overflow-hidden
         flex
         items-center
       "
     >
 
-      {/* Background Image */}
+      {/* Background */}
       <motion.div
         className="
           absolute
@@ -32,7 +33,7 @@ export default function Hero() {
           backgroundImage:
             "url('/Images/stories/familysize.jpeg')",
           backgroundPosition:
-            "center center",
+            "center 40%",
         }}
         animate={{
           scale: [1, 1.015, 1],
@@ -62,7 +63,8 @@ export default function Hero() {
           lg:px-12
           py-12
           sm:py-16
-          lg:py-24
+          lg:py-32
+          xl:py-36
         "
       >
 
@@ -93,6 +95,7 @@ export default function Hero() {
               sm:text-5xl
               md:text-6xl
               lg:text-7xl
+              xl:text-8xl
               font-extrabold
               tracking-tight
               text-white
@@ -113,7 +116,12 @@ export default function Hero() {
           </h1>
 
 
-          <div className="mt-5 sm:mt-6">
+          <div
+            className="
+              mt-5
+              sm:mt-6
+            "
+          >
             <RotatingText />
           </div>
 
@@ -122,7 +130,7 @@ export default function Hero() {
             className="
               mt-6
               mx-auto
-              max-w-3xl
+              max-w-4xl
               text-sm
               leading-6
               sm:text-lg
@@ -176,7 +184,8 @@ export default function Hero() {
               bg-white/15
               backdrop-blur-xl
               p-6
-              lg:p-8
+              lg:p-10
+              xl:p-12
               shadow-xl
               transition
               hover:bg-white/25
@@ -192,7 +201,7 @@ export default function Hero() {
               className="
                 mt-4
                 text-xl
-                lg:text-2xl
+                lg:text-3xl
                 font-bold
                 text-white
               "
@@ -205,7 +214,7 @@ export default function Hero() {
               className="
                 mt-3
                 text-sm
-                lg:text-base
+                lg:text-lg
                 leading-7
                 text-gray-100
               "
@@ -247,7 +256,8 @@ export default function Hero() {
               bg-pink-500/90
               backdrop-blur-xl
               p-6
-              lg:p-8
+              lg:p-10
+              xl:p-12
               shadow-xl
               transition
               hover:bg-pink-600
@@ -263,7 +273,7 @@ export default function Hero() {
               className="
                 mt-4
                 text-xl
-                lg:text-2xl
+                lg:text-3xl
                 font-bold
                 text-white
               "
@@ -276,7 +286,7 @@ export default function Hero() {
               className="
                 mt-3
                 text-sm
-                lg:text-base
+                lg:text-lg
                 leading-7
                 text-white
               "
@@ -306,4 +316,4 @@ export default function Hero() {
 
     </section>
   );
-          }
+}
