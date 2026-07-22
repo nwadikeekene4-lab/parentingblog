@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, emailVerificationTokens } from "@/db/schema";
 import { hashPassword } from "@/lib/auth";
 import { normalizeEmail, isValidEmail } from "@/lib/validation";
+import { generateVerificationToken, getTokenExpiry } from "@/lib/token";
+import { sendVerificationEmail } from "@/lib/email";
 
 
 export async function POST(request: Request) {
@@ -95,9 +97,27 @@ export async function POST(request: Request) {
       });
 
 
+    // Create email verification token
+    const verificationToken = generateVerificationToken();
+
+
+    await db.insert(emailVerificationTokens).values({
+      userId: newUser[0].id,
+      token: verificationToken,
+      expiresAt: getTokenExpiry(),
+    });
+
+
+    // Send verification email
+    await sendVerificationEmail(
+      newUser[0].email,
+      verificationToken
+    );
+
+
     return NextResponse.json(
       {
-        message: "Account created successfully",
+        message: "Account created. Please check your email to verify your account.",
         user: newUser[0],
       },
       {
@@ -119,4 +139,4 @@ export async function POST(request: Request) {
       }
     );
   }
-}
+        }
