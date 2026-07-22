@@ -20,6 +20,7 @@ export const userRoleEnum = pgEnum("user_role", [
 
 export const storyStatusEnum = pgEnum("story_status", [
   "draft",
+  "pending_review",
   "published",
   "archived",
 ]);
@@ -37,7 +38,9 @@ export const users = pgTable("users", {
 
   email: varchar("email", {
     length: 255,
-  }).notNull().unique(),
+  })
+    .notNull()
+    .unique(),
 
   passwordHash: text("password_hash").notNull(),
 
@@ -71,9 +74,7 @@ export const users = pgTable("users", {
 =========================== */
 
 export const categories = pgTable("categories", {
-  id: uuid("id")
-    .defaultRandom()
-    .primaryKey(),
+  id: uuid("id").defaultRandom().primaryKey(),
 
   name: varchar("name", {
     length: 100,
@@ -81,7 +82,9 @@ export const categories = pgTable("categories", {
 
   slug: varchar("slug", {
     length: 120,
-  }).notNull().unique(),
+  })
+    .notNull()
+    .unique(),
 
   description: text("description"),
 
@@ -117,7 +120,9 @@ export const stories = pgTable("stories", {
 
   slug: varchar("slug", {
     length: 255,
-  }).notNull().unique(),
+  })
+    .notNull()
+    .unique(),
 
   excerpt: text("excerpt"),
 
@@ -125,9 +130,13 @@ export const stories = pgTable("stories", {
 
   coverImage: text("cover_image"),
 
-  authorId: uuid("author_id").notNull(),
+  authorId: uuid("author_id")
+    .references(() => users.id)
+    .notNull(),
 
-  categoryId: uuid("category_id").notNull(),
+  categoryId: uuid("category_id")
+    .references(() => categories.id)
+    .notNull(),
 
   status: storyStatusEnum("status")
     .default("draft")
@@ -141,11 +150,41 @@ export const stories = pgTable("stories", {
     .default(0)
     .notNull(),
 
+  isDeleted: boolean("is_deleted")
+    .default(false)
+    .notNull(),
+
+  publishedAt: timestamp("published_at"),
+
   createdAt: timestamp("created_at")
     .defaultNow()
     .notNull(),
 
   updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .notNull(),
+});
+
+/* ===========================
+   STORY IMAGES
+=========================== */
+
+export const storyImages = pgTable("story_images", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  storyId: uuid("story_id")
+    .references(() => stories.id)
+    .notNull(),
+
+  imageUrl: text("image_url").notNull(),
+
+  caption: text("caption"),
+
+  displayOrder: integer("display_order")
+    .default(0)
+    .notNull(),
+
+  createdAt: timestamp("created_at")
     .defaultNow()
     .notNull(),
 });
@@ -157,14 +196,68 @@ export const stories = pgTable("stories", {
 export const comments = pgTable("comments", {
   id: uuid("id").defaultRandom().primaryKey(),
 
-  storyId: uuid("story_id").notNull(),
+  storyId: uuid("story_id")
+    .references(() => stories.id)
+    .notNull(),
 
-  userId: uuid("user_id").notNull(),
+  userId: uuid("user_id")
+    .references(() => users.id)
+    .notNull(),
+
+  parentCommentId: uuid("parent_comment_id"),
 
   content: text("content").notNull(),
 
   isApproved: boolean("is_approved")
     .default(true)
+    .notNull(),
+
+  isDeleted: boolean("is_deleted")
+    .default(false)
+    .notNull(),
+
+  createdAt: timestamp("created_at")
+    .defaultNow()
+    .notNull(),
+
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .notNull(),
+});
+
+/* ===========================
+   STORY LIKES
+=========================== */
+
+export const storyLikes = pgTable("story_likes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  storyId: uuid("story_id")
+    .references(() => stories.id)
+    .notNull(),
+
+  userId: uuid("user_id")
+    .references(() => users.id)
+    .notNull(),
+
+  createdAt: timestamp("created_at")
+    .defaultNow()
+    .notNull(),
+});
+
+/* ===========================
+   STORY BOOKMARKS
+=========================== */
+
+export const storyBookmarks = pgTable("story_bookmarks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  storyId: uuid("story_id")
+    .references(() => stories.id)
+    .notNull(),
+
+  userId: uuid("user_id")
+    .references(() => users.id)
     .notNull(),
 
   createdAt: timestamp("created_at")
