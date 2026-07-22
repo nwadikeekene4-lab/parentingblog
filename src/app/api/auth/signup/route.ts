@@ -2,20 +2,21 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { hashPassword } from "@/lib/auth";
+import { normalizeEmail, isValidEmail } from "@/lib/validation";
 
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const {
+    let {
       displayName,
       email,
       password,
     } = body;
 
 
-    // Basic validation
+    // Check required fields
     if (!displayName || !email || !password) {
       return NextResponse.json(
         {
@@ -28,7 +29,25 @@ export async function POST(request: Request) {
     }
 
 
-    // Password length protection
+    // Clean inputs
+    displayName = displayName.trim();
+    email = normalizeEmail(email);
+
+
+    // Validate email
+    if (!isValidEmail(email)) {
+      return NextResponse.json(
+        {
+          message: "Invalid email address",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+
+    // Password rules
     if (password.length < 8) {
       return NextResponse.json(
         {
@@ -50,7 +69,7 @@ export async function POST(request: Request) {
     if (existingUser) {
       return NextResponse.json(
         {
-          message: "Email already exists",
+          message: "Email already registered",
         },
         {
           status: 409,
@@ -71,8 +90,8 @@ export async function POST(request: Request) {
       })
       .returning({
         id: users.id,
-        email: users.email,
         displayName: users.displayName,
+        email: users.email,
       });
 
 
@@ -88,15 +107,16 @@ export async function POST(request: Request) {
 
 
   } catch (error) {
+
     console.error(error);
 
     return NextResponse.json(
       {
-        message: "Something went wrong",
+        message: "Internal server error",
       },
       {
         status: 500,
       }
     );
   }
-        }
+}
