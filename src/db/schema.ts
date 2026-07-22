@@ -104,6 +104,31 @@ export const users = pgTable("users", {
     .defaultNow()
     .notNull(),
 });
+
+export const sessions = pgTable("sessions", {
+  id: uuid("id")
+    .defaultRandom()
+    .primaryKey(),
+
+  userId: uuid("user_id")
+    .references(() => users.id, {
+      onDelete: "cascade",
+    })
+    .notNull(),
+
+  token: text("token")
+    .notNull()
+    .unique(),
+
+  expiresAt: timestamp("expires_at")
+    .notNull(),
+
+  createdAt: timestamp("created_at")
+    .defaultNow()
+    .notNull(),
+});
+
+
 /* ===========================
    CATEGORIES
 =========================== */
