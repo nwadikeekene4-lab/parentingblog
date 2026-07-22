@@ -149,3 +149,25 @@ export const stories = pgTable("stories", {
     .defaultNow()
     .notNull(),
 });
+
+/* ===========================
+   COMMENTS
+=========================== */
+
+export const comments = pgTable("comments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  storyId: uuid("story_id").notNull(),
+
+  userId: uuid("user_id").notNull(),
+
+  content: text("content").notNull(),
+
+  isApproved: boolean("is_approved")
+    .default(true)
+    .notNull(),
+
+  createdAt: timestamp("created_at")
+    .defaultNow()
+    .notNull(),
+});
