@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
+    "bcryptjs": "^2.4.3",
     "drizzle-orm": "^0.44.7",
     "framer-motion": "^12.42.2",
     "next": "16.2.9",
