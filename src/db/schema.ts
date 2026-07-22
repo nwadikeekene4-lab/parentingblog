@@ -1,4 +1,3 @@
-
 import {
   pgTable,
   uuid,
@@ -94,6 +93,52 @@ export const categories = pgTable("categories", {
 
   isActive: boolean("is_active")
     .default(true)
+    .notNull(),
+
+  createdAt: timestamp("created_at")
+    .defaultNow()
+    .notNull(),
+
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .notNull(),
+});
+
+/* ===========================
+   STORIES
+=========================== */
+
+export const stories = pgTable("stories", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  title: varchar("title", {
+    length: 255,
+  }).notNull(),
+
+  slug: varchar("slug", {
+    length: 255,
+  }).notNull().unique(),
+
+  excerpt: text("excerpt"),
+
+  content: text("content").notNull(),
+
+  coverImage: text("cover_image"),
+
+  authorId: uuid("author_id").notNull(),
+
+  categoryId: uuid("category_id").notNull(),
+
+  status: storyStatusEnum("status")
+    .default("draft")
+    .notNull(),
+
+  featured: boolean("featured")
+    .default(false)
+    .notNull(),
+
+  views: integer("views")
+    .default(0)
     .notNull(),
 
   createdAt: timestamp("created_at")
