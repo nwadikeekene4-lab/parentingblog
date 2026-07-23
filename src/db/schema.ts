@@ -759,6 +759,15 @@ export const storiesRelations = relations(
   })
 );
 
+export const emailVerificationTokensRelations = relations(
+  emailVerificationTokens,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [emailVerificationTokens.userId],
+      references: [users.id],
+    }),
+  })
+);
 
 /* STORY IMAGES */
 
