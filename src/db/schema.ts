@@ -850,6 +850,15 @@ export const commentLikesRelations = relations(
   })
 );
 
+export const passwordResetTokensRelations = relations(
+  passwordResetTokens,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [passwordResetTokens.userId],
+      references: [users.id],
+    }),
+  })
+);
 
 /* BOOKMARKS */
 
