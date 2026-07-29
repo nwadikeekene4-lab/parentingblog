@@ -1,13 +1,50 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 function CheckEmailContent() {
   const searchParams = useSearchParams();
 
   const email = searchParams.get("email");
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function handleResendVerification() {
+    if (!email) {
+      setMessage("Email address is missing.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const response = await fetch(
+        "/api/auth/resend-verification",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
+
+      const data = await response.json();
+
+      setMessage(data.message);
+
+    } catch {
+      setMessage(
+        "Something went wrong. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-blue-50 via-white to-purple-100 px-4 py-10">
@@ -49,12 +86,23 @@ function CheckEmailContent() {
 
         </div>
 
+        {message && (
+          <div className="mt-5 rounded-xl bg-green-50 p-4 text-sm text-green-700">
+            {message}
+          </div>
+        )}
+
         <div className="mt-8 space-y-3">
 
           <button
-            className="h-12 w-full rounded-xl bg-blue-600 font-semibold text-white transition hover:bg-blue-700"
+            type="button"
+            onClick={handleResendVerification}
+            disabled={loading}
+            className="h-12 w-full rounded-xl bg-blue-600 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Resend Verification Email
+            {loading
+              ? "Sending..."
+              : "Resend Verification Email"}
           </button>
 
           <Link
@@ -84,4 +132,4 @@ export default function CheckEmailPage() {
       <CheckEmailContent />
     </Suspense>
   );
-        }
+                 }
