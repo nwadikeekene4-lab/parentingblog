@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+
 import { db } from "@/db";
 import { users, emailVerificationTokens } from "@/db/schema";
 import { hashPassword } from "@/lib/auth";
@@ -10,6 +12,8 @@ import {
 import { sendVerificationEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
+  let createdUserId: string | undefined;
+
   try {
     const body = await request.json();
 
@@ -19,7 +23,6 @@ export async function POST(request: Request) {
       password,
     } = body;
 
-    // Required fields
     if (!displayName || !email || !password) {
       return NextResponse.json(
         {
@@ -31,11 +34,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Clean input
     displayName = displayName.trim();
     email = normalizeEmail(email);
 
-    // Display name validation
     if (displayName.length < 2) {
       return NextResponse.json(
         {
@@ -48,7 +49,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Email validation
     if (!isValidEmail(email)) {
       return NextResponse.json(
         {
@@ -60,7 +60,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Strong password validation
     const strongPassword =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
@@ -76,11 +75,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check for existing account
-    const existingUser = await db.query.users.findFirst({
-      where: (users, { eq }) =>
-        eq(users.email, email),
-    });
+    const existingUser =
+      await db.query.users.findFirst({
+        where: (users, { eq }) =>
+          eq(users.email, email),
+      });
 
     if (existingUser) {
       return NextResponse.json(
@@ -93,38 +92,86 @@ export async function POST(request: Request) {
       );
     }
 
-    // Hash password
-    const passwordHash = await hashPassword(password);
+    const passwordHash =
+      await hashPassword(password);
 
-    // Create user
-    const newUser = await db
-      .insert(users)
-      .values({
-        displayName,
-        email,
-        passwordHash,
-      })
-      .returning({
-        id: users.id,
-        email: users.email,
-      });
-
-    // Generate verification token
     const verificationToken =
       generateVerificationToken();
 
-    // Save verification token
-    await db.insert(emailVerificationTokens).values({
-      userId: newUser[0].id,
-      token: verificationToken,
-      expiresAt: getTokenExpiry(),
-    });
+    const createdUser = await db.transaction(
+      async (tx) => {
 
-    // Send verification email
-    await sendVerificationEmail(
-      newUser[0].email,
-      verificationToken
+        const insertedUsers =
+          await tx
+            .insert(users)
+            .values({
+              displayName,
+              email,
+              passwordHash,
+            })
+            .returning({
+              id: users.id,
+              email: users.email,
+            });
+
+        createdUserId =
+          insertedUsers[0].id;
+
+        await tx
+          .insert(emailVerificationTokens)
+          .values({
+            userId: insertedUsers[0].id,
+            token: verificationToken,
+            expiresAt: getTokenExpiry(),
+          });
+
+        return insertedUsers[0];
+      }
     );
+
+    try {
+      await sendVerificationEmail(
+        createdUser.email,
+        verificationToken
+      );
+    } catch (emailError) {
+
+      console.error(
+        "Email sending failed:",
+        emailError
+      );
+
+      if (createdUserId) {
+
+        await db
+          .delete(emailVerificationTokens)
+          .where(
+            eq(
+              emailVerificationTokens.userId,
+              createdUserId
+            )
+          );
+
+        await db
+          .delete(users)
+          .where(
+            eq(
+              users.id,
+              createdUserId
+            )
+          );
+      }
+
+      return NextResponse.json(
+        {
+          message:
+            "We couldn't send the verification email. Please try again.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
 
     return NextResponse.json(
       {
@@ -138,15 +185,19 @@ export async function POST(request: Request) {
 
   } catch (error) {
 
-    console.error("Signup error:", error);
+    console.error(
+      "Signup error:",
+      error
+    );
 
     return NextResponse.json(
       {
-        message: "Internal server error.",
+        message:
+          "Internal server error.",
       },
       {
         status: 500,
       }
     );
   }
-}
+      }
