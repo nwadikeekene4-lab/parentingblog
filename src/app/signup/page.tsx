@@ -45,9 +45,9 @@ export default function SignupPage() {
       }
 
       router.push(
-        `/verify-email?email=${encodeURIComponent(email)}`
-      );
-
+  `/check-email?email=${encodeURIComponent(email)}`
+);
+      
     } catch {
       setMessage(
         "Something went wrong. Please try again."
