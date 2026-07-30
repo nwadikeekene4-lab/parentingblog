@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 type DashboardNavItemProps = {
   href: string;
   icon: React.ReactNode;
   label: string;
-  active?: boolean;
   onClick?: () => void;
 };
 
@@ -14,9 +14,12 @@ export default function DashboardNavItem({
   href,
   icon,
   label,
-  active = false,
   onClick,
 }: DashboardNavItemProps) {
+  const pathname = usePathname();
+
+  const active = pathname === href;
+
   return (
     <Link
       href={href}
@@ -34,4 +37,4 @@ export default function DashboardNavItem({
       <span>{label}</span>
     </Link>
   );
-      }
+        }
