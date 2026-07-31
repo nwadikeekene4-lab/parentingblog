@@ -14,24 +14,51 @@ export default function UsersDashboardLayout({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div
+      className="
+        min-h-screen
+        bg-cover
+        bg-center
+        bg-fixed
+        relative
+      "
+      style={{
+        backgroundImage:
+          "url('/Images/loginimage.png')",
+      }}
+    >
 
-      <DashboardSidebar />
-
-      <DashboardMobileSidebar
-        isOpen={mobileSidebarOpen}
-        onClose={() => setMobileSidebarOpen(false)}
+      {/* Background overlay */}
+      <div
+        className="
+          absolute
+          inset-0
+          bg-white/60
+          backdrop-blur-sm
+        "
       />
 
-      <div className="lg:ml-72">
 
-        <DashboardHeader
-          onMenuClick={() => setMobileSidebarOpen(true)}
+      <div className="relative z-10 min-h-screen">
+
+        <DashboardSidebar />
+
+        <DashboardMobileSidebar
+          isOpen={mobileSidebarOpen}
+          onClose={() => setMobileSidebarOpen(false)}
         />
 
-        <main className="p-4 md:p-6 lg:p-8">
-          {children}
-        </main>
+        <div className="lg:ml-72">
+
+          <DashboardHeader
+            onMenuClick={() => setMobileSidebarOpen(true)}
+          />
+
+          <main className="p-4 md:p-6 lg:p-8">
+            {children}
+          </main>
+
+        </div>
 
       </div>
 
