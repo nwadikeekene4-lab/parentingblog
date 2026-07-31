@@ -24,7 +24,7 @@ export default function UsersDashboardLayout({
       "
       style={{
         backgroundImage:
-          "url('/images/loginimage.png')",
+          "url('/Images/loginimage.png')",
       }}
     >
 
