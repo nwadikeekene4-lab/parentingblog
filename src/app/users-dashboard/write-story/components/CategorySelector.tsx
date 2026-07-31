@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useStoryForm } from "./StoryFormContext";
 
 const categories = [
   "Pregnancy",
@@ -13,7 +13,10 @@ const categories = [
 ];
 
 export default function CategorySelector() {
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const {
+    category,
+    setCategory,
+  } = useStoryForm();
 
   return (
     <section className="rounded-2xl bg-white p-6 shadow-sm">
@@ -31,48 +34,39 @@ export default function CategorySelector() {
       </div>
 
       <select
-        value={selectedCategory}
-        onChange={(e) =>
-          setSelectedCategory(e.target.value)
-        }
+        value={category}
+        onChange={(e) => setCategory(e.target.value)}
         className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
       >
-
         <option value="">
           Select a category
         </option>
 
-        {categories.map((category) => (
+        {categories.map((item) => (
           <option
-            key={category}
-            value={category}
+            key={item}
+            value={item}
           >
-            {category}
+            {item}
           </option>
         ))}
-
       </select>
 
-      {selectedCategory && (
-
+      {category && (
         <div className="mt-4 rounded-xl bg-blue-50 p-4">
 
           <p className="text-sm font-medium text-blue-700">
-
             Selected Category:
 
             <span className="ml-2 font-bold">
-
-              {selectedCategory}
-
+              {category}
             </span>
 
           </p>
 
         </div>
-
       )}
 
     </section>
   );
-}
+        }
