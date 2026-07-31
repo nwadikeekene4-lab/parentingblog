@@ -1,6 +1,6 @@
 "use client";
 
-import { useStoryForm } from "../StoryFormContext";
+import { useStoryForm } from "./StoryFormContext";
 
 export default function StoryEditor() {
   const {
