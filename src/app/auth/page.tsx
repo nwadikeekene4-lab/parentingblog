@@ -9,13 +9,62 @@ export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-100 flex items-center justify-center px-4 py-10">
+    <main
+      className="
+        min-h-screen
+        bg-cover
+        bg-center
+        bg-fixed
+        relative
+        flex
+        items-center
+        justify-center
+        px-4
+        py-10
+      "
+      style={{
+        backgroundImage:
+          "url('/Images/loginimage.png')",
+      }}
+    >
 
-      <section className="w-full max-w-xl rounded-3xl bg-white shadow-2xl overflow-hidden">
+      {/* Background overlay */}
+      <div
+        className="
+          absolute
+          inset-0
+          bg-black/45
+          backdrop-blur-[2px]
+        "
+      />
+
+
+      <section
+        className="
+          relative
+          z-10
+          w-full
+          max-w-xl
+          rounded-3xl
+          bg-white/95
+          backdrop-blur-xl
+          shadow-2xl
+          overflow-hidden
+        "
+      >
 
         {/* Header */}
 
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-8 text-center">
+        <div
+          className="
+            bg-gradient-to-r
+            from-blue-600
+            to-purple-600
+            px-8
+            py-8
+            text-center
+          "
+        >
 
           <h1 className="text-3xl font-bold text-white">
             Parenting Together
@@ -26,6 +75,7 @@ export default function AuthPage() {
           </p>
 
         </div>
+
 
         {/* Tabs */}
 
@@ -42,6 +92,7 @@ export default function AuthPage() {
             Login
           </button>
 
+
           <button
             onClick={() => setMode("signup")}
             className={`flex-1 py-4 font-semibold transition ${
@@ -55,6 +106,7 @@ export default function AuthPage() {
 
         </div>
 
+
         <div className="p-8">
 
           {mode === "login" ? (
@@ -65,8 +117,10 @@ export default function AuthPage() {
 
         </div>
 
+
       </section>
+
 
     </main>
   );
-        }
+}
