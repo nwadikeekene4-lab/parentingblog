@@ -6,51 +6,56 @@ import CoverImageUpload from "./components/CoverImageUpload";
 import StoryImages from "./components/StoryImages";
 import StoryTags from "./components/StoryTags";
 import StoryActions from "./components/StoryActions";
+import { StoryFormProvider } from "./components/StoryFormContext";
 
 export default function WriteStoryPage() {
   return (
-    <div className="space-y-8">
+    <StoryFormProvider>
 
-      {/* Page Header */}
+      <div className="space-y-8">
 
-      <section className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white shadow-lg">
+        {/* Page Header */}
 
-        <h1 className="text-3xl font-bold">
-          Write a Story
-        </h1>
+        <section className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white shadow-lg">
 
-        <p className="mt-3 max-w-2xl text-blue-100">
-          Every parenting journey is unique. Share your
-          experience to educate, inspire and support
-          parents around the world.
-        </p>
+          <h1 className="text-3xl font-bold">
+            Write a Story
+          </h1>
 
-      </section>
+          <p className="mt-3 max-w-2xl text-blue-100">
+            Every parenting journey is unique. Share your
+            experience to educate, inspire and support
+            parents around the world.
+          </p>
 
-      {/* Story Details */}
+        </section>
 
-      <StoryEditor />
+        {/* Story Details */}
 
-      {/* Category */}
+        <StoryEditor />
 
-      <CategorySelector />
+        {/* Category */}
 
-      {/* Cover Image */}
+        <CategorySelector />
 
-      <CoverImageUpload />
+        {/* Cover Image */}
 
-      {/* Story Images */}
+        <CoverImageUpload />
 
-      <StoryImages />
+        {/* Story Images */}
 
-      {/* Story Tags */}
+        <StoryImages />
 
-      <StoryTags />
+        {/* Story Tags */}
 
-      {/* Publish Buttons */}
+        <StoryTags />
 
-      <StoryActions />
+        {/* Publish Buttons */}
 
-    </div>
+        <StoryActions />
+
+      </div>
+
+    </StoryFormProvider>
   );
-        }
+            }
