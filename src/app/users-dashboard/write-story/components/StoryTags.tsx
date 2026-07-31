@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useStoryForm } from "./StoryFormContext";
 
 const suggestedTags = [
   "First Pregnancy",
@@ -22,7 +23,8 @@ const suggestedTags = [
 ];
 
 export default function StoryTags() {
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const { tags, setTags } = useStoryForm();
+
   const [tagInput, setTagInput] = useState("");
 
   function addTag(tag: string) {
@@ -30,19 +32,17 @@ export default function StoryTags() {
 
     if (
       value === "" ||
-      selectedTags.includes(value) ||
-      selectedTags.length >= 5
+      tags.includes(value) ||
+      tags.length >= 5
     ) {
       return;
     }
 
-    setSelectedTags([...selectedTags, value]);
+    setTags([...tags, value]);
   }
 
   function removeTag(tag: string) {
-    setSelectedTags(
-      selectedTags.filter((t) => t !== tag)
-    );
+    setTags(tags.filter((t) => t !== tag));
   }
 
   function handleKeyDown(
@@ -78,16 +78,12 @@ export default function StoryTags() {
 
       </div>
 
-      {/* Input */}
-
       <div className="flex flex-col gap-3 sm:flex-row">
 
         <input
           type="text"
           value={tagInput}
-          onChange={(e) =>
-            setTagInput(e.target.value)
-          }
+          onChange={(e) => setTagInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Example: First Pregnancy"
           className="h-12 flex-1 rounded-xl border border-gray-300 px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
@@ -106,19 +102,15 @@ export default function StoryTags() {
 
       </div>
 
-      {/* Counter */}
-
       <p className="mt-4 text-sm text-gray-500">
-        {selectedTags.length} / 5 tags selected
+        {tags.length} / 5 tags selected
       </p>
 
-      {/* Selected */}
-
-      {selectedTags.length > 0 && (
+      {tags.length > 0 && (
 
         <div className="mt-5 flex flex-wrap gap-3">
 
-          {selectedTags.map((tag) => (
+          {tags.map((tag) => (
 
             <button
               key={tag}
@@ -135,8 +127,6 @@ export default function StoryTags() {
 
       )}
 
-      {/* Suggestions */}
-
       <div className="mt-8">
 
         <h3 className="mb-3 text-sm font-semibold text-gray-700">
@@ -151,9 +141,9 @@ export default function StoryTags() {
               key={tag}
               type="button"
               onClick={() => addTag(tag)}
-              disabled={selectedTags.includes(tag)}
+              disabled={tags.includes(tag)}
               className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                selectedTags.includes(tag)
+                tags.includes(tag)
                   ? "cursor-not-allowed bg-blue-600 text-white"
                   : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
               }`}
