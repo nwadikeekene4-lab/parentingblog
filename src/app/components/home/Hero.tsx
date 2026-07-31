@@ -77,7 +77,6 @@ export default function Hero() {
         "
       >
 
-
         {/* Hero Text */}
         <motion.div
           initial={{
@@ -152,7 +151,6 @@ export default function Hero() {
           </p>
 
         </motion.div>
-
 
 
         {/* Action Cards */}
@@ -239,11 +237,7 @@ export default function Hero() {
 
 
           </motion.div>
-
-
-
-
-          {/* Share Card */}
+                    {/* Share Card */}
           <motion.div
             whileHover={{
               y: -6,
@@ -252,7 +246,7 @@ export default function Hero() {
               scale: 0.97,
             }}
             onClick={() => {
-              router.push('/stories/my-stories');
+              router.push('/auth');
             }}
             className="
               cursor-pointer
@@ -321,4 +315,4 @@ export default function Hero() {
 
     </section>
   );
-          }
+}
