@@ -1,10 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useStoryForm } from "../StoryFormContext";
 
 export default function StoryEditor() {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const {
+    title,
+    setTitle,
+    content,
+    setContent,
+  } = useStoryForm();
 
   const wordCount =
     content.trim() === ""
@@ -89,4 +93,4 @@ export default function StoryEditor() {
 
     </section>
   );
-      }
+        }
