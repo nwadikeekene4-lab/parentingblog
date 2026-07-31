@@ -107,29 +107,32 @@ export async function POST(request: Request) {
 
       slug = `${createSlug(title)}-${counter}`;
       counter++;
-             }
+    }
 
-        await db.insert(stories).values({
-      title: title.trim(),
+    const [story] = await db
+      .insert(stories)
+      .values({
+        title: title.trim(),
 
-      slug,
+        slug,
 
-      content: content.trim(),
+        content: content.trim(),
 
-      authorId: user.id,
+        authorId: user.id,
 
-      categoryId: existingCategory.id,
+        categoryId: existingCategory.id,
 
-      status:
-        status === "published"
-          ? "pending_review"
-          : "draft",
+        status:
+          status === "published"
+            ? "pending_review"
+            : "draft",
 
-      publishedAt:
-        status === "published"
-          ? new Date()
-          : null,
-    });
+        publishedAt:
+          status === "published"
+            ? new Date()
+            : null,
+      })
+      .returning();
 
     return NextResponse.json(
       {
@@ -137,12 +140,16 @@ export async function POST(request: Request) {
           status === "published"
             ? "Story submitted for review successfully."
             : "Draft saved successfully.",
+
+        story,
       },
       {
         status: 201,
       }
     );
+
   } catch (error) {
+
     console.error(error);
 
     return NextResponse.json(
@@ -154,4 +161,4 @@ export async function POST(request: Request) {
       }
     );
   }
-        }
+}
