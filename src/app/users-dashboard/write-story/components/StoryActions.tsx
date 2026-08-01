@@ -28,6 +28,10 @@ export default function StoryActions() {
   async function submitStory(
     status: "draft" | "published"
   ) {
+    if (savingDraft || publishing) {
+      return;
+    }
+
     if (!title.trim()) {
       alert("Please enter a story title.");
       return;
@@ -38,7 +42,7 @@ export default function StoryActions() {
       return;
     }
 
-    if (!category) {
+    if (!category.trim()) {
       alert("Please select a category.");
       return;
     }
@@ -79,7 +83,8 @@ export default function StoryActions() {
             )
           )
         );
-            const response = await fetch(
+
+      const response = await fetch(
         "/api/stories",
         {
           method: "POST",
@@ -90,9 +95,9 @@ export default function StoryActions() {
           },
 
           body: JSON.stringify({
-            title,
-            content,
-            category,
+            title: title.trim(),
+            content: content.trim(),
+            category: category.trim(),
             status,
 
             coverImageUrl:
@@ -129,9 +134,11 @@ export default function StoryActions() {
 
       resetForm();
 
-      router.push(
-        `/stories/${data.story.slug}`
-      );
+      if (status === "published") {
+        router.push(
+          `/stories/${data.story.slug}`
+        );
+      }
 
     } catch (error) {
 
@@ -216,5 +223,4 @@ export default function StoryActions() {
 
     </section>
   );
-
         }
