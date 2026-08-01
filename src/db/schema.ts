@@ -885,3 +885,28 @@ export const bookmarksRelations = relations(
 
   })
 );
+export const storyTagsRelations = relations(
+  storyTags,
+  ({ one }) => ({
+
+    story: one(stories, {
+      fields: [storyTags.storyId],
+      references: [stories.id],
+    }),
+
+    tag: one(tags, {
+      fields: [storyTags.tagId],
+      references: [tags.id],
+    }),
+
+  })
+);
+
+export const tagsRelations = relations(
+  tags,
+  ({ many }) => ({
+
+    stories: many(storyTags),
+
+  })
+);
