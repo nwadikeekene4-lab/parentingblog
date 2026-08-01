@@ -198,6 +198,10 @@ export const stories = pgTable("stories", {
 
   coverImage: text("cover_image"),
 
+coverImagePublicId: text(
+  "cover_image_public_id"
+),
+
   authorId: uuid("author_id")
     .references(() => users.id, {
       onDelete: "cascade",
@@ -256,9 +260,12 @@ export const storyImages = pgTable("story_images", {
     .notNull(),
 
   imageUrl: text("image_url")
-    .notNull(),
+  .notNull(),
 
-  caption: text("caption"),
+publicId: text("public_id")
+  .notNull(),
+
+caption: text("caption"),
 
   displayOrder: integer("display_order")
     .default(0)
