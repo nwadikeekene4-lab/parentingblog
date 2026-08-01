@@ -1,12 +1,18 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useStoryForm } from "./StoryFormContext";
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function CoverImageUpload() {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [preview, setPreview] = useState<string | null>(null);
+  const {
+    coverImage,
+    setCoverImage,
+  } = useStoryForm();
 
   function handleSelectImage(
     e: React.ChangeEvent<HTMLInputElement>
@@ -15,24 +21,53 @@ export default function CoverImageUpload() {
 
     if (!file) return;
 
-    const imageUrl = URL.createObjectURL(file);
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image.");
+      return;
+    }
 
-    setPreview(imageUrl);
+    if (file.size > MAX_FILE_SIZE) {
+      alert("Image must be smaller than 10MB.");
+      return;
+    }
+
+    if (coverImage?.preview) {
+      URL.revokeObjectURL(coverImage.preview);
+    }
+
+    const preview = URL.createObjectURL(file);
+
+    setCoverImage({
+      id: crypto.randomUUID(),
+      file,
+      preview,
+      uploading: false,
+    });
   }
 
   function removeImage() {
-    setPreview(null);
+    if (coverImage?.preview) {
+      URL.revokeObjectURL(coverImage.preview);
+    }
+
+    setCoverImage(null);
 
     if (inputRef.current) {
       inputRef.current.value = "";
     }
   }
 
+  useEffect(() => {
+    return () => {
+      if (coverImage?.preview) {
+        URL.revokeObjectURL(coverImage.preview);
+      }
+    };
+  }, [coverImage]);
+
   return (
     <section className="rounded-2xl bg-white p-6 shadow-sm">
-
       <div className="mb-5">
-
         <h2 className="text-xl font-bold text-gray-900">
           Cover Image
         </h2>
@@ -40,19 +75,17 @@ export default function CoverImageUpload() {
         <p className="mt-2 text-sm text-gray-500">
           Upload a beautiful image that represents your story.
         </p>
-
       </div>
 
       <div className="space-y-5">
 
-        {!preview ? (
+        {!coverImage ? (
 
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
             className="flex h-64 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 transition hover:border-blue-500 hover:bg-blue-50"
           >
-
             <span className="text-5xl">
               📷
             </span>
@@ -62,7 +95,7 @@ export default function CoverImageUpload() {
             </p>
 
             <p className="mt-2 text-sm text-gray-500">
-              JPG, PNG or WEBP
+              JPG, PNG or WEBP (Max 10MB)
             </p>
 
           </button>
@@ -74,7 +107,7 @@ export default function CoverImageUpload() {
             <div className="relative h-72 overflow-hidden rounded-2xl">
 
               <Image
-                src={preview}
+                src={coverImage.preview}
                 alt="Cover Preview"
                 fill
                 unoptimized
@@ -104,7 +137,6 @@ export default function CoverImageUpload() {
         />
 
       </div>
-
     </section>
   );
-}
+    }
