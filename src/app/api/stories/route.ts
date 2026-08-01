@@ -1,16 +1,30 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
+
 import {
   stories,
   categories,
+  storyImages,
+  tags,
+  storyTags,
 } from "@/db/schema";
 
 import { getCurrentUser } from "@/lib/session";
+import { generateExcerpt } from "@/lib/story";
 
 function createSlug(title: string) {
   return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
+function createTagSlug(tag: string) {
+  return tag
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9\s-]/g, "")
@@ -40,6 +54,10 @@ export async function POST(request: Request) {
       content,
       category,
       status,
+      coverImageUrl,
+      coverImagePublicId,
+      storyImages: uploadedImages = [],
+      tags: selectedTags = [],
     } = body;
 
     if (
@@ -65,7 +83,8 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json(
         {
-          message: "Invalid story status.",
+          message:
+            "Invalid story status.",
         },
         {
           status: 400,
@@ -82,7 +101,8 @@ export async function POST(request: Request) {
     if (!existingCategory) {
       return NextResponse.json(
         {
-          message: "Category not found.",
+          message:
+            "Category not found.",
         },
         {
           status: 404,
@@ -109,32 +129,160 @@ export async function POST(request: Request) {
       counter++;
     }
 
-    const [story] = await db
-      .insert(stories)
-      .values({
-        title: title.trim(),
+    const excerpt =
+      generateExcerpt(content);
+        const story = await db.transaction(
+      async (tx) => {
 
-        slug,
+        const [newStory] =
+          await tx
+            .insert(stories)
+            .values({
+              title: title.trim(),
 
-        content: content.trim(),
+              slug,
 
-        authorId: user.id,
+              excerpt,
 
-        categoryId: existingCategory.id,
+              content: content.trim(),
 
-        status:
-          status === "published"
-            ? "pending_review"
-            : "draft",
+              coverImage:
+                coverImageUrl ?? null,
 
-        publishedAt:
-          status === "published"
-            ? new Date()
-            : null,
-      })
-      .returning();
+              coverImagePublicId:
+                coverImagePublicId ?? null,
 
-    return NextResponse.json(
+              authorId: user.id,
+
+              categoryId:
+                existingCategory.id,
+
+              status:
+                status === "published"
+                  ? "pending_review"
+                  : "draft",
+
+              publishedAt:
+                status === "published"
+                  ? new Date()
+                  : null,
+            })
+            .returning();
+
+        if (uploadedImages.length > 0) {
+
+          await tx
+            .insert(storyImages)
+            .values(
+              uploadedImages.map(
+                (
+                  image: {
+                    url: string;
+                    publicId: string;
+                  },
+                  index: number
+                ) => ({
+                  storyId:
+                    newStory.id,
+
+                  imageUrl:
+                    image.url,
+
+                  publicId:
+                    image.publicId,
+
+                  displayOrder:
+                    index,
+                })
+              )
+            );
+
+        }
+
+        for (const tagName of selectedTags) {
+
+          const cleanTag =
+            tagName.trim();
+
+          if (!cleanTag) {
+            continue;
+          }
+
+          let existingTag =
+            await tx.query.tags.findFirst({
+              where: (
+                tags,
+                { eq }
+              ) =>
+                eq(
+                  tags.name,
+                  cleanTag
+                ),
+            });
+
+          if (!existingTag) {
+
+            const [newTag] =
+              await tx
+                .insert(tags)
+                .values({
+                  name: cleanTag,
+
+                  slug:
+                    createTagSlug(
+                      cleanTag
+                    ),
+                })
+                .returning();
+
+            existingTag =
+              newTag;
+
+          }
+
+          const alreadyLinked =
+            await tx.query.storyTags.findFirst(
+              {
+                where: (
+                  storyTags,
+                  { and, eq }
+                ) =>
+                  and(
+                    eq(
+                      storyTags.storyId,
+                      newStory.id
+                    ),
+
+                    eq(
+                      storyTags.tagId,
+                      existingTag.id
+                    )
+                  ),
+              }
+            );
+
+          if (!alreadyLinked) {
+
+            await tx
+              .insert(storyTags)
+              .values({
+                storyId:
+                  newStory.id,
+
+                tagId:
+                  existingTag.id,
+              });
+
+          }
+
+        }
+
+        return newStory;
+
+      }
+    );
+
+        return NextResponse.json(
       {
         message:
           status === "published"
@@ -150,15 +298,20 @@ export async function POST(request: Request) {
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "Create story error:",
+      error
+    );
 
     return NextResponse.json(
       {
-        message: "Internal server error.",
+        message:
+          "Internal server error.",
       },
       {
         status: 500,
       }
     );
+
   }
 }
