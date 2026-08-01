@@ -1,41 +1,175 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { useStoryForm } from "./StoryFormContext";
+import { uploadImage } from "@/lib/uploadImage";
 
 export default function StoryActions() {
-  const [savingDraft, setSavingDraft] = useState(false);
-  const [publishing, setPublishing] = useState(false);
+  const router = useRouter();
+
+  const {
+    title,
+    content,
+    category,
+    coverImage,
+    storyImages,
+    tags,
+    resetForm,
+  } = useStoryForm();
+
+  const [savingDraft, setSavingDraft] =
+    useState(false);
+
+  const [publishing, setPublishing] =
+    useState(false);
+
+  async function submitStory(
+    status: "draft" | "published"
+  ) {
+    if (!title.trim()) {
+      alert("Please enter a story title.");
+      return;
+    }
+
+    if (!content.trim()) {
+      alert("Please write your story.");
+      return;
+    }
+
+    if (!category) {
+      alert("Please select a category.");
+      return;
+    }
+
+    if (
+      status === "published" &&
+      !coverImage
+    ) {
+      alert(
+        "Please upload a cover image before publishing."
+      );
+      return;
+    }
+
+    if (status === "draft") {
+      setSavingDraft(true);
+    } else {
+      setPublishing(true);
+    }
+
+    try {
+      let uploadedCover = null;
+
+      if (coverImage) {
+        uploadedCover =
+          await uploadImage(
+            coverImage.file,
+            "parenting-blog/cover-images"
+          );
+      }
+
+      const uploadedStoryImages =
+        await Promise.all(
+          storyImages.map((image) =>
+            uploadImage(
+              image.file,
+              "parenting-blog/story-images"
+            )
+          )
+        );
+            const response = await fetch(
+        "/api/stories",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            title,
+            content,
+            category,
+            status,
+
+            coverImageUrl:
+              uploadedCover?.url ?? null,
+
+            coverImagePublicId:
+              uploadedCover?.publicId ?? null,
+
+            storyImages:
+              uploadedStoryImages.map(
+                (image) => ({
+                  url: image.url,
+                  publicId:
+                    image.publicId,
+                })
+              ),
+
+            tags,
+          }),
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ??
+            "Failed to save story."
+        );
+      }
+
+      alert(data.message);
+
+      resetForm();
+
+      router.push(
+        `/stories/${data.story.slug}`
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong."
+      );
+
+    } finally {
+
+      setSavingDraft(false);
+
+      setPublishing(false);
+
+    }
+
+  }
 
   async function saveDraft() {
-    setSavingDraft(true);
-
-    // Backend integration later
-    await new Promise((resolve) =>
-      setTimeout(resolve, 1500)
-    );
-
-    alert("Draft saved successfully!");
-
-    setSavingDraft(false);
+    await submitStory("draft");
   }
 
   async function publishStory() {
-    const confirmed = window.confirm(
-      "Are you sure you want to publish this story?"
-    );
+
+    const confirmed =
+      window.confirm(
+        "Are you sure you want to publish this story?"
+      );
 
     if (!confirmed) return;
 
-    setPublishing(true);
-
-    // Backend integration later
-    await new Promise((resolve) =>
-      setTimeout(resolve, 2000)
+    await submitStory(
+      "published"
     );
 
-    alert("Story published successfully!");
-
-    setPublishing(false);
   }
 
   return (
@@ -53,23 +187,34 @@ export default function StoryActions() {
         <button
           type="button"
           onClick={saveDraft}
-          disabled={savingDraft}
+          disabled={
+            savingDraft ||
+            publishing
+          }
           className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-white transition hover:bg-yellow-600 disabled:opacity-60"
         >
-          {savingDraft ? "Saving..." : "Save Draft"}
+          {savingDraft
+            ? "Saving..."
+            : "Save Draft"}
         </button>
 
         <button
           type="button"
           onClick={publishStory}
-          disabled={publishing}
+          disabled={
+            savingDraft ||
+            publishing
+          }
           className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
         >
-          {publishing ? "Publishing..." : "Publish Story"}
+          {publishing
+            ? "Publishing..."
+            : "Publish Story"}
         </button>
 
       </div>
 
     </section>
   );
-}
+
+        }
