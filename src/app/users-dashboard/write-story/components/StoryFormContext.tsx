@@ -7,6 +7,16 @@ import {
   ReactNode,
 } from "react";
 
+export type UploadedImage = {
+  id: string;
+  file: File;
+  preview: string;
+  url?: string;
+  publicId?: string;
+  uploading: boolean;
+  error?: string;
+};
+
 type StoryFormContextType = {
   title: string;
   setTitle: (value: string) => void;
@@ -17,18 +27,26 @@ type StoryFormContextType = {
   category: string;
   setCategory: (value: string) => void;
 
-  coverImage: File | null;
-  setCoverImage: (file: File | null) => void;
+  coverImage: UploadedImage | null;
+  setCoverImage: (
+    image: UploadedImage | null
+  ) => void;
 
-  storyImages: File[];
-  setStoryImages: (files: File[]) => void;
+  storyImages: UploadedImage[];
+  setStoryImages: (
+    images: UploadedImage[]
+  ) => void;
 
   tags: string[];
   setTags: (tags: string[]) => void;
+
+  resetForm: () => void;
 };
 
 const StoryFormContext =
-  createContext<StoryFormContextType | null>(null);
+  createContext<StoryFormContextType | null>(
+    null
+  );
 
 export function StoryFormProvider({
   children,
@@ -36,35 +54,53 @@ export function StoryFormProvider({
   children: ReactNode;
 }) {
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+
+  const [content, setContent] =
+    useState("");
 
   const [category, setCategory] =
     useState("");
 
   const [coverImage, setCoverImage] =
-    useState<File | null>(null);
+    useState<UploadedImage | null>(null);
 
   const [storyImages, setStoryImages] =
-    useState<File[]>([]);
+    useState<UploadedImage[]>([]);
 
   const [tags, setTags] =
     useState<string[]>([]);
+
+  function resetForm() {
+    setTitle("");
+    setContent("");
+    setCategory("");
+    setCoverImage(null);
+    setStoryImages([]);
+    setTags([]);
+  }
 
   return (
     <StoryFormContext.Provider
       value={{
         title,
         setTitle,
+
         content,
         setContent,
+
         category,
         setCategory,
+
         coverImage,
         setCoverImage,
+
         storyImages,
         setStoryImages,
+
         tags,
         setTags,
+
+        resetForm,
       }}
     >
       {children}
@@ -83,4 +119,4 @@ export function useStoryForm() {
   }
 
   return context;
-  }
+}
