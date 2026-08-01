@@ -6,6 +6,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
 
     const file = formData.get("file") as File | null;
+    const folder = (formData.get("folder") as string) || "parenting-blog";
 
     if (!file) {
       return NextResponse.json(
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
       cloudinary.uploader
         .upload_stream(
           {
-            folder: "parenting-blog",
+            folder,
             resource_type: "image",
           },
           (error, result) => {
@@ -41,10 +42,8 @@ export async function POST(request: NextRequest) {
     console.error("Cloudinary upload error:", error);
 
     return NextResponse.json(
-      {
-        error: "Image upload failed.",
-      },
+      { error: "Image upload failed." },
       { status: 500 }
     );
   }
-        }
+    }
