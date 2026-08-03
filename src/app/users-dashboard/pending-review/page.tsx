@@ -1,11 +1,25 @@
 import Link from "next/link";
 
-export default function PendingReviewPage() {
-  // Will come from the database later
+type PendingReviewPageProps = {
+  searchParams?: Promise<{
+    submitted?: string;
+  }>;
+};
+
+export default async function PendingReviewPage({
+  searchParams,
+}: PendingReviewPageProps) {
+  const params = await searchParams;
+
+  const submitted =
+    params?.submitted === "true";
+
+  // Database integration comes next
   const pendingStories: unknown[] = [];
 
   return (
     <div className="space-y-8">
+
       <header>
         <h1 className="text-3xl font-bold text-gray-900">
           Pending Review
@@ -16,8 +30,27 @@ export default function PendingReviewPage() {
         </p>
       </header>
 
+      {submitted && (
+        <section className="rounded-2xl border border-green-200 bg-green-50 p-6 shadow-sm">
+
+          <h2 className="text-xl font-semibold text-green-900">
+            ✅ Story submitted successfully
+          </h2>
+
+          <p className="mt-3 text-green-800">
+            Your story has been sent for review.
+            Only you and administrators can view it while it is awaiting approval.
+            After an administrator approves it, it will automatically appear in
+            <strong> My Stories (Published)</strong> and become visible to visitors.
+          </p>
+
+        </section>
+      )}
+
       {pendingStories.length === 0 ? (
+
         <section className="rounded-2xl border border-yellow-200 bg-yellow-50 p-8 shadow-sm">
+
           <h2 className="text-xl font-semibold text-yellow-900">
             No stories are currently awaiting review
           </h2>
@@ -34,12 +67,17 @@ export default function PendingReviewPage() {
           >
             Write a Story
           </Link>
+
         </section>
+
       ) : (
+
         <div className="space-y-6">
           {/* Pending story cards will be rendered here */}
         </div>
+
       )}
+
     </div>
   );
-          }
+        }
