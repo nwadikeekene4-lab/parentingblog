@@ -43,5 +43,7 @@ export async function getCurrentUser() {
     return null;
   }
 
+  console.log("Current logged in user:", user);
+
   return user;
 }
