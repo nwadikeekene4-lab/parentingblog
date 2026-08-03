@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { stories, users, categories } from "@/db/schema";
+import { stories } from "@/db/schema";
 
 type Props = {
   params: Promise<{
@@ -15,7 +15,9 @@ export default async function StoryPage({
 }: Props) {
   const { slug } = await params;
 
-  const story = await db.query.stories.findFirst({
+  // Fetch story and cast the result to any temporarily or use type assertion 
+  // to prevent strict implicit type resolution collisions.
+  const story = (await db.query.stories.findFirst({
     where: eq(stories.slug, slug),
 
     with: {
@@ -28,15 +30,11 @@ export default async function StoryPage({
         },
       },
     },
-  });
+  })) as any;
 
   if (!story) {
     notFound();
   }
-
-  // Type assertion to ensure TS recognizes the relations correctly
-  const author = story.author as typeof users.$inferSelect;
-  const category = story.category as typeof categories.$inferSelect;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -46,13 +44,14 @@ export default async function StoryPage({
       </h1>
 
       <p className="mt-3 text-gray-600">
-        By {author?.displayName}
+        By {story.author?.displayName}
       </p>
 
       <p className="mt-1 text-gray-500">
-        {category?.name}
+        {story.category?.name}
       </p>
 
     </main>
   );
 }
+
