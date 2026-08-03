@@ -1,4 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { and, desc, eq } from "drizzle-orm";
+
+import { db } from "@/db";
+import { stories, categories } from "@/db/schema";
+import { getCurrentUser } from "@/lib/session";
 
 type PendingReviewPageProps = {
   searchParams?: Promise<{
@@ -14,8 +20,34 @@ export default async function PendingReviewPage({
   const submitted =
     params?.submitted === "true";
 
-  // Database integration comes next
-  const pendingStories: unknown[] = [];
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const pendingStories = await db
+    .select({
+      id: stories.id,
+      title: stories.title,
+      slug: stories.slug,
+      coverImage: stories.coverImage,
+      createdAt: stories.createdAt,
+      category: categories.name,
+    })
+    .from(stories)
+    .innerJoin(
+      categories,
+      eq(stories.categoryId, categories.id)
+    )
+    .where(
+      and(
+        eq(stories.authorId, user.id),
+        eq(stories.status, "pending_review"),
+        eq(stories.isDeleted, false)
+      )
+    )
+    .orderBy(desc(stories.createdAt));
 
   return (
     <div className="space-y-8">
@@ -80,4 +112,4 @@ export default async function PendingReviewPage({
 
     </div>
   );
-        }
+  }
