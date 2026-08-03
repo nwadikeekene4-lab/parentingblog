@@ -1,0 +1,36 @@
+import Link from "next/link";
+
+export default function PendingReviewPage() {
+  return (
+    <div className="space-y-8">
+      <header>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Pending Review
+        </h1>
+
+        <p className="mt-2 text-gray-600">
+          Stories you have submitted that are waiting for administrator approval.
+        </p>
+      </header>
+
+      <section className="rounded-2xl border border-yellow-200 bg-yellow-50 p-8 shadow-sm">
+        <h2 className="text-xl font-semibold text-yellow-900">
+          No stories are currently awaiting review
+        </h2>
+
+        <p className="mt-3 max-w-2xl text-yellow-800">
+          After you publish a story, it will appear here while an administrator
+          reviews it. During this stage, only you and administrators can access
+          it. Visitors cannot see it until it has been approved.
+        </p>
+
+        <Link
+          href="/users-dashboard/write-story"
+          className="mt-6 inline-flex rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+        >
+          Write a Story
+        </Link>
+      </section>
+    </div>
+  );
+          }
