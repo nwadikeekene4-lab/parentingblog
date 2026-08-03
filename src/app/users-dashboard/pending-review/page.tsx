@@ -49,6 +49,8 @@ export default async function PendingReviewPage({
     )
     .orderBy(desc(stories.createdAt));
 
+  console.log("Pending stories:", pendingStories);
+
   return (
     <div className="space-y-8">
 
@@ -112,4 +114,4 @@ export default async function PendingReviewPage({
 
     </div>
   );
-  }
+    }
