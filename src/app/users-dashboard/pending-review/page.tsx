@@ -1,6 +1,9 @@
 import Link from "next/link";
 
 export default function PendingReviewPage() {
+  // Will come from the database later
+  const pendingStories: unknown[] = [];
+
   return (
     <div className="space-y-8">
       <header>
@@ -13,24 +16,30 @@ export default function PendingReviewPage() {
         </p>
       </header>
 
-      <section className="rounded-2xl border border-yellow-200 bg-yellow-50 p-8 shadow-sm">
-        <h2 className="text-xl font-semibold text-yellow-900">
-          No stories are currently awaiting review
-        </h2>
+      {pendingStories.length === 0 ? (
+        <section className="rounded-2xl border border-yellow-200 bg-yellow-50 p-8 shadow-sm">
+          <h2 className="text-xl font-semibold text-yellow-900">
+            No stories are currently awaiting review
+          </h2>
 
-        <p className="mt-3 max-w-2xl text-yellow-800">
-          After you publish a story, it will appear here while an administrator
-          reviews it. During this stage, only you and administrators can access
-          it. Visitors cannot see it until it has been approved.
-        </p>
+          <p className="mt-3 max-w-2xl text-yellow-800">
+            After you publish a story, it will appear here while an administrator
+            reviews it. During this stage, only you and administrators can access
+            it. Visitors cannot see it until it has been approved.
+          </p>
 
-        <Link
-          href="/users-dashboard/write-story"
-          className="mt-6 inline-flex rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
-        >
-          Write a Story
-        </Link>
-      </section>
+          <Link
+            href="/users-dashboard/write-story"
+            className="mt-6 inline-flex rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+          >
+            Write a Story
+          </Link>
+        </section>
+      ) : (
+        <div className="space-y-6">
+          {/* Pending story cards will be rendered here */}
+        </div>
+      )}
     </div>
   );
           }
