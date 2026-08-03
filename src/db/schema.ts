@@ -10,6 +10,7 @@ import {
   integer,
   pgEnum,
   unique,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 
 
@@ -345,51 +346,56 @@ export const storyTags = pgTable(
    COMMENTS
 =========================== */
 
-export const comments = pgTable("comments", {
+export const comments = pgTable(
+  "comments",
+  {
 
-  id: uuid("id")
-    .defaultRandom()
-    .primaryKey(),
+    id: uuid("id")
+      .defaultRandom()
+      .primaryKey(),
 
-  storyId: uuid("story_id")
-    .references(() => stories.id, {
-      onDelete: "cascade",
-    })
-    .notNull(),
+    storyId: uuid("story_id")
+      .references(() => stories.id, {
+        onDelete: "cascade",
+      })
+      .notNull(),
 
-  userId: uuid("user_id")
-    .references(() => users.id, {
-      onDelete: "cascade",
-    })
-    .notNull(),
+    userId: uuid("user_id")
+      .references(() => users.id, {
+        onDelete: "cascade",
+      })
+      .notNull(),
 
-parentCommentId: uuid("parent_comment_id")
-  .references(() => comments.id, {
-    onDelete: "cascade",
-  }),
-  
-  content: text("content")
-    .notNull(),
+    parentCommentId: uuid("parent_comment_id"),
 
-  isApproved: boolean("is_approved")
-    .default(true)
-    .notNull(),
+    content: text("content")
+      .notNull(),
 
-  isDeleted: boolean("is_deleted")
-    .default(false)
-    .notNull(),
+    isApproved: boolean("is_approved")
+      .default(true)
+      .notNull(),
 
-  createdAt: timestamp("created_at")
-    .defaultNow()
-    .notNull(),
+    isDeleted: boolean("is_deleted")
+      .default(false)
+      .notNull(),
 
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .notNull(),
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
 
-});
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull(),
 
-
+  },
+  (table) => ({
+    parentCommentFk: foreignKey({
+      columns: [table.parentCommentId],
+      foreignColumns: [table.id],
+      name: "comments_parent_comment_fk",
+    }).onDelete("cascade"),
+  })
+);
 /* ===========================
    STORY LIKES
 =========================== */
