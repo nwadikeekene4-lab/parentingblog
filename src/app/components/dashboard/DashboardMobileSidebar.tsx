@@ -1,4 +1,3 @@
-
 "use client";
 
 import DashboardNavItem from "./DashboardNavItem";
@@ -71,6 +70,13 @@ export default function DashboardMobileSidebar({
                 href="/users-dashboard/write-story"
                 icon="✍️"
                 label="Write Story"
+                onClick={onClose}
+              />
+
+              <DashboardNavItem
+                href="/users-dashboard/pending-review"
+                icon="⏳"
+                label="Pending Review"
                 onClick={onClose}
               />
 
