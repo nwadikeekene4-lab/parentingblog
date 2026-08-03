@@ -129,159 +129,122 @@ export async function POST(request: Request) {
       counter++;
     }
 
-    const excerpt =
-      generateExcerpt(content);
-        const story = await db.transaction(
-      async (tx) => {
+    const excerpt = generateExcerpt(content);
 
-        const [newStory] =
-          await tx
-            .insert(stories)
-            .values({
-              title: title.trim(),
+const [story] = await db
+  .insert(stories)
+  .values({
+    title: title.trim(),
 
-              slug,
+    slug,
 
-              excerpt,
+    excerpt,
 
-              content: content.trim(),
+    content: content.trim(),
 
-              coverImage:
-                coverImageUrl ?? null,
+    coverImage:
+      coverImageUrl ?? null,
 
-              coverImagePublicId:
-                coverImagePublicId ?? null,
+    coverImagePublicId:
+      coverImagePublicId ?? null,
 
-              authorId: user.id,
+    authorId: user.id,
 
-              categoryId:
-                existingCategory.id,
+    categoryId:
+      existingCategory.id,
 
-              status:
-                status === "published"
-                  ? "pending_review"
-                  : "draft",
+    status:
+      status === "published"
+        ? "pending_review"
+        : "draft",
 
-              publishedAt:
-                status === "published"
-                  ? new Date()
-                  : null,
-            })
-            .returning();
+    publishedAt:
+      status === "published"
+        ? new Date()
+        : null,
+  })
+  .returning();
 
-        if (uploadedImages.length > 0) {
+if (uploadedImages.length > 0) {
+  await db
+    .insert(storyImages)
+    .values(
+      uploadedImages.map(
+        (
+          image: {
+            url: string;
+            publicId: string;
+          },
+          index: number
+        ) => ({
+          storyId: story.id,
 
-          await tx
-            .insert(storyImages)
-            .values(
-              uploadedImages.map(
-                (
-                  image: {
-                    url: string;
-                    publicId: string;
-                  },
-                  index: number
-                ) => ({
-                  storyId:
-                    newStory.id,
+          imageUrl: image.url,
 
-                  imageUrl:
-                    image.url,
+          publicId: image.publicId,
 
-                  publicId:
-                    image.publicId,
-
-                  displayOrder:
-                    index,
-                })
-              )
-            );
-
-        }
-
-        for (const tagName of selectedTags) {
-
-          const cleanTag =
-            tagName.trim();
-
-          if (!cleanTag) {
-            continue;
-          }
-
-          let existingTag =
-            await tx.query.tags.findFirst({
-              where: (
-                tags,
-                { eq }
-              ) =>
-                eq(
-                  tags.name,
-                  cleanTag
-                ),
-            });
-
-          if (!existingTag) {
-
-            const [newTag] =
-              await tx
-                .insert(tags)
-                .values({
-                  name: cleanTag,
-
-                  slug:
-                    createTagSlug(
-                      cleanTag
-                    ),
-                })
-                .returning();
-
-            existingTag =
-              newTag;
-
-          }
-
-          const alreadyLinked =
-            await tx.query.storyTags.findFirst(
-              {
-                where: (
-                  storyTags,
-                  { and, eq }
-                ) =>
-                  and(
-                    eq(
-                      storyTags.storyId,
-                      newStory.id
-                    ),
-
-                    eq(
-                      storyTags.tagId,
-                      existingTag.id
-                    )
-                  ),
-              }
-            );
-
-          if (!alreadyLinked) {
-
-            await tx
-              .insert(storyTags)
-              .values({
-                storyId:
-                  newStory.id,
-
-                tagId:
-                  existingTag.id,
-              });
-
-          }
-
-        }
-
-        return newStory;
-
-      }
+          displayOrder: index,
+        })
+      )
     );
+}
 
+for (const tagName of selectedTags) {
+  const cleanTag = tagName.trim();
+
+  if (!cleanTag) {
+    continue;
+  }
+
+  let existingTag =
+    await db.query.tags.findFirst({
+      where: (tags, { eq }) =>
+        eq(tags.name, cleanTag),
+    });
+
+  if (!existingTag) {
+    const [newTag] =
+      await db
+        .insert(tags)
+        .values({
+          name: cleanTag,
+
+          slug:
+            createTagSlug(cleanTag),
+        })
+        .returning();
+
+    existingTag = newTag;
+  }
+
+  const alreadyLinked =
+    await db.query.storyTags.findFirst({
+      where: (
+        storyTags,
+        { and, eq }
+      ) =>
+        and(
+          eq(
+            storyTags.storyId,
+            story.id
+          ),
+          eq(
+            storyTags.tagId,
+            existingTag.id
+          )
+        ),
+    });
+
+  if (!alreadyLinked) {
+    await db
+      .insert(storyTags)
+      .values({
+        storyId: story.id,
+
+        tagId: existingTag.id,
+      });
+  }
+      }
         return NextResponse.json(
       {
         message:
