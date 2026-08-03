@@ -135,8 +135,12 @@ export default function StoryActions() {
       resetForm();
 
       if (status === "published") {
-        router.push(
-          `/stories/${data.story.slug}`
+        router.replace(
+          "/users-dashboard/pending-review?submitted=true"
+        );
+      } else {
+        router.replace(
+          "/users-dashboard/drafts"
         );
       }
 
@@ -223,4 +227,4 @@ export default function StoryActions() {
 
     </section>
   );
-        }
+          }
