@@ -56,4 +56,3 @@ export default async function StoryPage({
     </main>
   );
 }
-
