@@ -10,16 +10,30 @@ type Props = {
   }>;
 };
 
-export default async function StoryPage({
-  params,
-}: Props) {
+// Define an explicit interface for the query result to guarantee production safety
+type StoryWithRelations = {
+  title: string;
+  content: string;
+  author: {
+    displayName: string;
+  };
+  category: {
+    name: string;
+  };
+  images: Array<{ imageUrl: string; caption?: string | null }>;
+  tags: Array<{
+    tag: {
+      name: string;
+      slug: string;
+    };
+  }>;
+};
+
+export default async function StoryPage({ params }: Props) {
   const { slug } = await params;
 
-  // Fetch story and cast the result to any temporarily or use type assertion 
-  // to prevent strict implicit type resolution collisions.
   const story = (await db.query.stories.findFirst({
     where: eq(stories.slug, slug),
-
     with: {
       author: true,
       category: true,
@@ -30,7 +44,7 @@ export default async function StoryPage({
         },
       },
     },
-  })) as any;
+  })) as unknown as StoryWithRelations | undefined;
 
   if (!story) {
     notFound();
@@ -38,10 +52,7 @@ export default async function StoryPage({
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
-
-      <h1 className="text-4xl font-bold">
-        {story.title}
-      </h1>
+      <h1 className="text-4xl font-bold">{story.title}</h1>
 
       <p className="mt-3 text-gray-600">
         By {story.author?.displayName}
@@ -50,7 +61,6 @@ export default async function StoryPage({
       <p className="mt-1 text-gray-500">
         {story.category?.name}
       </p>
-
     </main>
   );
 }
