@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { stories } from "@/db/schema";
+import { stories, users, categories } from "@/db/schema";
 
 type Props = {
   params: Promise<{
@@ -34,6 +34,10 @@ export default async function StoryPage({
     notFound();
   }
 
+  // Type assertion to ensure TS recognizes the relations correctly
+  const author = story.author as typeof users.$inferSelect;
+  const category = story.category as typeof categories.$inferSelect;
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
 
@@ -42,13 +46,14 @@ export default async function StoryPage({
       </h1>
 
       <p className="mt-3 text-gray-600">
-        By {story.author.displayName}
+        By {author?.displayName}
       </p>
 
       <p className="mt-1 text-gray-500">
-        {story.category.name}
+        {category?.name}
       </p>
 
     </main>
   );
 }
+
