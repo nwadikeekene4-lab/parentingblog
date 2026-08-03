@@ -50,6 +50,12 @@ export default function DashboardSidebar() {
             />
 
             <DashboardNavItem
+              href="/users-dashboard/pending-review"
+              icon="⏳"
+              label="Pending Review"
+            />
+
+            <DashboardNavItem
               href="/users-dashboard/drafts"
               icon="📝"
               label="Drafts"
@@ -123,4 +129,4 @@ export default function DashboardSidebar() {
 
     </aside>
   );
-      }
+}
