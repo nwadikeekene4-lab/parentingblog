@@ -10,14 +10,16 @@ import PublishingOverlay from "./PublishingOverlay";
 export default function StoryActions() {
   const router = useRouter();
 
-  const {
-    title,
-    content,
-    category,
-    coverImage,
-    storyImages,
-    resetForm,
-  } = useStoryForm();
+const {
+  title,
+  content,
+  category,
+  coverImage,
+  storyImages,
+  updateCoverUpload,
+  updateStoryImageUploads,
+  resetForm,
+} = useStoryForm();
 
   const [savingDraft, setSavingDraft] =
     useState(false);
@@ -94,20 +96,33 @@ setStatusMessage(
   "Uploading images..."
 );
 
-const coverUploadPromise = coverImage
-  ? uploadImage(
-      coverImage.file,
-      "parenting-blog/cover-images"
-    )
-  : Promise.resolve(null);
+const coverUploadPromise =
+  coverImage?.url
+    ? Promise.resolve({
+        url: coverImage.url,
+        publicId: coverImage.publicId,
+      })
+    : coverImage
+    ? uploadImage(
+        coverImage.file,
+        "parenting-blog/cover-images"
+      )
+    : Promise.resolve(null);
+
+
 
 const storyImagesUploadPromise =
   Promise.all(
     storyImages.map((image) =>
-      uploadImage(
-        image.file,
-        "parenting-blog/story-images"
-      )
+      image.url
+        ? Promise.resolve({
+            url: image.url,
+            publicId: image.publicId,
+          })
+        : uploadImage(
+            image.file,
+            "parenting-blog/story-images"
+          )
     )
   );
 
@@ -119,6 +134,16 @@ const [
   coverUploadPromise,
   storyImagesUploadPromise,
 ]);
+      if (uploadedCover) {
+  updateCoverUpload(
+    uploadedCover.url,
+    uploadedCover.publicId
+  );
+}
+
+updateStoryImageUploads(
+  uploadedStoryImages
+);
 
 
 setProgress(60);
