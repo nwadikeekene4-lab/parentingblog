@@ -312,7 +312,6 @@ if (status === "published") {
       ? error.message
       : "Something went wrong."
   );
-
 } finally {
 
   setSavingDraft(false);
@@ -323,5 +322,70 @@ if (status === "published") {
 
   setStatusMessage("");
 
-    }
-  }
+}
+
+}
+
+
+async function saveDraft() {
+  await submitStory("draft");
+}
+
+
+async function publishStory() {
+
+  const confirmed =
+    window.confirm(
+      "Are you sure you want to publish this story?"
+    );
+
+  if (!confirmed) return;
+
+
+  await submitStory(
+    "published"
+  );
+
+}
+
+
+return (
+  <>
+    {publishing && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div className="w-[92%] max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+
+          <h2 className="text-xl font-bold text-gray-900">
+            Publishing Story
+          </h2>
+
+          <p className="mt-2 text-sm text-gray-600">
+            {statusMessage}
+          </p>
+
+          <div className="mt-6 h-3 overflow-hidden rounded-full bg-gray-200">
+            <div
+              className="h-full rounded-full bg-blue-600 transition-all duration-300"
+              style={{
+                width: `${progress}%`,
+              }}
+            />
+          </div>
+
+          <p className="mt-3 text-right text-sm font-semibold text-blue-600">
+            {progress}%
+          </p>
+
+          {errorMessage && (
+            <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-600">
+              {errorMessage}
+            </p>
+          )}
+
+        </div>
+      </div>
+    )}
+  </>
+);
+
+          }
