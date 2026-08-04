@@ -17,6 +17,7 @@ export type UploadedImage = {
   error?: string;
 };
 
+
 type StoryFormContextType = {
   title: string;
   setTitle: (value: string) => void;
@@ -37,20 +38,36 @@ type StoryFormContextType = {
     images: UploadedImage[]
   ) => void;
 
+  updateCoverUpload: (
+    url: string,
+    publicId: string
+  ) => void;
+
+  updateStoryImageUploads: (
+    images: {
+      url: string;
+      publicId: string;
+    }[]
+  ) => void;
+
   resetForm: () => void;
 };
+
 
 const StoryFormContext =
   createContext<StoryFormContextType | null>(
     null
   );
 
+
 export function StoryFormProvider({
   children,
 }: {
   children: ReactNode;
 }) {
-  const [title, setTitle] = useState("");
+
+  const [title, setTitle] =
+    useState("");
 
   const [content, setContent] =
     useState("");
@@ -64,13 +81,61 @@ export function StoryFormProvider({
   const [storyImages, setStoryImages] =
     useState<UploadedImage[]>([]);
 
+
+
+  function updateCoverUpload(
+    url: string,
+    publicId: string
+  ) {
+
+    setCoverImage((current) =>
+      current
+        ? {
+            ...current,
+            url,
+            publicId,
+          }
+        : current
+    );
+
+  }
+
+
+
+  function updateStoryImageUploads(
+    images: {
+      url: string;
+      publicId: string;
+    }[]
+  ) {
+
+    setStoryImages((current) =>
+      current.map(
+        (image, index) => ({
+          ...image,
+          url:
+            images[index]?.url,
+          publicId:
+            images[index]?.publicId,
+        })
+      )
+    );
+
+  }
+
+
+
   function resetForm() {
+
     setTitle("");
     setContent("");
     setCategory("");
     setCoverImage(null);
     setStoryImages([]);
+
   }
+
+
 
   return (
     <StoryFormContext.Provider
@@ -90,17 +155,25 @@ export function StoryFormProvider({
         storyImages,
         setStoryImages,
 
+        updateCoverUpload,
+        updateStoryImageUploads,
+
         resetForm,
       }}
     >
       {children}
     </StoryFormContext.Provider>
   );
+
 }
 
+
+
 export function useStoryForm() {
+
   const context =
     useContext(StoryFormContext);
+
 
   if (!context) {
     throw new Error(
@@ -108,5 +181,7 @@ export function useStoryForm() {
     );
   }
 
+
   return context;
-        }
+
+  }
