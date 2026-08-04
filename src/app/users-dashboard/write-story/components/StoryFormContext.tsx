@@ -37,9 +37,6 @@ type StoryFormContextType = {
     images: UploadedImage[]
   ) => void;
 
-  tags: string[];
-  setTags: (tags: string[]) => void;
-
   resetForm: () => void;
 };
 
@@ -67,16 +64,12 @@ export function StoryFormProvider({
   const [storyImages, setStoryImages] =
     useState<UploadedImage[]>([]);
 
-  const [tags, setTags] =
-    useState<string[]>([]);
-
   function resetForm() {
     setTitle("");
     setContent("");
     setCategory("");
     setCoverImage(null);
     setStoryImages([]);
-    setTags([]);
   }
 
   return (
@@ -97,9 +90,6 @@ export function StoryFormProvider({
         storyImages,
         setStoryImages,
 
-        tags,
-        setTags,
-
         resetForm,
       }}
     >
@@ -119,4 +109,4 @@ export function useStoryForm() {
   }
 
   return context;
-}
+        }
