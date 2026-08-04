@@ -303,7 +303,7 @@ if (status === "published") {
     "/users-dashboard/drafts"
   );
 
-}catch (error) {
+}}catch (error) {
 
   console.error(error);
 
