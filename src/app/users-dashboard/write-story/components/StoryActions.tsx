@@ -230,9 +230,16 @@ setStatusMessage(
 
 
 const response = await fetch(
-  "/api/stories",
+
+  draftId
+    ? `/api/drafts/${draftId}`
+    : "/api/stories",
+
   {
-    method: "POST",
+
+    method: draftId
+      ? "PATCH"
+      : "POST",
 
     headers: {
       "Content-Type":
@@ -266,7 +273,9 @@ const response = await fetch(
         ),
 
     }),
+
   }
+
 );
 
 
