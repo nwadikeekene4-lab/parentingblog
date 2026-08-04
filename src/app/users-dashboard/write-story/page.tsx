@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 import StoryEditor from "./components/StoryEditor";
@@ -265,11 +265,21 @@ export default function WriteStoryPage() {
 
   return (
 
-    <StoryFormProvider>
+    <Suspense
+      fallback={
+        <div className="p-8 text-center">
+          Loading story editor...
+        </div>
+      }
+    >
 
-      <WriteStoryContent />
+      <StoryFormProvider>
 
-    </StoryFormProvider>
+        <WriteStoryContent />
+
+      </StoryFormProvider>
+
+    </Suspense>
 
   );
 
