@@ -144,8 +144,14 @@ const [
   );
       }
 
-updateStoryImageUploads(
-  uploadedStoryImages
+      updateStoryImageUploads(
+  uploadedStoryImages.filter(
+    (image) =>
+      image.publicId
+  ) as {
+    url: string;
+    publicId: string;
+  }[]
 );
 
 
