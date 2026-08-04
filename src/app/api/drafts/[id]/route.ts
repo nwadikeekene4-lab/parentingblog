@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 
 import {
   stories,
+  categories,
+  storyImages,
 } from "@/db/schema";
 
 import { getCurrentUser } from "@/lib/session";
