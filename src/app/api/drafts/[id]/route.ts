@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
 
 import {
   stories,
-  categories,
-  storyImages,
 } from "@/db/schema";
 
 import { getCurrentUser } from "@/lib/session";
@@ -17,13 +14,16 @@ export async function GET(
   {
     params,
   }: {
-    params: {
+    params: Promise<{
       id: string;
-    };
+    }>;
   }
 ) {
 
   try {
+
+    const { id } = await params;
+
 
     const user =
       await getCurrentUser();
@@ -50,7 +50,7 @@ export async function GET(
           and(
             eq(
               stories.id,
-              params.id
+              id
             ),
 
             eq(
@@ -124,4 +124,4 @@ export async function GET(
 
   }
 
-      }
+}
