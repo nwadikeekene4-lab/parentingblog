@@ -304,9 +304,9 @@ if (!response.ok) {
 
 }
 
-
-resetForm();
-
+if (!draftId) {
+  resetForm();
+}
 
 if (status === "published") {
 
@@ -320,7 +320,9 @@ if (status === "published") {
     "/users-dashboard/drafts"
   );
 
-}}catch (error) {
+}
+
+    }catch (error) {
 
   console.error(error);
 
