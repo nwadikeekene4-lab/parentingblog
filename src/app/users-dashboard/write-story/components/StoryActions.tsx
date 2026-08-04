@@ -134,12 +134,15 @@ const [
   coverUploadPromise,
   storyImagesUploadPromise,
 ]);
-      if (uploadedCover) {
+      if (
+  uploadedCover &&
+  uploadedCover.publicId
+) {
   updateCoverUpload(
     uploadedCover.url,
     uploadedCover.publicId
   );
-}
+      }
 
 updateStoryImageUploads(
   uploadedStoryImages
