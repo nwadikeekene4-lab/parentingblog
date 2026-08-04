@@ -303,4 +303,25 @@ if (status === "published") {
     "/users-dashboard/drafts"
   );
 
-}
+}catch (error) {
+
+  console.error(error);
+
+  setErrorMessage(
+    error instanceof Error
+      ? error.message
+      : "Something went wrong."
+  );
+
+} finally {
+
+  setSavingDraft(false);
+
+  setPublishing(false);
+
+  setProgress(0);
+
+  setStatusMessage("");
+
+    }
+  }
