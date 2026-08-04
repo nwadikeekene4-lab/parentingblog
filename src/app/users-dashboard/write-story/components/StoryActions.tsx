@@ -90,36 +90,42 @@ export default function StoryActions() {
 
       setProgress(15);
 
-      setStatusMessage(
-        "Uploading cover image..."
-      );
+setStatusMessage(
+  "Uploading images..."
+);
 
-      let uploadedCover = null;
+const coverUploadPromise = coverImage
+  ? uploadImage(
+      coverImage.file,
+      "parenting-blog/cover-images"
+    )
+  : Promise.resolve(null);
 
-      if (coverImage) {
-        uploadedCover =
-          await uploadImage(
-            coverImage.file,
-            "parenting-blog/cover-images"
-          );
-      }
+const storyImagesUploadPromise =
+  Promise.all(
+    storyImages.map((image) =>
+      uploadImage(
+        image.file,
+        "parenting-blog/story-images"
+      )
+    )
+  );
 
-      setProgress(45);
 
-      setStatusMessage(
-        "Uploading story images..."
-      );
+const [
+  uploadedCover,
+  uploadedStoryImages,
+] = await Promise.all([
+  coverUploadPromise,
+  storyImagesUploadPromise,
+]);
 
-      const uploadedStoryImages =
-        await Promise.all(
-          storyImages.map((image) =>
-            uploadImage(
-              image.file,
-              "parenting-blog/story-images"
-            )
-          )
-        );
 
+setProgress(60);
+
+setStatusMessage(
+  "Images uploaded successfully..."
+);
       setProgress(75);
 
       setStatusMessage(
