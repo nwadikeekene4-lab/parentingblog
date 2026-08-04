@@ -16,7 +16,6 @@ export default function StoryActions() {
     category,
     coverImage,
     storyImages,
-    tags,
     resetForm,
   } = useStoryForm();
 
@@ -161,7 +160,7 @@ export default function StoryActions() {
                 })
               ),
 
-            tags,
+        
           }),
         }
       );
