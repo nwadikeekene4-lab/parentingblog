@@ -1,13 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import {
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 
 import { useStoryForm } from "./StoryFormContext";
 import { uploadImage } from "@/lib/uploadImage";
 
 export default function StoryActions() {
   const router = useRouter();
+  const searchParams =
+  useSearchParams();
+
+const draftId =
+  searchParams.get("draftId");
 
   const {
     title,
