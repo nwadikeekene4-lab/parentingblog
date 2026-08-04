@@ -128,3 +128,51 @@ export async function GET(
   }
 
 }
+
+
+export async function PATCH(
+  request: Request,
+  {
+    params,
+  }: {
+    params: Promise<{
+      id: string;
+    }>;
+  }
+) {
+
+  try {
+
+    const { id } =
+      await params;
+
+    const user =
+      await getCurrentUser();
+
+    if (!user) {
+
+      return NextResponse.json(
+        {
+          message:
+            "Unauthorized",
+        },
+        {
+          status: 401,
+        }
+      );
+
+    }
+
+    const body =
+      await request.json();
+
+    const {
+      title,
+      content,
+      category,
+      status,
+      coverImageUrl,
+      coverImagePublicId,
+      storyImages:
+        uploadedImages = [],
+    } = body;
