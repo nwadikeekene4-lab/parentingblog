@@ -387,3 +387,112 @@ if (
 }
 
 }
+export async function DELETE(
+  request: Request,
+  {
+    params,
+  }: {
+    params: Promise<{
+      id: string;
+    }>;
+  }
+) {
+
+  try {
+
+    const { id } =
+      await params;
+
+    const user =
+      await getCurrentUser();
+
+    if (!user) {
+
+      return NextResponse.json(
+        {
+          message: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
+      );
+
+    }
+
+    const draft =
+      await db.query.stories.findFirst({
+
+        where: (stories, { and, eq }) =>
+          and(
+
+            eq(
+              stories.id,
+              id
+            ),
+
+            eq(
+              stories.authorId,
+              user.id
+            ),
+
+            eq(
+              stories.status,
+              "draft"
+            ),
+
+          ),
+
+      });
+
+    if (!draft) {
+
+      return NextResponse.json(
+        {
+          message:
+            "Draft not found.",
+        },
+        {
+          status: 404,
+        }
+      );
+
+        }
+        await db
+      .delete(stories)
+      .where(
+        eq(
+          stories.id,
+          id
+        )
+      );
+
+    return NextResponse.json(
+      {
+        message:
+          "Draft deleted successfully.",
+      },
+      {
+        status: 200,
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Delete draft error:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        message:
+          "Internal server error.",
+      },
+      {
+        status: 500,
+      }
+    );
+
+  }
+
+}
