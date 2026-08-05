@@ -130,7 +130,55 @@ async function deleteDraft(
 
 }
 
+async function publishDraft(
+  draftId: string
+) {
 
+  const confirmed =
+    window.confirm(
+      "Submit this draft for review?"
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+
+    const response =
+      await fetch(
+        `/api/drafts/${draftId}/publish`,
+        {
+          method: "PATCH",
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ??
+          "Failed to publish draft."
+      );
+    }
+
+    window.location.href =
+      "/users-dashboard/pending-review?submitted=true";
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Something went wrong."
+    );
+
+  }
+
+}
 
   const filteredDrafts =
     drafts.filter((draft) =>
@@ -308,12 +356,36 @@ async function deleteDraft(
                     draft.updatedAt
                   ).toLocaleDateString()}
                 </p>
-                <Link
-  href={`/users-dashboard/drafts/${draft.id}`}
-  className="mt-5 inline-block rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
->
-  Continue Editing
-</Link>
+                <div className="mt-5 flex flex-wrap gap-3">
+
+  <Link
+    href={`/users-dashboard/drafts/${draft.id}`}
+    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+  >
+    Continue Editing
+  </Link>
+
+  <button
+    type="button"
+    onClick={() =>
+      publishDraft(draft.id)
+    }
+    className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
+  >
+    Publish
+  </button>
+
+  <button
+    type="button"
+    onClick={() =>
+      deleteDraft(draft.id)
+    }
+    className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+  >
+    Delete
+  </button>
+
+</div>
 
 
               </div>
