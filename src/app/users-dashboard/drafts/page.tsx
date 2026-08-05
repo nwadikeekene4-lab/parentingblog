@@ -255,7 +255,7 @@ export default function DraftsPage() {
                   ).toLocaleDateString()}
                 </p>
                 <Link
-  href={`/users-dashboard/write-story?draftId=${draft.id}`}
+  href={`/users-dashboard/drafts/${draft.id}`}
   className="mt-5 inline-block rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
 >
   Continue Editing
