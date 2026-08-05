@@ -74,7 +74,61 @@ export default function DraftsPage() {
     loadDrafts();
 
   }, []);
+  
+async function deleteDraft(
+  draftId: string
+) {
 
+  const confirmed =
+    window.confirm(
+      "Are you sure you want to delete this draft?"
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+
+    const response =
+      await fetch(
+        `/api/drafts/${draftId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ??
+          "Failed to delete draft."
+      );
+    }
+
+    setDrafts(
+      (currentDrafts) =>
+        currentDrafts.filter(
+          (draft) =>
+            draft.id !== draftId
+        )
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Something went wrong."
+    );
+
+  }
+
+}
 
 
 
