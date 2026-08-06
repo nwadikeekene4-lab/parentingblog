@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   useRouter,
   useSearchParams,
+  useParams,
 } from "next/navigation";
 
 import { useStoryForm } from "./StoryFormContext";
@@ -11,12 +12,16 @@ import { uploadImage } from "@/lib/uploadImage";
 
 export default function StoryActions() {
   const router = useRouter();
-  const searchParams =
+
+const searchParams =
   useSearchParams();
 
-const draftId =
-  searchParams.get("draftId");
+const params =
+  useParams();
 
+const draftId =
+  (params.id as string | undefined) ??
+  searchParams.get("draftId");
   const {
     title,
     content,
