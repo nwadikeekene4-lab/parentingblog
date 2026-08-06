@@ -137,7 +137,16 @@ export default async function StoryPage({
 
         <div className="space-y-7 text-lg leading-9 text-slate-700">
 
-          <p>{story.content}</p>
+          <pre
+  style={{
+    whiteSpace: "pre-wrap",
+    border: "2px solid red",
+    padding: "16px",
+    background: "#fff",
+  }}
+>
+  {JSON.stringify(story.content)}
+</pre>
 
         </div>
 
