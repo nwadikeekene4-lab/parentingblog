@@ -137,11 +137,7 @@ export default async function StoryPage({
 
         <div className="space-y-7 text-lg leading-9 text-slate-700">
 
-          {paragraphs.map((paragraph, index) => (
-            <p key={index}>
-              {paragraph}
-            </p>
-          ))}
+          <p>{story.content}</p>
 
         </div>
 
