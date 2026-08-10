@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 
@@ -23,11 +23,20 @@ function createSlug(title: string) {
 }
 
 
-export async function POST(request: Request) {
+/*
+|--------------------------------------------------------------------------
+| GET
+|--------------------------------------------------------------------------
+| Fetch the currently logged-in user's published stories.
+|--------------------------------------------------------------------------
+*/
+
+export async function GET() {
 
   try {
 
-    const user = await getCurrentUser();
+    const user =
+      await getCurrentUser();
 
 
     if (!user) {
@@ -44,7 +53,136 @@ export async function POST(request: Request) {
     }
 
 
-    const body = await request.json();
+    const publishedStories =
+      await db
+        .select({
+          id: stories.id,
+
+          title: stories.title,
+
+          slug: stories.slug,
+
+          coverImage:
+            stories.coverImage,
+
+          publishedAt:
+            stories.publishedAt,
+
+          createdAt:
+            stories.createdAt,
+
+          updatedAt:
+            stories.updatedAt,
+
+          category:
+            categories.name,
+        })
+        .from(stories)
+
+        .innerJoin(
+          categories,
+          eq(
+            stories.categoryId,
+            categories.id
+          )
+        )
+
+        .where(
+          and(
+
+            eq(
+              stories.authorId,
+              user.id
+            ),
+
+            eq(
+              stories.status,
+              "published"
+            ),
+
+            eq(
+              stories.isDeleted,
+              false
+            )
+
+          )
+        )
+
+        .orderBy(
+          desc(
+            stories.publishedAt
+          )
+        );
+
+
+    return NextResponse.json(
+      {
+        stories:
+          publishedStories,
+      },
+      {
+        status: 200,
+      }
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Fetch published stories error:",
+      error
+    );
+
+
+    return NextResponse.json(
+      {
+        message:
+          "Internal server error.",
+      },
+      {
+        status: 500,
+      }
+    );
+
+  }
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| POST
+|--------------------------------------------------------------------------
+| Create a new story or draft.
+|--------------------------------------------------------------------------
+*/
+
+export async function POST(
+  request: Request
+) {
+
+  try {
+
+    const user =
+      await getCurrentUser();
+
+
+    if (!user) {
+
+      return NextResponse.json(
+        {
+          message: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
+      );
+
+    }
+
+
+    const body =
+      await request.json();
 
 
     const {
@@ -54,9 +192,9 @@ export async function POST(request: Request) {
       status,
       coverImageUrl,
       coverImagePublicId,
-      storyImages: uploadedImages = [],
+      storyImages:
+        uploadedImages = [],
     } = body;
-
 
 
     if (
@@ -94,12 +232,16 @@ export async function POST(request: Request) {
         }
       );
 
-        }
-    
+    }
+
+
     const existingCategory =
       await db.query.categories.findFirst({
 
-        where: (categories, { eq }) =>
+        where: (
+          categories,
+          { eq }
+        ) =>
           eq(
             categories.name,
             category
@@ -123,8 +265,8 @@ export async function POST(request: Request) {
     }
 
 
-
-    let slug = createSlug(title);
+    let slug =
+      createSlug(title);
 
     let counter = 1;
 
@@ -134,7 +276,10 @@ export async function POST(request: Request) {
       const existingStory =
         await db.query.stories.findFirst({
 
-          where: (stories, { eq }) =>
+          where: (
+            stories,
+            { eq }
+          ) =>
             eq(
               stories.slug,
               slug
@@ -143,13 +288,11 @@ export async function POST(request: Request) {
         });
 
 
-
       if (!existingStory) {
 
         break;
 
       }
-
 
 
       slug =
@@ -160,10 +303,8 @@ export async function POST(request: Request) {
     }
 
 
-
     const excerpt =
       generateExcerpt(content);
-
 
 
     const [story] =
@@ -174,38 +315,29 @@ export async function POST(request: Request) {
           title:
             title.trim(),
 
-
           slug,
 
-
           excerpt,
-
 
           content:
             content.trim(),
 
-
           coverImage:
             coverImageUrl ?? null,
-
 
           coverImagePublicId:
             coverImagePublicId ?? null,
 
-
           authorId:
             user.id,
 
-
           categoryId:
             existingCategory.id,
-
 
           status:
             status === "published"
               ? "pending_review"
               : "draft",
-
 
           publishedAt:
             status === "published"
@@ -214,8 +346,6 @@ export async function POST(request: Request) {
 
         })
         .returning();
-
-
 
 
     if (
@@ -240,14 +370,11 @@ export async function POST(request: Request) {
               storyId:
                 story.id,
 
-
               imageUrl:
                 image.url,
 
-
               publicId:
                 image.publicId,
-
 
               displayOrder:
                 index,
@@ -258,29 +385,26 @@ export async function POST(request: Request) {
 
         );
 
-  }
-        return NextResponse.json(
+    }
 
+
+    return NextResponse.json(
       {
         message:
           status === "published"
             ? "Story submitted for review successfully."
             : "Draft saved successfully.",
 
-
         story,
 
       },
-
       {
         status: 201,
       }
-
     );
 
 
   } catch (error) {
-
 
     console.error(
       "Create story error:",
@@ -289,20 +413,15 @@ export async function POST(request: Request) {
 
 
     return NextResponse.json(
-
       {
         message:
           "Internal server error.",
       },
-
       {
         status: 500,
       }
-
     );
-
 
   }
 
-}
-    
+      }
