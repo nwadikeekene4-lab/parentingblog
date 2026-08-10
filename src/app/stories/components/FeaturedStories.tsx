@@ -291,6 +291,7 @@ export default function FeaturedStories() {
                 storyId={
                   story.id
                 }
+                slug={story.slug}
 
                 image={
                   story.image
