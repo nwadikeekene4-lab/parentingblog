@@ -1,23 +1,21 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
+
 import {
-  categories,
   stories,
+  categories,
   users,
 } from "@/db/schema";
 
 import StoryCategoryLayout from "../components/StoryCategoryLayout";
 
 export default async function SingleDadsPage() {
+
   /*
   |--------------------------------------------------------------------------
   | Find the real "Single Dads" category
   |--------------------------------------------------------------------------
-  |
-  | We deliberately use the category NAME here instead of guessing its slug.
-  | The database gives us the real category UUID.
-  |
   */
 
   const category =
@@ -28,6 +26,7 @@ export default async function SingleDadsPage() {
       ),
     });
 
+
   /*
   |--------------------------------------------------------------------------
   | No category found
@@ -35,6 +34,7 @@ export default async function SingleDadsPage() {
   */
 
   if (!category) {
+
     return (
       <StoryCategoryLayout
         title="Single Dads"
@@ -43,28 +43,27 @@ export default async function SingleDadsPage() {
         stories={[]}
       />
     );
+
   }
+
 
   /*
   |--------------------------------------------------------------------------
-  | Fetch real stories belonging to this category
+  | Fetch real published stories belonging to this category
   |--------------------------------------------------------------------------
-  |
-  | IMPORTANT:
-  | stories.categoryId is compared with the REAL category.id.
-  |
   */
 
-  const categoryStories =
+  const databaseStories =
     await db
       .select({
         id: stories.id,
         slug: stories.slug,
         title: stories.title,
+        coverImage: stories.coverImage,
         content: stories.content,
-        image: stories.coverImage,
-        author: users.displayName,
         publishedAt: stories.publishedAt,
+        createdAt: stories.createdAt,
+        author: users.displayName,
       })
 
       .from(stories)
@@ -97,21 +96,22 @@ export default async function SingleDadsPage() {
       )
 
       .orderBy(
-        asc(stories.publishedAt)
+        desc(
+          stories.publishedAt
+        )
       );
+
 
   /*
   |--------------------------------------------------------------------------
-  | Format stories for StoryCategoryLayout
+  | Format stories for the category layout
   |--------------------------------------------------------------------------
-  |
-  | We are NOT using stories.excerpt.
-  |
   */
 
   const formattedStories =
-    categoryStories.map(
+    databaseStories.map(
       (story) => {
+
         const words =
           story.content
             .trim()
@@ -119,10 +119,13 @@ export default async function SingleDadsPage() {
             .filter(Boolean)
             .length;
 
-        const readTime = Math.max(
-          1,
-          Math.ceil(words / 200)
-        );
+        const readTime =
+          Math.max(
+            1,
+            Math.ceil(
+              words / 200
+            )
+          );
 
         return {
           id: story.id,
@@ -132,44 +135,32 @@ export default async function SingleDadsPage() {
           title: story.title,
 
           image:
-            story.image ??
+            story.coverImage ??
             "/Images/stories/default-story.jpg",
 
           author:
             story.author,
 
           publishedAt:
-            story.publishedAt
-              ? new Date(
-                  story.publishedAt
-                ).toLocaleDateString()
-              : "",
+            new Date(
+              story.publishedAt ??
+              story.createdAt
+            ).toLocaleDateString(),
 
           readTime:
             `${readTime} min read`,
         };
+
       }
     );
 
+
   return (
     <StoryCategoryLayout
-      title={
-        category.name
-      }
-
-      description={
-        category.description ??
-        "Read inspiring stories, challenges and victories from fathers raising children on their own."
-      }
-
-      image={
-        category.image ??
-        "/Images/stories/singledad.jpg"
-      }
-
-      stories={
-        formattedStories
-      }
+      title="Single Dads"
+      description="Read inspiring stories, challenges and victories from fathers raising children on their own."
+      image="/Images/stories/singledad.jpg"
+      stories={formattedStories}
     />
   );
-        }
+}
