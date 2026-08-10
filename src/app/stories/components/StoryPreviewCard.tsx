@@ -90,6 +90,7 @@ export default function StoryPreviewCard({
 
             <BookmarkButton
               storyId={storyId}
+              storySlug={slug}
             />
 
 
