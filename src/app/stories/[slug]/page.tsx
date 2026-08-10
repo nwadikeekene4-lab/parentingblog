@@ -1,15 +1,13 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import {
-  stories,
-  storyBookmarks,
-} from "@/db/schema";
+import { stories } from "@/db/schema";
 
 import { getCurrentUser } from "@/lib/session";
 import BookmarkButton from "../../components/story/BookmarkButton";
+
 type Props = {
   params: Promise<{
     slug: string;
@@ -48,7 +46,17 @@ export default async function StoryPage({
     notFound();
   }
 
-  // Security
+  /*
+  |--------------------------------------------------------------------------
+  | Security
+  |--------------------------------------------------------------------------
+  | Published stories are public.
+  | Unpublished stories can only be viewed by:
+  | - The story author
+  | - An admin
+  |--------------------------------------------------------------------------
+  */
+
   if (story.status !== "published") {
     if (!currentUser) {
       notFound();
@@ -67,43 +75,6 @@ export default async function StoryPage({
     ) {
       notFound();
     }
-  }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Check whether current user has bookmarked this story
-  |--------------------------------------------------------------------------
-  */
-
-  let isBookmarked = false;
-
-  if (currentUser) {
-    const bookmark =
-      await db
-        .select({
-          id: storyBookmarks.id,
-        })
-
-        .from(storyBookmarks)
-
-        .where(
-          and(
-            eq(
-              storyBookmarks.storyId,
-              story.id
-            ),
-
-            eq(
-              storyBookmarks.userId,
-              currentUser.id
-            )
-          )
-        )
-
-        .limit(1);
-
-    isBookmarked =
-      bookmark.length > 0;
   }
 
   /*
@@ -185,11 +156,9 @@ export default async function StoryPage({
 
         {currentUser && (
           <div className="mt-6">
-
             <BookmarkButton
-  storyId={story.id}
-/>
-
+              storyId={story.id}
+            />
           </div>
         )}
 
@@ -287,4 +256,4 @@ export default async function StoryPage({
 
     </main>
   );
-}
+            }
