@@ -59,6 +59,7 @@ export default async function SingleDadsPage() {
         id: stories.id,
         slug: stories.slug,
         title: stories.title,
+        excerpt: stories.excerpt,
         coverImage: stories.coverImage,
         content: stories.content,
         publishedAt: stories.publishedAt,
@@ -112,6 +113,35 @@ export default async function SingleDadsPage() {
     databaseStories.map(
       (story) => {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Use the stored excerpt.
+        |
+        | If an older story doesn't have an excerpt,
+        | create one from its content.
+        |--------------------------------------------------------------------------
+        */
+
+        const excerpt =
+          story.excerpt?.trim()
+            ? story.excerpt.trim()
+            : story.content
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 220)
+                .concat(
+                  story.content.trim().length > 220
+                    ? "..."
+                    : ""
+                );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Calculate estimated reading time
+        |--------------------------------------------------------------------------
+        */
+
         const words =
           story.content
             .trim()
@@ -127,12 +157,19 @@ export default async function SingleDadsPage() {
             )
           );
 
+
         return {
-          id: story.id,
 
-          slug: story.slug,
+          id:
+            story.id,
 
-          title: story.title,
+          slug:
+            story.slug,
+
+          title:
+            story.title,
+
+          excerpt,
 
           image:
             story.coverImage ??
@@ -149,11 +186,18 @@ export default async function SingleDadsPage() {
 
           readTime:
             `${readTime} min read`,
+
         };
 
       }
     );
 
+
+  /*
+  |--------------------------------------------------------------------------
+  | Render category page
+  |--------------------------------------------------------------------------
+  */
 
   return (
     <StoryCategoryLayout
@@ -163,4 +207,4 @@ export default async function SingleDadsPage() {
       stories={formattedStories}
     />
   );
-}
+        }
