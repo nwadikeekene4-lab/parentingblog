@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 
@@ -7,6 +7,9 @@ import {
   stories,
   categories,
   storyImages,
+  storyLikes,
+  comments,
+  storyBookmarks,
 } from "@/db/schema";
 
 import { getCurrentUser } from "@/lib/session";
@@ -28,6 +31,15 @@ function createSlug(title: string) {
 | GET
 |--------------------------------------------------------------------------
 | Fetch the currently logged-in user's published stories.
+|
+| Includes:
+| - Cover image
+| - All additional story images
+| - Views
+| - Likes
+| - Comments
+| - Bookmarks
+| - Featured status
 |--------------------------------------------------------------------------
 */
 
@@ -53,14 +65,24 @@ export async function GET() {
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | 1. Fetch the user's published stories
+    |--------------------------------------------------------------------------
+    */
+
     const publishedStories =
       await db
         .select({
-          id: stories.id,
 
-          title: stories.title,
+          id:
+            stories.id,
 
-          slug: stories.slug,
+          title:
+            stories.title,
+
+          slug:
+            stories.slug,
 
           coverImage:
             stories.coverImage,
@@ -76,7 +98,45 @@ export async function GET() {
 
           category:
             categories.name,
+
+          featured:
+            stories.featured,
+
+          views:
+            stories.views,
+
+          likes:
+            sql<number>`
+              (
+                SELECT COUNT(*)
+                FROM ${storyLikes}
+                WHERE ${storyLikes.storyId} = ${stories.id}
+              )
+            `,
+
+          comments:
+            sql<number>`
+              (
+                SELECT COUNT(*)
+                FROM ${comments}
+                WHERE
+                  ${comments.storyId} = ${stories.id}
+                  AND ${comments.isDeleted} = false
+                  AND ${comments.isApproved} = true
+              )
+            `,
+
+          bookmarks:
+            sql<number>`
+              (
+                SELECT COUNT(*)
+                FROM ${storyBookmarks}
+                WHERE ${storyBookmarks.storyId} = ${stories.id}
+              )
+            `,
+
         })
+
         .from(stories)
 
         .innerJoin(
@@ -115,10 +175,199 @@ export async function GET() {
         );
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | 2. If there are no published stories
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      publishedStories.length === 0
+    ) {
+
+      return NextResponse.json(
+        {
+          stories: [],
+        },
+        {
+          status: 200,
+        }
+      );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 3. Get all story IDs
+    |--------------------------------------------------------------------------
+    */
+
+    const storyIds =
+      publishedStories.map(
+        (story) => story.id
+      );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 4. Fetch ALL additional images
+    |--------------------------------------------------------------------------
+    |
+    | These images are stored separately in story_images.
+    | We fetch them in one query instead of querying the database
+    | once for every story.
+    |--------------------------------------------------------------------------
+    */
+
+    const additionalImages =
+      await db
+        .select({
+
+          id:
+            storyImages.id,
+
+          storyId:
+            storyImages.storyId,
+
+          imageUrl:
+            storyImages.imageUrl,
+
+          publicId:
+            storyImages.publicId,
+
+          caption:
+            storyImages.caption,
+
+          displayOrder:
+            storyImages.displayOrder,
+
+        })
+
+        .from(storyImages)
+
+        .where(
+          inArray(
+            storyImages.storyId,
+            storyIds
+          )
+        )
+
+        .orderBy(
+          storyImages.displayOrder
+        );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 5. Group images by story
+    |--------------------------------------------------------------------------
+    */
+
+    const imagesByStory =
+      new Map<
+        string,
+        typeof additionalImages
+      >();
+
+
+    for (
+      const image of additionalImages
+    ) {
+
+      const existing =
+        imagesByStory.get(
+          image.storyId
+        ) ?? [];
+
+
+      existing.push(image);
+
+
+      imagesByStory.set(
+        image.storyId,
+        existing
+      );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 6. Build the final response
+    |--------------------------------------------------------------------------
+    */
+
+    const formattedStories =
+      publishedStories.map(
+        (story) => ({
+
+          id:
+            story.id,
+
+          title:
+            story.title,
+
+          slug:
+            story.slug,
+
+          coverImage:
+            story.coverImage,
+
+          publishedAt:
+            story.publishedAt,
+
+          createdAt:
+            story.createdAt,
+
+          updatedAt:
+            story.updatedAt,
+
+          category:
+            story.category,
+
+          featured:
+            story.featured,
+
+          views:
+            Number(
+              story.views ?? 0
+            ),
+
+          likes:
+            Number(
+              story.likes ?? 0
+            ),
+
+          comments:
+            Number(
+              story.comments ?? 0
+            ),
+
+          bookmarks:
+            Number(
+              story.bookmarks ?? 0
+            ),
+
+          images:
+            imagesByStory.get(
+              story.id
+            ) ?? [],
+
+        })
+      );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 7. Return response
+    |--------------------------------------------------------------------------
+    */
+
     return NextResponse.json(
       {
         stories:
-          publishedStories,
+          formattedStories,
       },
       {
         status: 200,
@@ -424,4 +673,4 @@ export async function POST(
 
   }
 
-      }
+          }
