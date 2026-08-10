@@ -1,52 +1,70 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-
 import {
+  categories,
   stories,
   users,
-  categories,
 } from "@/db/schema";
 
 import StoryCategoryLayout from "../components/StoryCategoryLayout";
 
-
 export default async function SingleDadsPage() {
+  /*
+  |--------------------------------------------------------------------------
+  | Find the real "Single Dads" category
+  |--------------------------------------------------------------------------
+  |
+  | We deliberately use the category NAME here instead of guessing its slug.
+  | The database gives us the real category UUID.
+  |
+  */
+
+  const category =
+    await db.query.categories.findFirst({
+      where: eq(
+        categories.name,
+        "Single Dads"
+      ),
+    });
 
   /*
   |--------------------------------------------------------------------------
-  | Fetch published Single Dads stories
+  | No category found
   |--------------------------------------------------------------------------
   */
 
-  const databaseStories =
+  if (!category) {
+    return (
+      <StoryCategoryLayout
+        title="Single Dads"
+        description="Read inspiring stories, challenges and victories from fathers raising children on their own."
+        image="/Images/stories/singledad.jpg"
+        stories={[]}
+      />
+    );
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Fetch real stories belonging to this category
+  |--------------------------------------------------------------------------
+  |
+  | IMPORTANT:
+  | stories.categoryId is compared with the REAL category.id.
+  |
+  */
+
+  const categoryStories =
     await db
       .select({
-
-        id:
-          stories.id,
-
-        slug:
-          stories.slug,
-
-        title:
-          stories.title,
-
-        content:
-          stories.content,
-
-        coverImage:
-          stories.coverImage,
-
-        publishedAt:
-          stories.publishedAt,
-
-        author:
-          users.displayName,
-
-        category:
-          categories.name,
-
+        id: stories.id,
+        slug: stories.slug,
+        title: stories.title,
+        content: stories.content,
+        image: stories.coverImage,
+        author: users.displayName,
+        publishedAt: stories.publishedAt,
       })
 
       .from(stories)
@@ -59,20 +77,11 @@ export default async function SingleDadsPage() {
         )
       )
 
-      .innerJoin(
-        categories,
-        eq(
-          stories.categoryId,
-          categories.id
-        )
-      )
-
       .where(
         and(
-
           eq(
-            categories.slug,
-            "single-dads"
+            stories.categoryId,
+            category.id
           ),
 
           eq(
@@ -84,28 +93,25 @@ export default async function SingleDadsPage() {
             stories.isDeleted,
             false
           )
-
         )
       )
 
       .orderBy(
-        desc(
-          stories.publishedAt
-        )
+        asc(stories.publishedAt)
       );
-
 
   /*
   |--------------------------------------------------------------------------
-  | Convert database stories into the format expected
-  | by StoryCategoryLayout
+  | Format stories for StoryCategoryLayout
   |--------------------------------------------------------------------------
+  |
+  | We are NOT using stories.excerpt.
+  |
   */
 
   const formattedStories =
-    databaseStories.map(
+    categoryStories.map(
       (story) => {
-
         const words =
           story.content
             .trim()
@@ -113,54 +119,20 @@ export default async function SingleDadsPage() {
             .filter(Boolean)
             .length;
 
-
-        const readTime =
-          Math.max(
-            1,
-            Math.ceil(
-              words / 200
-            )
-          );
-
+        const readTime = Math.max(
+          1,
+          Math.ceil(words / 200)
+        );
 
         return {
+          id: story.id,
 
-          /*
-          |--------------------------------------------------------------------------
-          | IMPORTANT:
-          | This is the REAL database stories.id.
-          |
-          | BookmarkButton will use this ID.
-          |--------------------------------------------------------------------------
-          */
+          slug: story.slug,
 
-          id:
-            story.id,
-
-          slug:
-            story.slug,
-
-          title:
-            story.title,
-
-          /*
-          |--------------------------------------------------------------------------
-          | Temporary preview text.
-          |
-          | The full story page still uses story.content.
-          |--------------------------------------------------------------------------
-          */
-
-          excerpt:
-            story.content.length > 220
-              ? `${story.content
-                  .trim()
-                  .slice(0, 220)
-                  .trim()}...`
-              : story.content.trim(),
+          title: story.title,
 
           image:
-            story.coverImage ??
+            story.image ??
             "/Images/stories/default-story.jpg",
 
           author:
@@ -175,29 +147,29 @@ export default async function SingleDadsPage() {
 
           readTime:
             `${readTime} min read`,
-
         };
-
       }
     );
 
-
   return (
-
     <StoryCategoryLayout
+      title={
+        category.name
+      }
 
-      title="Single Dads"
+      description={
+        category.description ??
+        "Read inspiring stories, challenges and victories from fathers raising children on their own."
+      }
 
-      description="Read inspiring stories, challenges and victories from fathers raising children on their own."
-
-      image="/Images/stories/singledad.jpg"
+      image={
+        category.image ??
+        "/Images/stories/singledad.jpg"
+      }
 
       stories={
         formattedStories
       }
-
     />
-
   );
-
         }
