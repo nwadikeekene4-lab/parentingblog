@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 
 type BookmarkButtonProps = {
   storyId: string;
+  storySlug: string;
 };
 
 export default function BookmarkButton({
   storyId,
+  storySlug,
 }: BookmarkButtonProps) {
 
   const router = useRouter();
@@ -36,13 +38,11 @@ export default function BookmarkButton({
 
     let cancelled = false;
 
-
     async function checkBookmark() {
 
       try {
 
         setLoading(true);
-
 
         const response =
           await fetch(
@@ -57,11 +57,6 @@ export default function BookmarkButton({
         /*
         |--------------------------------------------------------------------------
         | Visitor is not logged in
-        |--------------------------------------------------------------------------
-        |
-        | The bookmarks API correctly returns 401.
-        | We simply treat this as a visitor instead of
-        | showing an error.
         |--------------------------------------------------------------------------
         */
 
@@ -96,17 +91,14 @@ export default function BookmarkButton({
 
 
         const exists =
-          Array.isArray(
-            data.bookmarks
-          ) &&
+          Array.isArray(data.bookmarks) &&
           data.bookmarks.some(
             (bookmark: {
               story?: {
                 id?: string;
               };
             }) =>
-              bookmark.story?.id ===
-              storyId
+              bookmark.story?.id === storyId
           );
 
 
@@ -164,16 +156,14 @@ export default function BookmarkButton({
     |--------------------------------------------------------------------------
     | Visitor protection
     |--------------------------------------------------------------------------
-    |
-    | Do not call POST / DELETE for unauthenticated users.
-    | Send them to login instead.
-    |--------------------------------------------------------------------------
     */
 
     if (!authenticated) {
 
       router.push(
-        `/login?redirect=/stories/${storyId}`
+        `/login?redirect=${encodeURIComponent(
+          `/stories/${storySlug}`
+        )}`
       );
 
       return;
@@ -211,7 +201,7 @@ export default function BookmarkButton({
 
       /*
       |--------------------------------------------------------------------------
-      | Session may have expired
+      | Session expired
       |--------------------------------------------------------------------------
       */
 
@@ -221,7 +211,9 @@ export default function BookmarkButton({
         setBookmarked(false);
 
         router.push(
-          `/login?redirect=/stories/${storyId}`
+          `/login?redirect=${encodeURIComponent(
+            `/stories/${storySlug}`
+          )}`
         );
 
         return;
@@ -244,7 +236,7 @@ export default function BookmarkButton({
 
       /*
       |--------------------------------------------------------------------------
-      | Update UI immediately after successful API request
+      | Update UI immediately
       |--------------------------------------------------------------------------
       */
 
@@ -261,12 +253,6 @@ export default function BookmarkButton({
       );
 
 
-      /*
-      |--------------------------------------------------------------------------
-      | Only show an error for a genuine bookmark failure.
-      |--------------------------------------------------------------------------
-      */
-
       alert(
         error instanceof Error
           ? error.message
@@ -282,12 +268,6 @@ export default function BookmarkButton({
 
   }
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | Button
-  |--------------------------------------------------------------------------
-  */
 
   return (
 
@@ -323,7 +303,6 @@ export default function BookmarkButton({
         🔖
       </span>
 
-
       {loading
         ? "Checking..."
         : saving
@@ -337,4 +316,4 @@ export default function BookmarkButton({
     </button>
 
   );
-}
+      }
