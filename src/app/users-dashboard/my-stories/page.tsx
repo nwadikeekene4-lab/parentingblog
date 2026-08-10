@@ -312,6 +312,8 @@ export default function MyStoriesPage() {
               key={story.id}
 
               id={story.slug}
+              slug={story.slug}
+              
 
               title={story.title}
 
