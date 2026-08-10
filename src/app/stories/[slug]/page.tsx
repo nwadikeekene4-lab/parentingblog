@@ -121,11 +121,7 @@ export default async function StoryPage({
 
         </div>
 
-        {story.excerpt && (
-          <p className="mt-6 text-lg leading-8 text-slate-600">
-            {story.excerpt}
-          </p>
-        )}
+       
 
       </header>
           {/* Story Content */}
