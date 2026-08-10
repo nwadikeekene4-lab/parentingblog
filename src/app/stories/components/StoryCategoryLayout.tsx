@@ -8,6 +8,7 @@ type Story = {
   id: string;
   slug: string;
   title: string;
+  excerpt: string;
   image: string;
   author: string;
   publishedAt: string;
@@ -39,7 +40,7 @@ export default function StoryCategoryLayout({
 
   const filteredStories = stories.filter((story) => {
     const searchableContent = cleanText(
-      `${story.title} ${story.author} ${story.publishedAt} ${story.readTime} ${title}`
+      `${story.title} ${story.excerpt} ${story.author} ${story.publishedAt} ${story.readTime} ${title}`
     );
 
     const search = cleanText(searchTerm);
@@ -114,7 +115,7 @@ export default function StoryCategoryLayout({
               xmlns="http://www.w3.org/2000/svg"
             >
               <path
-                d="M21 21L16.65 16.65M19 11C19 15.4183 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19C15.4183 19 19 15.4183 19 11Z"
+                d="M21 21L16.65 16.65M19 11C19 15.4183 15.4183 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19C15.4183 19 19 15.4183 19 11Z"
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
@@ -182,16 +183,12 @@ export default function StoryCategoryLayout({
                 className="overflow-hidden rounded-3xl bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
               >
 
-                {/* Story Image */}
-
                 <img
                   src={story.image}
                   alt={story.title}
                   className="h-72 w-full object-cover"
                 />
 
-
-                {/* Story Content */}
 
                 <div className="p-8">
 
@@ -205,24 +202,21 @@ export default function StoryCategoryLayout({
                   </h2>
 
 
+                  <p className="mt-5 leading-8 text-slate-600">
+                    {story.excerpt}
+                  </p>
+
+
                   <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-
-                    <span>
-                      {story.author}
-                    </span>
+                    <span>{story.author}</span>
 
                     <span>•</span>
 
-                    <span>
-                      {story.publishedAt}
-                    </span>
+                    <span>{story.publishedAt}</span>
 
                     <span>•</span>
 
-                    <span>
-                      {story.readTime}
-                    </span>
-
+                    <span>{story.readTime}</span>
                   </div>
 
 
@@ -242,12 +236,9 @@ export default function StoryCategoryLayout({
                     </button>
 
 
-                    {/* IMPORTANT:
-                        story.id is the real stories.id UUID
-                    */}
-
                     <BookmarkButton
                       storyId={story.id}
+                      storySlug={story.slug}
                     />
 
                   </div>
@@ -266,4 +257,4 @@ export default function StoryCategoryLayout({
 
     </main>
   );
-}
+      }
