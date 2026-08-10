@@ -3,8 +3,14 @@ import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { stories } from "@/db/schema";
+import {
+  stories,
+  storyBookmarks,
+} from "@/db/schema";
+
 import { getCurrentUser } from "@/lib/session";
+
+import BookmarkButton from "./BookmarkButton";
 
 type Props = {
   params: Promise<{
@@ -17,20 +23,28 @@ export default async function StoryPage({
 }: Props) {
   const { slug } = await params;
 
-  const currentUser = await getCurrentUser();
+  const currentUser =
+    await getCurrentUser();
 
-  const story = await db.query.stories.findFirst({
-    where: eq(stories.slug, slug),
-    with: {
-      author: true,
-      category: true,
-      images: {
-        orderBy: (images, { asc }) => [
-          asc(images.displayOrder),
-        ],
+  const story =
+    await db.query.stories.findFirst({
+      where: eq(stories.slug, slug),
+
+      with: {
+        author: true,
+
+        category: true,
+
+        images: {
+          orderBy: (
+            images,
+            { asc }
+          ) => [
+            asc(images.displayOrder),
+          ],
+        },
       },
-    },
-  });
+    });
 
   if (!story || story.isDeleted) {
     notFound();
@@ -43,25 +57,73 @@ export default async function StoryPage({
     }
 
     const isAuthor =
-      currentUser.id === story.authorId;
+      currentUser.id ===
+      story.authorId;
 
     const isAdmin =
       currentUser.role === "admin";
 
-    if (!isAuthor && !isAdmin) {
+    if (
+      !isAuthor &&
+      !isAdmin
+    ) {
       notFound();
     }
   }
 
-  const words = story.content
-    .trim()
-    .split(/\s+/).length;
+  /*
+  |--------------------------------------------------------------------------
+  | Check whether current user has bookmarked this story
+  |--------------------------------------------------------------------------
+  */
 
-  const readTime = Math.max(
-    1,
-    Math.ceil(words / 200)
-  );
+  let isBookmarked = false;
 
+  if (currentUser) {
+    const bookmark =
+      await db
+        .select({
+          id: storyBookmarks.id,
+        })
+
+        .from(storyBookmarks)
+
+        .where(
+          and(
+            eq(
+              storyBookmarks.storyId,
+              story.id
+            ),
+
+            eq(
+              storyBookmarks.userId,
+              currentUser.id
+            )
+          )
+        )
+
+        .limit(1);
+
+    isBookmarked =
+      bookmark.length > 0;
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Calculate reading time
+  |--------------------------------------------------------------------------
+  */
+
+  const words =
+    story.content
+      .trim()
+      .split(/\s+/).length;
+
+  const readTime =
+    Math.max(
+      1,
+      Math.ceil(words / 200)
+    );
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
@@ -121,67 +183,93 @@ export default async function StoryPage({
 
         </div>
 
-       
+        {/* Bookmark Button */}
+
+        {currentUser && (
+          <div className="mt-6">
+
+            <BookmarkButton
+              storyId={story.id}
+              initiallyBookmarked={
+                isBookmarked
+              }
+            />
+
+          </div>
+        )}
 
       </header>
-          {/* Story Content */}
 
-<article className="mx-auto mt-12 max-w-3xl">
+      {/* Story Content */}
 
-  <div className="text-lg leading-9 text-slate-700">
+      <article className="mx-auto mt-12 max-w-3xl">
 
-    {story.content
-      .split(/\n\s*\n/)
-      .filter(
-        (paragraph) =>
-          paragraph.trim() !== ""
-      )
-      .map((paragraph, index) => (
-        <p
-          key={index}
-          className="mb-8 whitespace-pre-wrap text-justify"
-        >
-          {paragraph.trim()}
-        </p>
-      ))}
+        <div className="text-lg leading-9 text-slate-700">
 
-  </div>
+          {story.content
+            .split(/\n\s*\n/)
+            .filter(
+              (paragraph) =>
+                paragraph.trim() !== ""
+            )
+            .map(
+              (
+                paragraph,
+                index
+              ) => (
+                <p
+                  key={index}
+                  className="mb-8 whitespace-pre-wrap text-justify"
+                >
+                  {paragraph.trim()}
+                </p>
+              )
+            )}
 
-</article>  
+        </div>
+
+      </article>
 
       {/* Story Images */}
 
       {story.images.length > 0 && (
         <section className="mx-auto mt-16 max-w-4xl space-y-12">
 
-          {story.images.map((image) => (
-            <figure
-              key={image.id}
-              className="overflow-hidden rounded-3xl bg-white shadow-lg"
-            >
-              <div className="relative h-72 w-full md:h-[520px]">
+          {story.images.map(
+            (image) => (
+              <figure
+                key={image.id}
+                className="overflow-hidden rounded-3xl bg-white shadow-lg"
+              >
 
-                <Image
-                  src={image.imageUrl}
-                  alt={
-                    image.caption ||
-                    story.title
-                  }
-                  fill
-                  sizes="100vw"
-                  className="object-cover"
-                />
+                <div className="relative h-72 w-full md:h-[520px]">
 
-              </div>
+                  <Image
+                    src={
+                      image.imageUrl
+                    }
+                    alt={
+                      image.caption ||
+                      story.title
+                    }
+                    fill
+                    sizes="100vw"
+                    className="object-cover"
+                  />
 
-              {image.caption && (
-                <figcaption className="px-6 py-5 text-center text-sm italic text-slate-500">
-                  {image.caption}
-                </figcaption>
-              )}
+                </div>
 
-            </figure>
-          ))}
+                {image.caption && (
+                  <figcaption className="px-6 py-5 text-center text-sm italic text-slate-500">
+                    {
+                      image.caption
+                    }
+                  </figcaption>
+                )}
+
+              </figure>
+            )
+          )}
 
         </section>
       )}
@@ -204,4 +292,4 @@ export default async function StoryPage({
 
     </main>
   );
-                }
+}
