@@ -4,15 +4,35 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import MyStoryCard from "@/app/components/dashboard/MyStoryCard";
 
+type StoryImage = {
+  id?: string;
+  imageUrl: string;
+  publicId?: string;
+  caption?: string | null;
+  displayOrder?: number;
+};
+
 type Story = {
   id: string;
   title: string;
   slug: string;
+
   coverImage: string | null;
+
+  images: StoryImage[];
+
+  category: string;
+
+  views: number;
+  likes: number;
+  comments: number;
+  bookmarks: number;
+
+  featured: boolean;
+
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  category: string;
 };
 
 export default function MyStoriesPage() {
@@ -33,6 +53,12 @@ export default function MyStoriesPage() {
     useState("");
 
 
+  /*
+  |--------------------------------------------------------------------------
+  | LOAD STORIES
+  |--------------------------------------------------------------------------
+  */
+
   useEffect(() => {
 
     async function loadStories() {
@@ -40,13 +66,22 @@ export default function MyStoriesPage() {
       try {
 
         setLoading(true);
+
         setError("");
 
         const response =
-          await fetch("/api/stories");
+          await fetch(
+            "/api/stories",
+            {
+              method: "GET",
+              cache: "no-store",
+            }
+          );
+
 
         const data =
           await response.json();
+
 
         if (!response.ok) {
 
@@ -57,9 +92,11 @@ export default function MyStoriesPage() {
 
         }
 
+
         setStories(
           data.stories ?? []
         );
+
 
       } catch (error) {
 
@@ -68,11 +105,13 @@ export default function MyStoriesPage() {
           error
         );
 
+
         setError(
           error instanceof Error
             ? error.message
             : "Something went wrong."
         );
+
 
       } finally {
 
@@ -87,6 +126,12 @@ export default function MyStoriesPage() {
 
   }, []);
 
+
+  /*
+  |--------------------------------------------------------------------------
+  | SEARCH + SORT
+  |--------------------------------------------------------------------------
+  */
 
   const filteredStories =
     useMemo(() => {
@@ -124,21 +169,28 @@ export default function MyStoriesPage() {
 
         case "Most Viewed":
 
-          // View statistics will be
-          // connected separately.
+          filtered = [
+            ...filtered,
+          ].sort(
+            (a, b) =>
+              b.views - a.views
+          );
 
           break;
 
 
         case "Featured":
 
-          // Featured status will be
-          // connected when the story
-          // featured field is added
-          // to this API response.
+          filtered =
+            filtered.filter(
+              (story) =>
+                story.featured
+            );
 
           break;
 
+
+        case "Newest":
 
         default:
 
@@ -202,7 +254,6 @@ export default function MyStoriesPage() {
       </section>
 
 
-
       {/* Search & Filters */}
 
       <section className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -223,7 +274,7 @@ export default function MyStoriesPage() {
           onChange={(e) =>
             setSortBy(e.target.value)
           }
-          className="h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm"
+          className="h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
         >
 
           <option>
@@ -247,7 +298,6 @@ export default function MyStoriesPage() {
       </section>
 
 
-
       {/* Loading */}
 
       {loading && (
@@ -263,7 +313,6 @@ export default function MyStoriesPage() {
         </section>
 
       )}
-
 
 
       {/* Error */}
@@ -296,7 +345,6 @@ export default function MyStoriesPage() {
       )}
 
 
-
       {/* Stories */}
 
       {!loading &&
@@ -306,54 +354,112 @@ export default function MyStoriesPage() {
         <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
 
           {filteredStories.map(
-            (story) => (
+            (story) => {
 
-            <MyStoryCard
-              key={story.id}
+              /*
+              |--------------------------------------------------------------------------
+              | Use cover image first.
+              |
+              | If there is no cover image, use
+              | the first additional story image.
+              |--------------------------------------------------------------------------
+              */
 
-              id={story.slug}
-              slug={story.slug}
-              
-
-              title={story.title}
-
-              category={
-                story.category
-              }
-
-              image={
+              const cardImage =
                 story.coverImage ??
-                "/images/loginimage.png"
-              }
+                story.images?.[0]?.imageUrl ??
+                "/images/loginimage.png";
 
-              views={0}
 
-              likes={0}
+              /*
+              |--------------------------------------------------------------------------
+              | Format published date
+              |--------------------------------------------------------------------------
+              */
 
-              comments={0}
-
-              bookmarks={0}
-
-              publishedAt={
+              const publishedDate =
                 story.publishedAt
                   ? new Date(
                       story.publishedAt
-                    ).toLocaleDateString()
+                    ).toLocaleDateString(
+                      "en-US",
+                      {
+                        month:
+                          "long",
+                        day:
+                          "numeric",
+                        year:
+                          "numeric",
+                      }
+                    )
                   : new Date(
                       story.createdAt
-                    ).toLocaleDateString()
-              }
+                    ).toLocaleDateString(
+                      "en-US",
+                      {
+                        month:
+                          "long",
+                        day:
+                          "numeric",
+                        year:
+                          "numeric",
+                      }
+                    );
 
-              featured={false}
 
-            />
+              return (
 
-          ))}
+                <MyStoryCard
+                  key={story.id}
+
+                  id={story.id}
+
+                  slug={story.slug}
+
+                  title={story.title}
+
+                  category={
+                    story.category
+                  }
+
+                  image={
+                    cardImage
+                  }
+
+                  views={
+                    story.views
+                  }
+
+                  likes={
+                    story.likes
+                  }
+
+                  comments={
+                    story.comments
+                  }
+
+                  bookmarks={
+                    story.bookmarks
+                  }
+
+                  publishedAt={
+                    publishedDate
+                  }
+
+                  featured={
+                    story.featured
+                  }
+
+                />
+
+              );
+
+            }
+          )}
 
         </section>
 
       )}
-
 
 
       {/* Empty State */}
@@ -406,4 +512,4 @@ export default function MyStoriesPage() {
 
   );
 
-            }
+}
