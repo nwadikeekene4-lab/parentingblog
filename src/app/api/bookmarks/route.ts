@@ -20,32 +20,13 @@ import { getCurrentUser } from "@/lib/session";
 |--------------------------------------------------------------------------
 | GET
 |--------------------------------------------------------------------------
-| Fetch all published stories bookmarked by the currently logged-in user.
-|
-| Includes:
-|
-| - Original story information
-| - Author information
-| - Category
-| - Cover image
-| - All additional story images
-| - Views
-| - Likes
-| - Comments
-| - Featured status
-| - Date the user bookmarked the story
+| Fetch all published stories bookmarked by the current user.
 |--------------------------------------------------------------------------
 */
 
 export async function GET() {
 
   try {
-
-    /*
-    |--------------------------------------------------------------------------
-    | 1. Get current user
-    |--------------------------------------------------------------------------
-    */
 
     const user =
       await getCurrentUser();
@@ -65,21 +46,9 @@ export async function GET() {
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | 2. Fetch user's bookmarks
-    |--------------------------------------------------------------------------
-    */
-
     const bookmarkedStories =
       await db
         .select({
-
-          /*
-          |--------------------------------------------------------------------------
-          | Bookmark information
-          |--------------------------------------------------------------------------
-          */
 
           bookmarkId:
             storyBookmarks.id,
@@ -87,12 +56,6 @@ export async function GET() {
           bookmarkedAt:
             storyBookmarks.createdAt,
 
-
-          /*
-          |--------------------------------------------------------------------------
-          | Story information
-          |--------------------------------------------------------------------------
-          */
 
           id:
             stories.id,
@@ -128,12 +91,6 @@ export async function GET() {
             stories.updatedAt,
 
 
-          /*
-          |--------------------------------------------------------------------------
-          | Author information
-          |--------------------------------------------------------------------------
-          */
-
           authorId:
             users.id,
 
@@ -147,12 +104,6 @@ export async function GET() {
             users.bio,
 
 
-          /*
-          |--------------------------------------------------------------------------
-          | Category information
-          |--------------------------------------------------------------------------
-          */
-
           categoryId:
             categories.id,
 
@@ -162,12 +113,6 @@ export async function GET() {
           categorySlug:
             categories.slug,
 
-
-          /*
-          |--------------------------------------------------------------------------
-          | Current likes
-          |--------------------------------------------------------------------------
-          */
 
           likes:
             sql<number>`
@@ -181,16 +126,6 @@ export async function GET() {
             `,
 
 
-          /*
-          |--------------------------------------------------------------------------
-          | Current comments
-          |--------------------------------------------------------------------------
-          |
-          | Only approved and non-deleted comments
-          | are counted.
-          |--------------------------------------------------------------------------
-          */
-
           comments:
             sql<number>`
               (
@@ -199,23 +134,11 @@ export async function GET() {
                 WHERE
                   ${comments.storyId}
                   = ${stories.id}
-
-                  AND
-                  ${comments.isApproved}
-                  = true
-
-                  AND
-                  ${comments.isDeleted}
-                  = false
+                  AND ${comments.isApproved} = true
+                  AND ${comments.isDeleted} = false
               )
             `,
 
-
-          /*
-          |--------------------------------------------------------------------------
-          | Current bookmark count
-          |--------------------------------------------------------------------------
-          */
 
           bookmarkCount:
             sql<number>`
@@ -232,13 +155,6 @@ export async function GET() {
 
         .from(storyBookmarks)
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Join the original story
-        |--------------------------------------------------------------------------
-        */
-
         .innerJoin(
           stories,
           eq(
@@ -246,13 +162,6 @@ export async function GET() {
             stories.id
           )
         )
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Join the story author
-        |--------------------------------------------------------------------------
-        */
 
         .innerJoin(
           users,
@@ -262,13 +171,6 @@ export async function GET() {
           )
         )
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Join category
-        |--------------------------------------------------------------------------
-        */
-
         .innerJoin(
           categories,
           eq(
@@ -276,15 +178,6 @@ export async function GET() {
             categories.id
           )
         )
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Only this user's bookmarks
-        |
-        | Only published and non-deleted stories.
-        |--------------------------------------------------------------------------
-        */
 
         .where(
           and(
@@ -307,25 +200,12 @@ export async function GET() {
           )
         )
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Most recently bookmarked first
-        |--------------------------------------------------------------------------
-        */
-
         .orderBy(
           desc(
             storyBookmarks.createdAt
           )
         );
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | 3. No bookmarks
-    |--------------------------------------------------------------------------
-    */
 
     if (
       bookmarkedStories.length === 0
@@ -343,24 +223,12 @@ export async function GET() {
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | 4. Get story IDs
-    |--------------------------------------------------------------------------
-    */
-
     const storyIds =
       bookmarkedStories.map(
         (story) =>
           story.id
       );
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | 5. Fetch all additional story images
-    |--------------------------------------------------------------------------
-    */
 
     const additionalImages =
       await db
@@ -403,12 +271,6 @@ export async function GET() {
         );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | 6. Group images by story
-    |--------------------------------------------------------------------------
-    */
-
     const imagesByStory =
       new Map<
         string,
@@ -439,21 +301,9 @@ export async function GET() {
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | 7. Build final response
-    |--------------------------------------------------------------------------
-    */
-
     const formattedBookmarks =
       bookmarkedStories.map(
         (story) => ({
-
-          /*
-          |--------------------------------------------------------------------------
-          | Bookmark information
-          |--------------------------------------------------------------------------
-          */
 
           bookmarkId:
             story.bookmarkId,
@@ -461,12 +311,6 @@ export async function GET() {
           bookmarkedAt:
             story.bookmarkedAt,
 
-
-          /*
-          |--------------------------------------------------------------------------
-          | Original story
-          |--------------------------------------------------------------------------
-          */
 
           story: {
 
@@ -521,12 +365,6 @@ export async function GET() {
               story.updatedAt,
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Author
-            |--------------------------------------------------------------------------
-            */
-
             author: {
 
               id:
@@ -544,12 +382,6 @@ export async function GET() {
             },
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Category
-            |--------------------------------------------------------------------------
-            */
-
             category: {
 
               id:
@@ -564,12 +396,6 @@ export async function GET() {
             },
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Additional images
-            |--------------------------------------------------------------------------
-            */
-
             images:
               imagesByStory.get(
                 story.id
@@ -580,12 +406,6 @@ export async function GET() {
         })
       );
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | 8. Return response
-    |--------------------------------------------------------------------------
-    */
 
     return NextResponse.json(
       {
@@ -619,3 +439,362 @@ export async function GET() {
   }
 
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| POST
+|--------------------------------------------------------------------------
+| Add a story to the current user's bookmarks.
+|--------------------------------------------------------------------------
+*/
+
+export async function POST(
+  request: Request
+) {
+
+  try {
+
+    const user =
+      await getCurrentUser();
+
+
+    if (!user) {
+
+      return NextResponse.json(
+        {
+          message: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
+      );
+
+    }
+
+
+    const body =
+      await request.json();
+
+
+    const storyId =
+      body.storyId;
+
+
+    if (!storyId) {
+
+      return NextResponse.json(
+        {
+          message:
+            "Story ID is required.",
+        },
+        {
+          status: 400,
+        }
+      );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check that the story exists and is published.
+    |--------------------------------------------------------------------------
+    */
+
+    const story =
+      await db.query.stories.findFirst({
+
+        where: and(
+
+          eq(
+            stories.id,
+            storyId
+          ),
+
+          eq(
+            stories.status,
+            "published"
+          ),
+
+          eq(
+            stories.isDeleted,
+            false
+          )
+
+        ),
+
+      });
+
+
+    if (!story) {
+
+      return NextResponse.json(
+        {
+          message:
+            "Story not found.",
+        },
+        {
+          status: 404,
+        }
+      );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Prevent duplicate bookmarks.
+    |--------------------------------------------------------------------------
+    */
+
+    const existingBookmark =
+      await db
+        .select({
+          id:
+            storyBookmarks.id,
+        })
+
+        .from(storyBookmarks)
+
+        .where(
+          and(
+
+            eq(
+              storyBookmarks.storyId,
+              storyId
+            ),
+
+            eq(
+              storyBookmarks.userId,
+              user.id
+            )
+
+          )
+        )
+
+        .limit(1);
+
+
+    if (
+      existingBookmark.length > 0
+    ) {
+
+      return NextResponse.json(
+        {
+          message:
+            "Story is already bookmarked.",
+        },
+        {
+          status: 200,
+        }
+      );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create bookmark.
+    |--------------------------------------------------------------------------
+    */
+
+    const [bookmark] =
+      await db
+        .insert(storyBookmarks)
+        .values({
+
+          storyId,
+
+          userId:
+            user.id,
+
+        })
+
+        .returning({
+
+          id:
+            storyBookmarks.id,
+
+          storyId:
+            storyBookmarks.storyId,
+
+          createdAt:
+            storyBookmarks.createdAt,
+
+        });
+
+
+    return NextResponse.json(
+      {
+        message:
+          "Story bookmarked successfully.",
+
+        bookmark,
+
+      },
+      {
+        status: 201,
+      }
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Create bookmark error:",
+      error
+    );
+
+
+    return NextResponse.json(
+      {
+        message:
+          "Internal server error.",
+      },
+      {
+        status: 500,
+      }
+    );
+
+  }
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| DELETE
+|--------------------------------------------------------------------------
+| Remove a story from the current user's bookmarks.
+|--------------------------------------------------------------------------
+*/
+
+export async function DELETE(
+  request: Request
+) {
+
+  try {
+
+    const user =
+      await getCurrentUser();
+
+
+    if (!user) {
+
+      return NextResponse.json(
+        {
+          message: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
+      );
+
+    }
+
+
+    const body =
+      await request.json();
+
+
+    const storyId =
+      body.storyId;
+
+
+    if (!storyId) {
+
+      return NextResponse.json(
+        {
+          message:
+            "Story ID is required.",
+        },
+        {
+          status: 400,
+        }
+      );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Delete only this user's bookmark.
+    |--------------------------------------------------------------------------
+    */
+
+    const deletedBookmark =
+      await db
+        .delete(storyBookmarks)
+
+        .where(
+          and(
+
+            eq(
+              storyBookmarks.storyId,
+              storyId
+            ),
+
+            eq(
+              storyBookmarks.userId,
+              user.id
+            )
+
+          )
+        )
+
+        .returning({
+          id:
+            storyBookmarks.id,
+        });
+
+
+    if (
+      deletedBookmark.length === 0
+    ) {
+
+      return NextResponse.json(
+        {
+          message:
+            "Bookmark not found.",
+        },
+        {
+          status: 404,
+        }
+      );
+
+    }
+
+
+    return NextResponse.json(
+      {
+        message:
+          "Bookmark removed successfully.",
+      },
+      {
+        status: 200,
+      }
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Delete bookmark error:",
+      error
+    );
+
+
+    return NextResponse.json(
+      {
+        message:
+          "Internal server error.",
+      },
+      {
+        status: 500,
+      }
+    );
+
+  }
+
+          }
