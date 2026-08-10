@@ -10,7 +10,7 @@ import {
 
 import { getCurrentUser } from "@/lib/session";
 
-import BookmarkButton from "./BookmarkButton";
+
 
 type Props = {
   params: Promise<{
