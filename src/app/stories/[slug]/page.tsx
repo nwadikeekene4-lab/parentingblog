@@ -9,7 +9,7 @@ import {
 } from "@/db/schema";
 
 import { getCurrentUser } from "@/lib/session";
-import BookmarkButton from "../components/BookmarkButton";
+import BookmarkButton from "../components/story/BookmarkButton";
 
 type Props = {
   params: Promise<{
