@@ -157,8 +157,9 @@ export default async function StoryPage({
         {currentUser && (
           <div className="mt-6">
             <BookmarkButton
-              storyId={story.id}
-            />
+  storyId={story.id}
+  storySlug={story.slug}
+/>
           </div>
         )}
 
