@@ -128,56 +128,62 @@ export default function BookmarksPage() {
   | Remove bookmark
   |--------------------------------------------------------------------------
   */
+async function removeBookmark(
+  storyId: string
+) {
+  const confirmed = window.confirm(
+    "Are you sure you want to remove this bookmark?"
+  );
 
-  async function removeBookmark(
-    storyId: string
-  ) {
+  if (!confirmed) return;
 
-    try {
-
-      const response =
-        await fetch(
-          `/api/bookmarks/${storyId}`,
-          {
-            method: "DELETE",
-          }
-        );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ??
-            "Failed to remove bookmark."
-        );
+  try {
+    const response = await fetch(
+      "/api/bookmarks",
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          storyId,
+        }),
       }
+    );
 
-      setBookmarks(
-        (current) =>
-          current.filter(
-            (bookmark) =>
-              bookmark.story.id !== storyId
-          )
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ??
+          "Failed to remove bookmark."
       );
-
-    } catch (error) {
-
-      console.error(
-        "Remove bookmark error:",
-        error
-      );
-
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong."
-      );
-
     }
 
-  }
+    setBookmarks(
+      (current) =>
+        current.filter(
+          (bookmark) =>
+            bookmark.story.id !== storyId
+        )
+    );
 
+  } catch (error) {
+    console.error(
+      "Remove bookmark error:",
+      error
+    );
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Something went wrong."
+    );
+  }
+}
+  
 
   /*
   |--------------------------------------------------------------------------
