@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import BookmarkButton from "./BookmarkButton";
+import BookmarkButton from "../[slug]/BookmarkButton";
 
 type Story = {
   id: string;
