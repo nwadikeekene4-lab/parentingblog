@@ -187,11 +187,8 @@ export default async function StoryPage({
           <div className="mt-6">
 
             <BookmarkButton
-              storyId={story.id}
-              initiallyBookmarked={
-                isBookmarked
-              }
-            />
+  storyId={story.id}
+/>
 
           </div>
         )}
