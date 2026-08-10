@@ -62,9 +62,6 @@ export default async function StoryPage({
     Math.ceil(words / 200)
   );
 
-  const paragraphs = story.content
-    .split("\n")
-    .filter((paragraph) => paragraph.trim() !== "");
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
@@ -131,26 +128,30 @@ export default async function StoryPage({
         )}
 
       </header>
-            {/* Story Content */}
+          {/* Story Content */}
 
-      <article className="mx-auto max-w-3xl">
+<article className="mx-auto mt-12 max-w-3xl">
 
-        <div className="space-y-7 text-lg leading-9 text-slate-700">
+  <div className="text-lg leading-9 text-slate-700">
 
-          <pre
-  style={{
-    whiteSpace: "pre-wrap",
-    border: "2px solid red",
-    padding: "16px",
-    background: "#fff",
-  }}
->
-  {JSON.stringify(story.content)}
-</pre>
+    {story.content
+      .split(/\n\s*\n/)
+      .filter(
+        (paragraph) =>
+          paragraph.trim() !== ""
+      )
+      .map((paragraph, index) => (
+        <p
+          key={index}
+          className="mb-8 whitespace-pre-wrap text-justify"
+        >
+          {paragraph.trim()}
+        </p>
+      ))}
 
-        </div>
+  </div>
 
-      </article>
+</article>  
 
       {/* Story Images */}
 
