@@ -1,6 +1,8 @@
 import Image from "next/image";
+import BookmarkButton from "../../components/story/BookmarkButton";
 
 type StoryPreviewCardProps = {
+  storyId: string;
   image: string;
   title: string;
   category: string;
@@ -10,6 +12,7 @@ type StoryPreviewCardProps = {
 };
 
 export default function StoryPreviewCard({
+  storyId,
   image,
   title,
   category,
@@ -59,9 +62,18 @@ export default function StoryPreviewCard({
             <span>{readTime}</span>
           </div>
 
-          <button className="mt-5 font-semibold text-slate-800 transition-all duration-300 group-hover:translate-x-2">
-            Read Story →
-          </button>
+          {/* Actions */}
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+
+            <BookmarkButton
+              storyId={storyId}
+            />
+
+            <button className="font-semibold text-slate-800 transition-all duration-300 group-hover:translate-x-2">
+              Read Story →
+            </button>
+
+          </div>
 
         </div>
 
@@ -69,4 +81,4 @@ export default function StoryPreviewCard({
 
     </article>
   );
-}
+      }
