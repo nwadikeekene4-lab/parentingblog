@@ -1,11 +1,19 @@
 import StoryCategoryLayout from "../components/StoryCategoryLayout";
+import { getStoriesByCategory } from "@/lib/getStoriesByCategory";
 
-export default function TeenagersPage() {
+export default async function TeenagersPage() {
+
+  const stories =
+    await getStoriesByCategory(
+      "Teenagers"
+    );
+
   return (
     <StoryCategoryLayout
       title="Teenagers"
-      description="Stories about guiding teenagers through growth, responsibility and confidence."
-      image="/Images/stories/newborn.jpeg"
+      description="Read honest parenting experiences about raising teenagers, navigating challenges and celebrating growth."
+      image="/Images/stories/teenager.jpg"
+      stories={stories}
     />
   );
 }
