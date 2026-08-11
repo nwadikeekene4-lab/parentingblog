@@ -12,7 +12,7 @@ export default async function SuccessStoriesPage() {
     <StoryCategoryLayout
       title="Success Stories"
       description="Be inspired by parents and families who have overcome challenges and found meaningful victories along their journeys."
-      image="/Images/stories/successstory.jpg"
+      image="/Images/stories/parentingtips.jpeg"
       stories={stories}
     />
   );
