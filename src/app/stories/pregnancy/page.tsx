@@ -1,11 +1,19 @@
 import StoryCategoryLayout from "../components/StoryCategoryLayout";
+import { getStoriesByCategory } from "@/lib/getStoriesByCategory";
 
-export default function PregnancyPage() {
+export default async function PregnancyPage() {
+
+  const stories =
+    await getStoriesByCategory(
+      "Pregnancy"
+    );
+
   return (
     <StoryCategoryLayout
       title="Pregnancy"
-      description="Discover pregnancy journeys, preparation, emotional moments and helpful experiences from expecting parents."
-      image="/Images/stories/pregnantwoman.jpeg"
+      description="Explore real pregnancy experiences, memorable moments, challenges and journeys shared by parents."
+      image="/Images/stories/pregnancy.jpg"
+      stories={stories}
     />
   );
 }
