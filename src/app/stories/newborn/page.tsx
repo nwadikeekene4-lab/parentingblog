@@ -12,7 +12,7 @@ export default async function NewbornPage() {
     <StoryCategoryLayout
       title="Newborn"
       description="Read real experiences about the joys, challenges and unforgettable moments of caring for a newborn."
-      image="/Images/stories/newborn.jpg"
+      image="/Images/stories/newborn.jpeg"
       stories={stories}
     />
   );
