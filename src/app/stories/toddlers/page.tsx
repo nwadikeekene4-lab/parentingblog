@@ -12,7 +12,7 @@ export default async function ToddlersPage() {
     <StoryCategoryLayout
       title="Toddlers"
       description="Discover real stories about raising toddlers, navigating challenges and celebrating their amazing milestones."
-      image="/Images/stories/toddler.jpg"
+      image="/Images/stories/toddlerorg.jpeg"
       stories={stories}
     />
   );
