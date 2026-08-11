@@ -12,7 +12,7 @@ export default async function SingleMomsPage() {
     <StoryCategoryLayout
       title="Single Moms"
       description="Discover honest experiences, challenges, strength and inspiring journeys from mothers raising children on their own."
-      image="/Images/stories/singlemom.jpg"
+      image="/Images/stories/singlemum.jpg"
       stories={stories}
     />
   );
