@@ -12,7 +12,7 @@ export default async function PregnancyPage() {
     <StoryCategoryLayout
       title="Pregnancy"
       description="Explore real pregnancy experiences, memorable moments, challenges and journeys shared by parents."
-      image="/Images/stories/pregnancy.jpg"
+      image="/Images/stories/pregnantwoman.jpg"
       stories={stories}
     />
   );
