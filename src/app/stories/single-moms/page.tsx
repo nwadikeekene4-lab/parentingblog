@@ -1,11 +1,19 @@
 import StoryCategoryLayout from "../components/StoryCategoryLayout";
+import { getStoriesByCategory } from "@/lib/getStoriesByCategory";
 
-export default function SingleMomsPage() {
+export default async function SingleMomsPage() {
+
+  const stories =
+    await getStoriesByCategory(
+      "Single Moms"
+    );
+
   return (
     <StoryCategoryLayout
       title="Single Moms"
-      description="Explore inspiring stories, resilience and everyday experiences from single mothers around the world."
-      image="/Images/stories/singlemum.jpg"
+      description="Discover honest experiences, challenges, strength and inspiring journeys from mothers raising children on their own."
+      image="/Images/stories/singlemom.jpg"
+      stories={stories}
     />
   );
 }
