@@ -49,6 +49,21 @@ export const notificationTypeEnum = pgEnum(
   ]
 );
 
+export const activityTypeEnum = pgEnum(
+  "activity_type",
+  [
+    "profile_display_name_updated",
+    "profile_bio_updated",
+    "profile_country_updated",
+    "profile_state_updated",
+    "profile_image_updated",
+    "story_draft_saved",
+    "story_submitted",
+    "story_edited",
+    "story_published",
+  ]
+);
+
 
 /* ===========================
    USERS
@@ -544,6 +559,42 @@ export const notifications = pgTable("notifications", {
 
 });
 
+/* ===========================
+   USER ACTIVITIES
+=========================== */
+
+export const userActivities = pgTable(
+  "user_activities",
+  {
+
+    id: uuid("id")
+      .defaultRandom()
+      .primaryKey(),
+
+    userId: uuid("user_id")
+      .references(() => users.id, {
+        onDelete: "cascade",
+      })
+      .notNull(),
+
+    type: activityTypeEnum("type")
+      .notNull(),
+
+    message: text("message")
+      .notNull(),
+
+    storyId: uuid("story_id")
+      .references(() => stories.id, {
+        onDelete: "cascade",
+      }),
+
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+
+  }
+);
+
 
 /* ===========================
    REPORTS
@@ -728,11 +779,30 @@ export const usersRelations = relations(users, ({ many }) => ({
   commentLikes: many(commentLikes),
   bookmarks: many(storyBookmarks),
   notifications: many(notifications),
+  activities: many(userActivities),
   reports: many(reports),
   emailTokens: many(emailVerificationTokens),
   passwordResetTokens: many(passwordResetTokens),
 }));
 
+/* USER ACTIVITIES */
+
+export const userActivitiesRelations = relations(
+  userActivities,
+  ({ one }) => ({
+
+    user: one(users, {
+      fields: [userActivities.userId],
+      references: [users.id],
+    }),
+
+    story: one(stories, {
+      fields: [userActivities.storyId],
+      references: [stories.id],
+    }),
+
+  })
+);
 
 /* CATEGORIES */
 
