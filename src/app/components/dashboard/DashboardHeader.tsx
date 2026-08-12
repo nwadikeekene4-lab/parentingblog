@@ -87,27 +87,36 @@ export default function DashboardHeader({
      * header that the profile was updated.
      */
     function handleProfileUpdated() {
+  loadHeaderData();
+}
 
-      loadHeaderData();
+function handleNotificationUpdated() {
+  loadHeaderData();
+}
 
-    }
+window.addEventListener(
+  "profileUpdated",
+  handleProfileUpdated
+);
 
+window.addEventListener(
+  "notificationUpdated",
+  handleNotificationUpdated
+);
 
-    window.addEventListener(
-      "profileUpdated",
-      handleProfileUpdated
-    );
+return () => {
 
+  window.removeEventListener(
+    "profileUpdated",
+    handleProfileUpdated
+  );
 
-    return () => {
+  window.removeEventListener(
+    "notificationUpdated",
+    handleNotificationUpdated
+  );
 
-      window.removeEventListener(
-        "profileUpdated",
-        handleProfileUpdated
-      );
-
-    };
-
+};
   }, []);
 
 
