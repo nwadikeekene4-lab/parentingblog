@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import EditStoryEditor from "./EditStoryEditor";
+
 type StoryImage = {
   id: string;
   imageUrl: string;
@@ -31,6 +33,12 @@ export default function EditStoryForm({
   const [story, setStory] =
     useState<StoryData | null>(null);
 
+  const [title, setTitle] =
+    useState("");
+
+  const [content, setContent] =
+    useState("");
+
   const [loading, setLoading] =
     useState(true);
 
@@ -53,7 +61,8 @@ export default function EditStoryForm({
           }
         );
 
-        const data = await response.json();
+        const data =
+          await response.json();
 
         if (!response.ok) {
           throw new Error(
@@ -64,6 +73,14 @@ export default function EditStoryForm({
 
         if (!cancelled) {
           setStory(data.story);
+
+          setTitle(
+            data.story.title ?? ""
+          );
+
+          setContent(
+            data.story.content ?? ""
+          );
         }
       } catch (error) {
         console.error(
@@ -140,18 +157,12 @@ export default function EditStoryForm({
         </p>
       </section>
 
-      {/* These will be replaced with the independent
-          editor components next. */}
-
-      <section className="rounded-2xl bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-gray-900">
-          Story Loaded
-        </h2>
-
-        <p className="mt-3 text-gray-700">
-          {story.title}
-        </p>
-      </section>
+      <EditStoryEditor
+        title={title}
+        content={content}
+        onTitleChange={setTitle}
+        onContentChange={setContent}
+      />
 
     </div>
   );
