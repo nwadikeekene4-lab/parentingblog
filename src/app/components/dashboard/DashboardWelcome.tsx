@@ -3,36 +3,20 @@
 import { useEffect, useState } from "react";
 
 export default function DashboardWelcome() {
-
   const [greeting, setGreeting] =
-    useState("Welcome");
-
+    useState("Good Morning");
 
   useEffect(() => {
+    const hour = new Date().getHours();
 
-    const hour =
-      new Date().getHours();
-
-
-    if (hour >= 5 && hour < 12) {
-
+    if (hour >= 0 && hour < 12) {
       setGreeting("Good Morning");
-
-    } else if (
-      hour >= 12 &&
-      hour < 17
-    ) {
-
+    } else if (hour >= 12 && hour < 17) {
       setGreeting("Good Afternoon");
-
     } else {
-
       setGreeting("Good Evening");
-
     }
-
   }, []);
-
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -48,4 +32,4 @@ export default function DashboardWelcome() {
 
     </section>
   );
-}
+        }
