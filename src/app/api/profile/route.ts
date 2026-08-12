@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
+import { createActivity } from "@/lib/activity";
 
 
 /*
@@ -127,42 +128,143 @@ export async function PATCH(
     }
 
 
-    await db
-      .update(users)
-      .set({
-        displayName:
-          displayName.trim(),
+    const newDisplayName =
+  displayName.trim();
 
-        bio:
-          typeof bio === "string"
-            ? bio.trim() || null
-            : null,
+const newBio =
+  typeof bio === "string"
+    ? bio.trim() || null
+    : null;
 
-        country:
-          typeof country === "string"
-            ? country.trim() || null
-            : null,
+const newCountry =
+  typeof country === "string"
+    ? country.trim() || null
+    : null;
 
-        state:
-          typeof state === "string"
-            ? state.trim() || null
-            : null,
+const newState =
+  typeof state === "string"
+    ? state.trim() || null
+    : null;
 
-        profileImage:
-          typeof profileImage === "string"
-            ? profileImage.trim() || null
-            : null,
+const newProfileImage =
+  typeof profileImage === "string"
+    ? profileImage.trim() || null
+    : null;
 
-        updatedAt:
-          new Date(),
-      })
-      .where(
-        eq(
-          users.id,
-          user.id
-        )
-      );
 
+/*
+|--------------------------------------------------------------------------
+| Check which profile fields actually changed
+|--------------------------------------------------------------------------
+*/
+
+const displayNameChanged =
+  user.displayName !== newDisplayName;
+
+const bioChanged =
+  (user.bio ?? null) !== newBio;
+
+const countryChanged =
+  (user.country ?? null) !== newCountry;
+
+const stateChanged =
+  (user.state ?? null) !== newState;
+
+const profileImageChanged =
+  (user.profileImage ?? null) !==
+  newProfileImage;
+
+
+/*
+|--------------------------------------------------------------------------
+| Update profile
+|--------------------------------------------------------------------------
+*/
+
+await db
+  .update(users)
+  .set({
+    displayName:
+      newDisplayName,
+
+    bio:
+      newBio,
+
+    country:
+      newCountry,
+
+    state:
+      newState,
+
+    profileImage:
+      newProfileImage,
+
+    updatedAt:
+      new Date(),
+  })
+  .where(
+    eq(
+      users.id,
+      user.id
+    )
+  );
+
+
+/*
+|--------------------------------------------------------------------------
+| Record profile activities
+|--------------------------------------------------------------------------
+*/
+
+if (displayNameChanged) {
+  await createActivity({
+    userId: user.id,
+    type:
+      "profile_display_name_updated",
+    message:
+      "You updated your display name.",
+  });
+}
+
+if (bioChanged) {
+  await createActivity({
+    userId: user.id,
+    type:
+      "profile_bio_updated",
+    message:
+      "You updated your bio.",
+  });
+}
+
+if (countryChanged) {
+  await createActivity({
+    userId: user.id,
+    type:
+      "profile_country_updated",
+    message:
+      "You updated your country.",
+  });
+}
+
+if (stateChanged) {
+  await createActivity({
+    userId: user.id,
+    type:
+      "profile_state_updated",
+    message:
+      "You updated your state.",
+  });
+}
+
+if (profileImageChanged) {
+  await createActivity({
+    userId: user.id,
+    type:
+      "profile_image_updated",
+    message:
+      "You updated your profile picture.",
+  });
+  }
 
     const updatedUser =
       await db.query.users.findFirst({
