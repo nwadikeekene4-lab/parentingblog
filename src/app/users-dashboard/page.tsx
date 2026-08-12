@@ -3,7 +3,43 @@ import DashboardStatsCard from "../components/dashboard/DashboardStatsCard";
 import DashboardQuickActions from "../components/dashboard/DashboardQuickActions";
 import DashboardRecentActivity from "../components/dashboard/DashboardRecentActivity";
 
-export default function UsersDashboardPage() {
+async function getDashboardStats() {
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/dashboard/stats`,
+      {
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      return {
+        publishedStories: 0,
+        drafts: 0,
+        bookmarks: 0,
+        notifications: 0,
+      };
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(
+      "Failed to fetch dashboard stats:",
+      error
+    );
+
+    return {
+      publishedStories: 0,
+      drafts: 0,
+      bookmarks: 0,
+      notifications: 0,
+    };
+  }
+}
+
+export default async function UsersDashboardPage() {
+  const stats = await getDashboardStats();
+
   return (
     <div className="space-y-8">
 
@@ -13,28 +49,28 @@ export default function UsersDashboardPage() {
 
         <DashboardStatsCard
           title="Published Stories"
-          value={0}
+          value={stats.publishedStories}
           icon={<span className="text-xl">📚</span>}
           color="blue"
         />
 
         <DashboardStatsCard
           title="Drafts"
-          value={0}
+          value={stats.drafts}
           icon={<span className="text-xl">📝</span>}
           color="yellow"
         />
 
         <DashboardStatsCard
           title="Bookmarks"
-          value={0}
+          value={stats.bookmarks}
           icon={<span className="text-xl">🔖</span>}
           color="green"
         />
 
         <DashboardStatsCard
           title="Notifications"
-          value={0}
+          value={stats.notifications}
           icon={<span className="text-xl">🔔</span>}
           color="red"
         />
@@ -47,4 +83,4 @@ export default function UsersDashboardPage() {
 
     </div>
   );
-}
+      }
