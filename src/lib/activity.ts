@@ -1,5 +1,9 @@
 import { db } from "@/db";
-import { userActivities } from "@/db/schema";
+
+import {
+  userActivities,
+} from "@/db/schema";
+
 
 type ActivityType =
   | "profile_display_name_updated"
@@ -12,23 +16,28 @@ type ActivityType =
   | "story_edited"
   | "story_published";
 
-type CreateActivityParams = {
+
+type CreateActivityOptions = {
   userId: string;
   type: ActivityType;
   message: string;
-  storyId?: string;
+  storyId?: string | null;
 };
 
-export async function createUserActivity({
+
+export async function createActivity({
   userId,
   type,
   message,
-  storyId,
-}: CreateActivityParams) {
-  await db.insert(userActivities).values({
-    userId,
-    type,
-    message,
-    storyId: storyId ?? null,
-  });
+  storyId = null,
+}: CreateActivityOptions) {
+
+  await db
+    .insert(userActivities)
+    .values({
+      userId,
+      type,
+      message,
+      storyId,
+    });
 }
