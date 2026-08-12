@@ -10,7 +10,7 @@ import {
 } from "@/db/schema";
 
 import { getCurrentUser } from "@/lib/session";
-
+import { createActivity } from "@/lib/activity";
 
 export async function GET(
   request: Request,
@@ -352,6 +352,33 @@ if (
       )
 
     );
+
+    }
+        /*
+    |--------------------------------------------------------------------------
+    | Record user's activity
+    |--------------------------------------------------------------------------
+    */
+
+    if (status === "published") {
+
+      await createActivity({
+        userId: user.id,
+        type: "story_submitted",
+        message:
+          `Story "${title.trim()}" was submitted for review.`,
+        storyId: id,
+      });
+
+    } else {
+
+      await createActivity({
+        userId: user.id,
+        type: "story_draft_saved",
+        message:
+          `Draft "${title.trim()}" was saved.`,
+        storyId: id,
+      });
 
     }
 
