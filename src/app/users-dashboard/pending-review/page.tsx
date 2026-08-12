@@ -132,7 +132,15 @@ export default async function PendingReviewPage({
                   {story.category}
                 </p>
 
-                <div className="pt-2">
+                {/* Story Actions */}
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <Link
+                    href={`/users-dashboard/edit-story/${story.id}`}
+                    className="inline-flex rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700"
+                  >
+                    Edit Story
+                  </Link>
+
                   <Link
                     href={`/stories/${story.slug}`}
                     className="inline-flex rounded-xl border border-gray-300 px-4 py-2 font-medium text-gray-700 transition hover:bg-gray-100"
@@ -147,4 +155,4 @@ export default async function PendingReviewPage({
       )}
     </div>
   );
-    }
+                }
