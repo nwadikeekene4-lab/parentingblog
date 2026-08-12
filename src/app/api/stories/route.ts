@@ -14,7 +14,7 @@ import {
 
 import { getCurrentUser } from "@/lib/session";
 import { generateExcerpt } from "@/lib/story";
-
+import { createActivity } from "@/lib/activity";
 
 function createSlug(title: string) {
   return title
@@ -637,20 +637,64 @@ export async function POST(
     }
 
 
-    return NextResponse.json(
-      {
-        message:
-          status === "published"
-            ? "Story submitted for review successfully."
-            : "Draft saved successfully.",
+    /*
+|--------------------------------------------------------------------------
+| Record story activity
+|--------------------------------------------------------------------------
+*/
 
-        story,
+if (status === "published") {
 
-      },
-      {
-        status: 201,
-      }
-    );
+  await createActivity({
+    userId: user.id,
+
+    type:
+      "story_submitted",
+
+    message:
+      `You submitted "${story.title}" for review.`,
+
+    storyId:
+      story.id,
+  });
+
+} else {
+
+  await createActivity({
+    userId: user.id,
+
+    type:
+      "story_draft_saved",
+
+    message:
+      `You saved "${story.title}" as a draft.`,
+
+    storyId:
+      story.id,
+  });
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Return response
+|--------------------------------------------------------------------------
+*/
+
+return NextResponse.json(
+  {
+    message:
+      status === "published"
+        ? "Story submitted for review successfully."
+        : "Draft saved successfully.",
+
+    story,
+  },
+  {
+    status: 201,
+  }
+);
 
 
   } catch (error) {
