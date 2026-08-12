@@ -26,7 +26,7 @@ function createSlug(title: string) {
 |--------------------------------------------------------------------------
 | GET
 |--------------------------------------------------------------------------
-| Load ONE pending_review story belonging to the logged-in user.
+| Load one pending_review story belonging to the logged-in user.
 |--------------------------------------------------------------------------
 */
 
@@ -63,7 +63,8 @@ export async function GET(
         slug: stories.slug,
 
         coverImage: stories.coverImage,
-        coverImagePublicId: stories.coverImagePublicId,
+        coverImagePublicId:
+          stories.coverImagePublicId,
 
         categoryId: stories.categoryId,
         category: categories.name,
@@ -72,8 +73,6 @@ export async function GET(
 
         createdAt: stories.createdAt,
         updatedAt: stories.updatedAt,
-
-        authorId: stories.authorId,
       })
       .from(stories)
       .innerJoin(
@@ -117,25 +116,27 @@ export async function GET(
       );
     }
 
-    const additionalImages = await db
-      .select({
-        id: storyImages.id,
-        storyId: storyImages.storyId,
-        imageUrl: storyImages.imageUrl,
-        publicId: storyImages.publicId,
-        caption: storyImages.caption,
-        displayOrder: storyImages.displayOrder,
-      })
-      .from(storyImages)
-      .where(
-        eq(
-          storyImages.storyId,
-          id
+    const additionalImages =
+      await db
+        .select({
+          id: storyImages.id,
+          storyId: storyImages.storyId,
+          imageUrl: storyImages.imageUrl,
+          publicId: storyImages.publicId,
+          caption: storyImages.caption,
+          displayOrder:
+            storyImages.displayOrder,
+        })
+        .from(storyImages)
+        .where(
+          eq(
+            storyImages.storyId,
+            id
+          )
         )
-      )
-      .orderBy(
-        storyImages.displayOrder
-      );
+        .orderBy(
+          storyImages.displayOrder
+        );
 
     return NextResponse.json(
       {
@@ -170,11 +171,14 @@ export async function GET(
 |--------------------------------------------------------------------------
 | PUT
 |--------------------------------------------------------------------------
-| Update ONE pending_review story belonging to the logged-in user.
+| Update one pending_review story belonging to the logged-in user.
 |
 | IMPORTANT:
-| The status is NEVER taken from the request body.
-| The story remains pending_review after the update.
+|
+| - status is NOT accepted from the client
+| - status is NOT modified
+| - ownership is checked
+| - pending_review is checked
 |--------------------------------------------------------------------------
 */
 
@@ -210,7 +214,7 @@ export async function PUT(
       category,
       coverImageUrl,
       coverImagePublicId,
-      storyImages: uploadedImages = [],
+      storyImages: uploadedImages,
     } = body;
 
     /*
@@ -220,9 +224,12 @@ export async function PUT(
     */
 
     if (
-      !title ||
-      !content ||
-      !category
+      typeof title !== "string" ||
+      !title.trim() ||
+      typeof content !== "string" ||
+      !content.trim() ||
+      typeof category !== "string" ||
+      !category.trim()
     ) {
       return NextResponse.json(
         {
@@ -239,13 +246,6 @@ export async function PUT(
     |--------------------------------------------------------------------------
     | 2. Find the story securely
     |--------------------------------------------------------------------------
-    |
-    | We check:
-    | - Story ID
-    | - Current user owns it
-    | - Story is pending_review
-    | - Story is not deleted
-    |
     */
 
     const existingStory =
@@ -303,7 +303,7 @@ export async function PUT(
         ) =>
           eq(
             categories.name,
-            category
+            category.trim()
           ),
       });
 
@@ -332,11 +332,8 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 5. Generate slug
+    | 5. Keep the existing slug unless title changed
     |--------------------------------------------------------------------------
-    |
-    | We only generate a new slug if the title changed.
-    |
     */
 
     let slug =
@@ -384,13 +381,16 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 6. Update story
+    | 6. Update the story
     |--------------------------------------------------------------------------
     |
-    | NOTICE:
-    | There is NO status field here.
+    | CRITICAL:
     |
-    | Therefore the existing pending_review status is preserved.
+    | There is intentionally NO "status" field here.
+    |
+    | Therefore:
+    |
+    | pending_review → pending_review
     |--------------------------------------------------------------------------
     */
 
@@ -409,21 +409,20 @@ export async function PUT(
             content.trim(),
 
           coverImage:
-            coverImageUrl ?? null,
+            coverImageUrl !== undefined
+              ? coverImageUrl
+              : existingStory.coverImage,
 
           coverImagePublicId:
-            coverImagePublicId ?? null,
+            coverImagePublicId !== undefined
+              ? coverImagePublicId
+              : existingStory.coverImagePublicId,
 
           categoryId:
             existingCategory.id,
 
           updatedAt:
             new Date(),
-
-          // DO NOT ADD status HERE.
-          //
-          // The existing status remains:
-          // pending_review
         })
         .where(
           and(
@@ -464,10 +463,7 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 7. Replace additional story images
-    |--------------------------------------------------------------------------
-    |
-    | Only do this when storyImages is actually supplied.
+    | 7. Update additional images ONLY if supplied
     |--------------------------------------------------------------------------
     */
 
@@ -523,7 +519,7 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 8. Record activity
+    | 8. Record story edited activity
     |--------------------------------------------------------------------------
     */
 
@@ -532,10 +528,10 @@ export async function PUT(
         user.id,
 
       type:
-        "story_submitted",
+        "story_edited",
 
       message:
-        `You updated "${updatedStory.title}" while it was awaiting review.`,
+        `You edited "${updatedStory.title}" while it was awaiting review.`,
 
       storyId:
         updatedStory.id,
@@ -543,7 +539,7 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 9. Return updated story
+    | 9. Return response
     |--------------------------------------------------------------------------
     */
 
@@ -575,4 +571,4 @@ export async function PUT(
       }
     );
   }
-        }
+    }
