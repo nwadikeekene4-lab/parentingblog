@@ -27,6 +27,11 @@ export default function ProfilePage() {
       null
     );
 
+  const messageRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
+
 
   const [profile, setProfile] =
     useState<Profile | null>(null);
@@ -62,6 +67,46 @@ export default function ProfilePage() {
 
   const [errorMessage, setErrorMessage] =
     useState("");
+
+  const [hasChanges, setHasChanges] =
+    useState(false);
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | SCROLL TO MESSAGE
+  |--------------------------------------------------------------------------
+  */
+
+  function scrollToMessage() {
+
+    requestAnimationFrame(() => {
+
+      messageRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+    });
+
+  }
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | MARK FORM AS CHANGED
+  |--------------------------------------------------------------------------
+  */
+
+  function handleFieldChange() {
+
+    setHasChanges(true);
+
+    setMessage("");
+
+    setErrorMessage("");
+
+  }
 
 
   /*
@@ -125,6 +170,8 @@ export default function ProfilePage() {
         setProfileImage(
           loadedProfile.profileImage
         );
+
+        setHasChanges(false);
 
 
       } catch (error) {
@@ -252,9 +299,20 @@ export default function ProfilePage() {
       }
 
 
+      /*
+      |--------------------------------------------------------------------------
+      | Image was saved successfully.
+      | There are no unsaved changes now.
+      |--------------------------------------------------------------------------
+      */
+
+      setHasChanges(false);
+
       setMessage(
         "Profile picture updated successfully."
       );
+
+      scrollToMessage();
 
 
     } catch (error) {
@@ -297,7 +355,10 @@ export default function ProfilePage() {
 
   async function saveChanges() {
 
-    if (saving) {
+    if (
+      saving ||
+      !hasChanges
+    ) {
       return;
     }
 
@@ -312,6 +373,8 @@ export default function ProfilePage() {
       setErrorMessage(
         "Please enter your display name."
       );
+
+      scrollToMessage();
 
       return;
     }
@@ -405,9 +468,19 @@ export default function ProfilePage() {
       }
 
 
+      /*
+      |--------------------------------------------------------------------------
+      | SAVE SUCCESSFUL
+      |--------------------------------------------------------------------------
+      */
+
+      setHasChanges(false);
+
       setMessage(
         "Profile updated successfully."
       );
+
+      scrollToMessage();
 
 
     } catch (error) {
@@ -422,6 +495,8 @@ export default function ProfilePage() {
           ? error.message
           : "Failed to save changes."
       );
+
+      scrollToMessage();
 
     } finally {
 
@@ -496,22 +571,26 @@ export default function ProfilePage() {
 
       {/* Messages */}
 
-      {message && (
+      <div ref={messageRef}>
 
-        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-          {message}
-        </div>
+        {message && (
 
-      )}
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+            {message}
+          </div>
+
+        )}
 
 
-      {errorMessage && (
+        {errorMessage && (
 
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          {errorMessage}
-        </div>
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {errorMessage}
+          </div>
 
-      )}
+        )}
+
+      </div>
 
 
       {/* Profile Card */}
@@ -582,6 +661,8 @@ export default function ProfilePage() {
 
         <div className="space-y-6">
 
+          {/* Display Name */}
+
           <div>
 
             <label className="mb-2 block text-sm font-semibold text-gray-700">
@@ -591,11 +672,15 @@ export default function ProfilePage() {
             <input
               type="text"
               value={displayName}
-              onChange={(e) =>
+              onChange={(e) => {
+
                 setDisplayName(
                   e.target.value
-                )
-              }
+                );
+
+                handleFieldChange();
+
+              }}
               placeholder="Enter your display name"
               maxLength={100}
               className="h-12 w-full rounded-xl border border-gray-300 px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
@@ -603,6 +688,8 @@ export default function ProfilePage() {
 
           </div>
 
+
+          {/* Bio */}
 
           <div>
 
@@ -613,17 +700,23 @@ export default function ProfilePage() {
             <textarea
               rows={5}
               value={bio}
-              onChange={(e) =>
+              onChange={(e) => {
+
                 setBio(
                   e.target.value
-                )
-              }
+                );
+
+                handleFieldChange();
+
+              }}
               placeholder="Tell the community about yourself..."
               className="w-full rounded-xl border border-gray-300 p-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
             />
 
           </div>
 
+
+          {/* Country + State */}
 
           <div className="grid gap-6 md:grid-cols-2">
 
@@ -636,11 +729,15 @@ export default function ProfilePage() {
               <input
                 type="text"
                 value={country}
-                onChange={(e) =>
+                onChange={(e) => {
+
                   setCountry(
                     e.target.value
-                  )
-                }
+                  );
+
+                  handleFieldChange();
+
+                }}
                 placeholder="Country"
                 className="h-12 w-full rounded-xl border border-gray-300 px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               />
@@ -657,11 +754,15 @@ export default function ProfilePage() {
               <input
                 type="text"
                 value={state}
-                onChange={(e) =>
+                onChange={(e) => {
+
                   setState(
                     e.target.value
-                  )
-                }
+                  );
+
+                  handleFieldChange();
+
+                }}
                 placeholder="State or Province"
                 className="h-12 w-full rounded-xl border border-gray-300 px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               />
@@ -671,6 +772,8 @@ export default function ProfilePage() {
           </div>
 
 
+          {/* Save */}
+
           <div className="flex justify-end">
 
             <button
@@ -678,7 +781,8 @@ export default function ProfilePage() {
               onClick={saveChanges}
               disabled={
                 saving ||
-                uploadingImage
+                uploadingImage ||
+                !hasChanges
               }
               className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -695,4 +799,4 @@ export default function ProfilePage() {
 
     </div>
   );
-}
+          }
