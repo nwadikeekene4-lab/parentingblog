@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
+import EditCategorySelector from "./EditCategorySelector";
 import EditStoryEditor from "./EditStoryEditor";
 
 type StoryImage = {
