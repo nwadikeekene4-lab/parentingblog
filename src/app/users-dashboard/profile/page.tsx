@@ -79,18 +79,26 @@ export default function ProfilePage() {
   */
 
   function scrollToMessage() {
+  requestAnimationFrame(() => {
+    if (!messageRef.current) {
+      return;
+    }
 
-    requestAnimationFrame(() => {
+    const headerOffset = 80;
 
-      messageRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+    const elementPosition =
+      messageRef.current.getBoundingClientRect().top +
+      window.scrollY;
 
+    window.scrollTo({
+      top: Math.max(
+        0,
+        elementPosition - headerOffset
+      ),
+      behavior: "smooth",
     });
-
+  });
   }
-
 
   /*
   |--------------------------------------------------------------------------
