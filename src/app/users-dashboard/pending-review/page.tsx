@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 
@@ -70,8 +69,8 @@ export default async function PendingReviewPage({
           <p className="mt-3 text-green-800">
             Your story has been sent for review.
             Only you and administrators can view it while it is awaiting approval.
-            After an administrator approves it, it will automatically appear in
-            <strong> My Stories (Published)</strong> and become visible to visitors.
+            After an administrator approves it, it will automatically appear in{" "}
+            <strong>My Stories (Published)</strong> and become visible to visitors.
           </p>
         </section>
       )}
@@ -102,13 +101,20 @@ export default async function PendingReviewPage({
               key={story.id}
               className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
             >
-              <div className="relative h-52 w-full">
-                <Image
-                  src={story.coverImage || "/images/loginimage.png"}
-                  alt={story.title}
-                  fill
-                  className="object-cover"
-                />
+              <div className="relative h-52 w-full overflow-hidden bg-gray-100">
+                {story.coverImage ? (
+                  <img
+                    src={story.coverImage}
+                    alt={story.title}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src="/images/loginimage.png"
+                    alt="Story cover"
+                    className="h-full w-full object-cover"
+                  />
+                )}
               </div>
 
               <div className="space-y-3 p-5">
@@ -118,9 +124,7 @@ export default async function PendingReviewPage({
                   </span>
 
                   <span className="text-sm text-gray-500">
-                    {new Date(
-                      story.createdAt
-                    ).toLocaleDateString()}
+                    {new Date(story.createdAt).toLocaleDateString()}
                   </span>
                 </div>
 
@@ -132,7 +136,6 @@ export default async function PendingReviewPage({
                   {story.category}
                 </p>
 
-                {/* Story Actions */}
                 <div className="flex flex-wrap gap-3 pt-2">
                   <Link
                     href={`/users-dashboard/edit-story/${story.id}`}
@@ -155,4 +158,4 @@ export default async function PendingReviewPage({
       )}
     </div>
   );
-                }
+             }
