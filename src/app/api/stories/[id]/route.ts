@@ -7,6 +7,7 @@ import {
   stories,
   categories,
   storyImages,
+  userActivities,
 } from "@/db/schema";
 
 import { getCurrentUser } from "@/lib/session";
@@ -198,11 +199,14 @@ export async function GET(
 |
 | IMPORTANT:
 |
-| - status is NOT accepted from the client
-| - status is NOT modified
+| - status is NEVER accepted from the client
+| - status is NEVER changed here
 | - ownership is checked
 | - pending_review is checked
-| - activity logging cannot make a successful save fail
+| - only changed values are written
+| - images are changed only when storyImages is explicitly supplied
+| - story + images + activity are committed in ONE transaction
+| - if the transaction fails, nothing is committed
 |--------------------------------------------------------------------------
 */
 
@@ -217,7 +221,7 @@ export async function PUT(
   try {
     /*
     |--------------------------------------------------------------------------
-    | 1. Authenticate user
+    | 1. Authenticate
     |--------------------------------------------------------------------------
     */
 
@@ -257,7 +261,7 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 3. Read request body safely
+    | 3. Read request body
     |--------------------------------------------------------------------------
     */
 
@@ -366,7 +370,7 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 5. Find the story securely
+    | 5. Find story securely
     |--------------------------------------------------------------------------
     */
 
@@ -381,17 +385,14 @@ export async function PUT(
               stories.id,
               id
             ),
-
             eq(
               stories.authorId,
               user.id
             ),
-
             eq(
               stories.status,
               "pending_review"
             ),
-
             eq(
               stories.isDeleted,
               false
@@ -416,6 +417,12 @@ export async function PUT(
     | 6. Find category
     |--------------------------------------------------------------------------
     */
+
+    const cleanTitle =
+      title.trim();
+
+    const cleanContent =
+      content.trim();
 
     const categoryName =
       category.trim();
@@ -446,44 +453,253 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 7. Generate excerpt
+    | 7. Validate story images
     |--------------------------------------------------------------------------
     */
 
-    const cleanTitle =
-      title.trim();
+    if (
+      uploadedImages !== undefined &&
+      !Array.isArray(
+        uploadedImages
+      )
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "The additional story images could not be processed. Please refresh the page and try again.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
-    const cleanContent =
-      content.trim();
+    if (
+      Array.isArray(
+        uploadedImages
+      )
+    ) {
+      for (
+        const image of uploadedImages
+      ) {
+        if (
+          typeof image !==
+            "object" ||
+          image === null
+        ) {
+          return NextResponse.json(
+            {
+              message:
+                "One of the story images is invalid. Please remove it and add the image again.",
+            },
+            {
+              status: 400,
+            }
+          );
+        }
 
-    const excerpt =
-      generateExcerpt(
-        cleanContent
+        const typedImage =
+          image as {
+            url?: unknown;
+            publicId?: unknown;
+            caption?: unknown;
+          };
+
+        if (
+          typeof typedImage.url !==
+            "string" ||
+          !typedImage.url.trim() ||
+          typeof typedImage.publicId !==
+            "string" ||
+          !typedImage.publicId.trim()
+        ) {
+          return NextResponse.json(
+            {
+              message:
+                "One of the story images is invalid. Please remove it and add the image again.",
+            },
+            {
+              status: 400,
+            }
+          );
+        }
+
+        if (
+          typedImage.caption !==
+            undefined &&
+          typedImage.caption !==
+            null &&
+          typeof typedImage.caption !==
+            "string"
+        ) {
+          return NextResponse.json(
+            {
+              message:
+                "One of the story image captions is invalid.",
+            },
+            {
+              status: 400,
+            }
+          );
+        }
+      }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 8. Determine what actually changed
+    |--------------------------------------------------------------------------
+    */
+
+    const titleChanged =
+      cleanTitle !==
+      existingStory.title;
+
+    const contentChanged =
+      cleanContent !==
+      existingStory.content;
+
+    const categoryChanged =
+      existingCategory.id !==
+      existingStory.categoryId;
+
+    const coverImageWasSupplied =
+      coverImageUrl !==
+      undefined ||
+      coverImagePublicId !==
+      undefined;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cover image validation
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      coverImageUrl !==
+        undefined &&
+      coverImageUrl !==
+        null &&
+      typeof coverImageUrl !==
+        "string"
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "The cover image URL is invalid.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (
+      coverImagePublicId !==
+        undefined &&
+      coverImagePublicId !==
+        null &&
+      typeof coverImagePublicId !==
+        "string"
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "The cover image identifier is invalid.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const finalCoverImage =
+      coverImageUrl !==
+        undefined
+        ? coverImageUrl
+        : existingStory.coverImage;
+
+    const finalCoverImagePublicId =
+      coverImagePublicId !==
+        undefined
+        ? coverImagePublicId
+        : existingStory.coverImagePublicId;
+
+    const coverChanged =
+      finalCoverImage !==
+        existingStory.coverImage ||
+      finalCoverImagePublicId !==
+        existingStory.coverImagePublicId;
+
+    const imagesWereSupplied =
+      Array.isArray(
+        uploadedImages
       );
 
     /*
     |--------------------------------------------------------------------------
-    | 8. Generate / preserve slug
+    | 9. Determine whether anything actually changed
+    |--------------------------------------------------------------------------
+    */
+
+    const storyFieldsChanged =
+      titleChanged ||
+      contentChanged ||
+      categoryChanged ||
+      coverChanged;
+
+    /*
+    |--------------------------------------------------------------------------
+    | If literally nothing changed, do not perform a database update.
+    |
+    | We still return the current story as a successful no-op.
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      !storyFieldsChanged &&
+      !imagesWereSupplied
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "There were no changes to save.",
+          story:
+            existingStory,
+        },
+        {
+          status: 200,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 10. Generate excerpt only when content changed
+    |--------------------------------------------------------------------------
+    */
+
+    const excerpt =
+      contentChanged
+        ? generateExcerpt(
+            cleanContent
+          )
+        : existingStory.excerpt;
+
+    /*
+    |--------------------------------------------------------------------------
+    | 11. Generate slug only when title changed
     |--------------------------------------------------------------------------
     */
 
     let slug =
       existingStory.slug;
 
-    if (
-      cleanTitle !==
-      existingStory.title
-    ) {
+    if (titleChanged) {
       const baseSlug =
         createSlug(
           cleanTitle
         );
-
-      /*
-      |--------------------------------------------------------------------------
-      | Prevent an empty slug.
-      |--------------------------------------------------------------------------
-      */
 
       if (!baseSlug) {
         return NextResponse.json(
@@ -530,366 +746,124 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 9. Prepare image values
-    |--------------------------------------------------------------------------
-    */
-
-    const finalCoverImage =
-      typeof coverImageUrl ===
-      "string"
-        ? coverImageUrl
-        : coverImageUrl === null
-        ? null
-        : existingStory.coverImage;
-
-    const finalCoverImagePublicId =
-      typeof coverImagePublicId ===
-      "string"
-        ? coverImagePublicId
-        : coverImagePublicId === null
-        ? null
-        : existingStory.coverImagePublicId;
-
-    /*
-    |--------------------------------------------------------------------------
-    | 10. Validate story images if supplied
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-      uploadedImages !== undefined &&
-      !Array.isArray(
-        uploadedImages
-      )
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            "The additional story images could not be processed. Please refresh the page and try again.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (
-      Array.isArray(
-        uploadedImages
-      )
-    ) {
-      for (
-        const image of uploadedImages
-      ) {
-        if (
-          typeof image !==
-            "object" ||
-          image === null ||
-          typeof (
-            image as {
-              url?: unknown;
-            }
-          ).url !== "string" ||
-          typeof (
-            image as {
-              publicId?: unknown;
-            }
-          ).publicId !== "string"
-        ) {
-          return NextResponse.json(
-            {
-              message:
-                "One of the story images is invalid. Please remove it and add the image again.",
-            },
-            {
-              status: 400,
-            }
-          );
-        }
-      }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | 11. Update the main story
+    | 12. TRANSACTION
     |--------------------------------------------------------------------------
     |
-    | IMPORTANT:
+    | Everything that belongs to the save operation happens here.
     |
-    | There is intentionally NO "status" field.
+    | If any database operation fails:
     |
-    | pending_review remains pending_review.
-    |--------------------------------------------------------------------------
-    */
-
-    let updatedStory;
-
-    try {
-      const result =
-        await db
-          .update(stories)
-          .set({
-            title:
-              cleanTitle,
-
-            slug,
-
-            excerpt,
-
-            content:
-              cleanContent,
-
-            coverImage:
-              finalCoverImage,
-
-            coverImagePublicId:
-              finalCoverImagePublicId,
-
-            categoryId:
-              existingCategory.id,
-
-            updatedAt:
-              new Date(),
-          })
-          .where(
-            and(
-              eq(
-                stories.id,
-                id
-              ),
-
-              eq(
-                stories.authorId,
-                user.id
-              ),
-
-              eq(
-                stories.status,
-                "pending_review"
-              ),
-
-              eq(
-                stories.isDeleted,
-                false
-              )
-            )
-          )
-          .returning();
-
-      updatedStory =
-        result[0];
-    } catch (error) {
-      console.error(
-        "Database error while updating pending review story:",
-        error
-      );
-
-      const databaseError =
-        getErrorMessage(
-          error
-        );
-
-      /*
-      |--------------------------------------------------------------------------
-      | Unique slug conflict
-      |--------------------------------------------------------------------------
-      */
-
-      if (
-        databaseError
-          .toLowerCase()
-          .includes("unique")
-      ) {
-        return NextResponse.json(
-          {
-            message:
-              "We couldn't save this title because it conflicts with another story. Please choose a slightly different title and try again.",
-          },
-          {
-            status: 409,
-          }
-        );
-      }
-
-      /*
-      |--------------------------------------------------------------------------
-      | General database failure
-      |--------------------------------------------------------------------------
-      */
-
-      return NextResponse.json(
-        {
-          message:
-            "We couldn't save your story changes right now. Your original story has not been intentionally changed. Please try again.",
-        },
-        {
-          status: 500,
-        }
-      );
-    }
-
-    if (!updatedStory) {
-      return NextResponse.json(
-        {
-          message:
-            "Your story could not be updated because it may have been changed or removed. Please refresh the page and try again.",
-        },
-        {
-          status: 409,
-        }
-      );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | 12. Update additional images ONLY if supplied
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-      Array.isArray(
-        uploadedImages
-      )
-    ) {
-      try {
-        await db
-          .delete(storyImages)
-          .where(
-            eq(
-              storyImages.storyId,
-              id
-            )
-          );
-
-        if (
-          uploadedImages.length > 0
-        ) {
-          await db
-            .insert(
-              storyImages
-            )
-            .values(
-              uploadedImages.map(
-                (
-                  image,
-                  index
-                ) => {
-                  const typedImage =
-                    image as {
-                      url: string;
-                      publicId: string;
-                      caption?: string | null;
-                    };
-
-                  return {
-                    storyId:
-                      id,
-
-                    imageUrl:
-                      typedImage.url,
-
-                    publicId:
-                      typedImage.publicId,
-
-                    caption:
-                      typedImage.caption ??
-                      null,
-
-                    displayOrder:
-                      index,
-                  };
-                }
-              )
-            );
-        }
-      } catch (error) {
-        console.error(
-          "Database error while updating pending review story images:",
-          error
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | IMPORTANT:
-        |
-        | The main story has already been successfully saved.
-        |
-        | Do NOT tell the user "Internal server error".
-        |--------------------------------------------------------------------------
-        */
-
-        return NextResponse.json(
-          {
-            message:
-              "Your story details were saved, but we couldn't finish updating its additional images. Please open the story again and save the images once more.",
-            story:
-              updatedStory,
-          },
-          {
-            status: 207,
-          }
-        );
-      }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | 13. Record activity
-    |--------------------------------------------------------------------------
+    | story update -> rolled back
+    | image update -> rolled back
+    | activity -> rolled back
     |
-    | Activity logging is secondary.
-    |
-    | A failure here MUST NOT cause a successful story save
-    | to be reported as a failure.
+    | Therefore the server NEVER reports a complete save when the
+    | database transaction did not complete.
     |--------------------------------------------------------------------------
     */
 
     try {
-      await createActivity({
-        userId:
-          user.id,
+      const result =
+        await db.transaction(
+          async (tx) => {
 
-        type:
-          "story_edited",
+            /*
+            |--------------------------------------------------------------------------
+            | Re-check ownership/status inside transaction.
+            |
+            | This prevents a stale edit page from overwriting a story that
+            | changed between the initial lookup and the actual save.
+            |--------------------------------------------------------------------------
+            */
 
-        message:
-          `You edited "${updatedStory.title}" while it was awaiting review.`,
+            const currentStory =
+              await tx.query.stories.findFirst({
+                where: (
+                  stories,
+                  { eq, and }
+                ) =>
+                  and(
+                    eq(
+                      stories.id,
+                      id
+                    ),
+                    eq(
+                      stories.authorId,
+                      user.id
+                    ),
+                    eq(
+                      stories.status,
+                      "pending_review"
+                    ),
+                    eq(
+                      stories.isDeleted,
+                      false
+                    )
+                  ),
+              });
 
-        storyId:
-          updatedStory.id,
-      });
-    } catch (error) {
-      console.error(
-        "Story saved but activity logging failed:",
-        error
-      );
+            if (!currentStory) {
+              throw new Error(
+                "STORY_NO_LONGER_EDITABLE"
+              );
+            }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Do not throw.
-      |
-      | The story was already saved successfully.
-      |--------------------------------------------------------------------------
-      */
-    }
+            /*
+            |--------------------------------------------------------------------------
+            | Re-check category inside transaction.
+            |--------------------------------------------------------------------------
+            */
 
-    /*
-    |--------------------------------------------------------------------------
-    | 14. Return successful response
-    |--------------------------------------------------------------------------
-    */
+            const currentCategory =
+              await tx.query.categories.findFirst({
+                where: (
+                  categories,
+                  { eq }
+                ) =>
+                  eq(
+                    categories.id,
+                    existingCategory.id
+                  ),
+              });
 
-    return NextResponse.json(
-      {
-        message:
-          "Your changes were saved successfully. Your story is still awaiting administrator review.",
+            if (!currentCategory) {
+              throw new Error(
+                "CATEGORY_NO_LONGER_AVAILABLE"
+              );
+            }
 
-        story:
-          updatedStory,
-      },
-      {
-        status: 200,
-      }
-    );
-  } catch (error) {
-   
+            /*
+            |--------------------------------------------------------------------------
+            | Build ONLY the fields that changed.
+            |--------------------------------------------------------------------------
+            */
+
+            const storyUpdate: {
+              title?: string;
+              slug?: string;
+              excerpt?: string | null;
+              content?: string;
+              coverImage?: string | null;
+              coverImagePublicId?: string | null;
+              categoryId?: string;
+              updatedAt?: Date;
+            } = {};
+
+            if (titleChanged) {
+              storyUpdate.title =
+                cleanTitle;
+
+              storyUpdate.slug =
+                slug;
+            }
+
+            if (contentChanged) {
+              storyUpdate.content =
+                cleanContent;
+
+              storyUpdate.excerpt =
+                excerpt;
+            }
+
+            if (categoryChanged) {
+    
