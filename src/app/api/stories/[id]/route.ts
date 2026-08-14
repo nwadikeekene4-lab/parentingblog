@@ -12,7 +12,7 @@ import {
 
 import { getCurrentUser } from "@/lib/session";
 import { generateExcerpt } from "@/lib/story";
-import { createActivity } from "@/lib/activity";
+import cloudinary from "@/lib/cloudinary";
 
 function createSlug(title: string) {
   return title
@@ -41,6 +41,12 @@ function getErrorMessage(error: unknown) {
 
   return "Unknown error";
 }
+
+type UploadedStoryImage = {
+  url: string;
+  publicId: string;
+  caption?: string | null;
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -203,10 +209,11 @@ export async function GET(
 | - status is NEVER changed here
 | - ownership is checked
 | - pending_review is checked
-| - only changed values are written
-| - images are changed only when storyImages is explicitly supplied
-| - story + images + activity are committed in ONE transaction
-| - if the transaction fails, nothing is committed
+| - only changed story fields are written
+| - story images are touched ONLY when storyImages is supplied
+| - story + images + activity use ONE database transaction
+| - if the transaction fails, the database changes are rolled back
+| - newly uploaded Cloudinary assets are cleaned up on transaction failure
 |--------------------------------------------------------------------------
 */
 
@@ -218,6 +225,17 @@ export async function PUT(
     }>;
   }
 ) {
+  /*
+  |--------------------------------------------------------------------------
+  | Keep track of newly supplied Cloudinary assets.
+  |
+  | If the database transaction fails, these are the assets that may need
+  | to be removed from Cloudinary because the database never committed them.
+  |--------------------------------------------------------------------------
+  */
+
+  const newlyUploadedPublicIds: string[] = [];
+
   try {
     /*
     |--------------------------------------------------------------------------
@@ -370,7 +388,129 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 5. Find story securely
+    | 5. Validate cover image values
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      coverImageUrl !== undefined &&
+      coverImageUrl !== null &&
+      typeof coverImageUrl !== "string"
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "The cover image URL is invalid.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (
+      coverImagePublicId !== undefined &&
+      coverImagePublicId !== null &&
+      typeof coverImagePublicId !== "string"
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "The cover image identifier is invalid.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 6. Validate storyImages only when supplied
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      uploadedImages !== undefined &&
+      !Array.isArray(uploadedImages)
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "The additional story images could not be processed. Please refresh the page and try again.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (
+      Array.isArray(uploadedImages)
+    ) {
+      for (
+        const image of uploadedImages
+      ) {
+        if (
+          typeof image !== "object" ||
+          image === null
+        ) {
+          return NextResponse.json(
+            {
+              message:
+                "One of the story images is invalid. Please remove it and add the image again.",
+            },
+            {
+              status: 400,
+            }
+          );
+        }
+
+        const typedImage =
+          image as {
+            url?: unknown;
+            publicId?: unknown;
+            caption?: unknown;
+          };
+
+        if (
+          typeof typedImage.url !== "string" ||
+          !typedImage.url.trim() ||
+          typeof typedImage.publicId !== "string" ||
+          !typedImage.publicId.trim()
+        ) {
+          return NextResponse.json(
+            {
+              message:
+                "One of the story images is invalid. Please remove it and add the image again.",
+            },
+            {
+              status: 400,
+            }
+          );
+        }
+
+        if (
+          typedImage.caption !== undefined &&
+          typedImage.caption !== null &&
+          typeof typedImage.caption !== "string"
+        ) {
+          return NextResponse.json(
+            {
+              message:
+                "One of the story image captions is invalid.",
+            },
+            {
+              status: 400,
+            }
+          );
+        }
+      }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 7. Find the story securely
     |--------------------------------------------------------------------------
     */
 
@@ -414,7 +554,41 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 6. Find category
+    | 8. Load existing story images
+    |--------------------------------------------------------------------------
+    |
+    | This lets us identify which Cloudinary public IDs already belong to
+    | the story and which ones are newly uploaded.
+    |--------------------------------------------------------------------------
+    */
+
+    const existingImages =
+      await db
+        .select({
+          id: storyImages.id,
+          publicId:
+            storyImages.publicId,
+          imageUrl:
+            storyImages.imageUrl,
+          caption:
+            storyImages.caption,
+          displayOrder:
+            storyImages.displayOrder,
+        })
+        .from(storyImages)
+        .where(
+          eq(
+            storyImages.storyId,
+            id
+          )
+        )
+        .orderBy(
+          storyImages.displayOrder
+        );
+
+    /*
+    |--------------------------------------------------------------------------
+    | 9. Find category
     |--------------------------------------------------------------------------
     */
 
@@ -453,101 +627,7 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 7. Validate story images
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-      uploadedImages !== undefined &&
-      !Array.isArray(
-        uploadedImages
-      )
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            "The additional story images could not be processed. Please refresh the page and try again.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (
-      Array.isArray(
-        uploadedImages
-      )
-    ) {
-      for (
-        const image of uploadedImages
-      ) {
-        if (
-          typeof image !==
-            "object" ||
-          image === null
-        ) {
-          return NextResponse.json(
-            {
-              message:
-                "One of the story images is invalid. Please remove it and add the image again.",
-            },
-            {
-              status: 400,
-            }
-          );
-        }
-
-        const typedImage =
-          image as {
-            url?: unknown;
-            publicId?: unknown;
-            caption?: unknown;
-          };
-
-        if (
-          typeof typedImage.url !==
-            "string" ||
-          !typedImage.url.trim() ||
-          typeof typedImage.publicId !==
-            "string" ||
-          !typedImage.publicId.trim()
-        ) {
-          return NextResponse.json(
-            {
-              message:
-                "One of the story images is invalid. Please remove it and add the image again.",
-            },
-            {
-              status: 400,
-            }
-          );
-        }
-
-        if (
-          typedImage.caption !==
-            undefined &&
-          typedImage.caption !==
-            null &&
-          typeof typedImage.caption !==
-            "string"
-        ) {
-          return NextResponse.json(
-            {
-              message:
-                "One of the story image captions is invalid.",
-            },
-            {
-              status: 400,
-            }
-          );
-        }
-      }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | 8. Determine what actually changed
+    | 10. Determine what changed
     |--------------------------------------------------------------------------
     */
 
@@ -563,65 +643,13 @@ export async function PUT(
       existingCategory.id !==
       existingStory.categoryId;
 
-    const coverImageWasSupplied =
-      coverImageUrl !==
-      undefined ||
-      coverImagePublicId !==
-      undefined;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Cover image validation
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-      coverImageUrl !==
-        undefined &&
-      coverImageUrl !==
-        null &&
-      typeof coverImageUrl !==
-        "string"
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            "The cover image URL is invalid.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (
-      coverImagePublicId !==
-        undefined &&
-      coverImagePublicId !==
-        null &&
-      typeof coverImagePublicId !==
-        "string"
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            "The cover image identifier is invalid.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
     const finalCoverImage =
-      coverImageUrl !==
-        undefined
+      coverImageUrl !== undefined
         ? coverImageUrl
         : existingStory.coverImage;
 
     const finalCoverImagePublicId =
-      coverImagePublicId !==
-        undefined
+      coverImagePublicId !== undefined
         ? coverImagePublicId
         : existingStory.coverImagePublicId;
 
@@ -631,6 +659,13 @@ export async function PUT(
       finalCoverImagePublicId !==
         existingStory.coverImagePublicId;
 
+    /*
+    |--------------------------------------------------------------------------
+    | storyImages is considered changed ONLY when the client explicitly
+    | supplies the property.
+    |--------------------------------------------------------------------------
+    */
+
     const imagesWereSupplied =
       Array.isArray(
         uploadedImages
@@ -638,7 +673,60 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 9. Determine whether anything actually changed
+    | 11. Identify newly uploaded Cloudinary assets
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      Array.isArray(uploadedImages)
+    ) {
+      const existingPublicIds =
+        new Set(
+          existingImages.map(
+            (image) =>
+              image.publicId
+          )
+        );
+
+      for (
+        const image of uploadedImages
+      ) {
+        const typedImage =
+          image as UploadedStoryImage;
+
+        if (
+          !existingPublicIds.has(
+            typedImage.publicId
+          )
+        ) {
+          newlyUploadedPublicIds.push(
+            typedImage.publicId
+          );
+        }
+      }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cover image newly uploaded?
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      typeof finalCoverImagePublicId ===
+        "string" &&
+      finalCoverImagePublicId &&
+      finalCoverImagePublicId !==
+        existingStory.coverImagePublicId
+    ) {
+      newlyUploadedPublicIds.push(
+        finalCoverImagePublicId
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 12. Determine whether anything changed
     |--------------------------------------------------------------------------
     */
 
@@ -648,14 +736,6 @@ export async function PUT(
       categoryChanged ||
       coverChanged;
 
-    /*
-    |--------------------------------------------------------------------------
-    | If literally nothing changed, do not perform a database update.
-    |
-    | We still return the current story as a successful no-op.
-    |--------------------------------------------------------------------------
-    */
-
     if (
       !storyFieldsChanged &&
       !imagesWereSupplied
@@ -664,8 +744,12 @@ export async function PUT(
         {
           message:
             "There were no changes to save.",
-          story:
-            existingStory,
+
+          story: {
+            ...existingStory,
+            images:
+              existingImages,
+          },
         },
         {
           status: 200,
@@ -675,7 +759,7 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 10. Generate excerpt only when content changed
+    | 13. Generate excerpt only when content changed
     |--------------------------------------------------------------------------
     */
 
@@ -688,7 +772,7 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 11. Generate slug only when title changed
+    | 14. Generate slug only when title changed
     |--------------------------------------------------------------------------
     */
 
@@ -746,124 +830,35 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | 12. TRANSACTION
+    | 15. DATABASE TRANSACTION
     |--------------------------------------------------------------------------
     |
-    | Everything that belongs to the save operation happens here.
+    | The story update, story image replacement and activity record all
+    | happen inside the SAME transaction.
     |
-    | If any database operation fails:
+    | If anything fails:
     |
-    | story update -> rolled back
-    | image update -> rolled back
-    | activity -> rolled back
+    | - story changes roll back
+    | - image changes roll back
+    | - activity record rolls back
     |
-    | Therefore the server NEVER reports a complete save when the
-    | database transaction did not complete.
+    | The API then returns an error.
+    |
+    | Therefore we NEVER report a successful database save when the
+    | transaction failed.
     |--------------------------------------------------------------------------
     */
 
     try {
-      const result =
+      const transactionResult =
         await db.transaction(
           async (tx) => {
-
             /*
             |--------------------------------------------------------------------------
-            | Re-check ownership/status inside transaction.
-            |
-            | This prevents a stale edit page from overwriting a story that
-            | changed between the initial lookup and the actual save.
+            | Re-check story inside transaction.
             |--------------------------------------------------------------------------
             */
 
             const currentStory =
               await tx.query.stories.findFirst({
-                where: (
-                  stories,
-                  { eq, and }
-                ) =>
-                  and(
-                    eq(
-                      stories.id,
-                      id
-                    ),
-                    eq(
-                      stories.authorId,
-                      user.id
-                    ),
-                    eq(
-                      stories.status,
-                      "pending_review"
-                    ),
-                    eq(
-                      stories.isDeleted,
-                      false
-                    )
-                  ),
-              });
-
-            if (!currentStory) {
-              throw new Error(
-                "STORY_NO_LONGER_EDITABLE"
-              );
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Re-check category inside transaction.
-            |--------------------------------------------------------------------------
-            */
-
-            const currentCategory =
-              await tx.query.categories.findFirst({
-                where: (
-                  categories,
-                  { eq }
-                ) =>
-                  eq(
-                    categories.id,
-                    existingCategory.id
-                  ),
-              });
-
-            if (!currentCategory) {
-              throw new Error(
-                "CATEGORY_NO_LONGER_AVAILABLE"
-              );
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Build ONLY the fields that changed.
-            |--------------------------------------------------------------------------
-            */
-
-            const storyUpdate: {
-              title?: string;
-              slug?: string;
-              excerpt?: string | null;
-              content?: string;
-              coverImage?: string | null;
-              coverImagePublicId?: string | null;
-              categoryId?: string;
-              updatedAt?: Date;
-            } = {};
-
-            if (titleChanged) {
-              storyUpdate.title =
-                cleanTitle;
-
-              storyUpdate.slug =
-                slug;
-            }
-
-            if (contentChanged) {
-              storyUpdate.content =
-                cleanContent;
-
-              storyUpdate.excerpt =
-                excerpt;
-            }
-
-            if (categoryChanged) {
-    
+        
