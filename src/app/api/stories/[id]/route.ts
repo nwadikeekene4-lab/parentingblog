@@ -2,320 +2,168 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-
 import {
   stories,
   categories,
   storyImages,
-  userActivities,
 } from "@/db/schema";
 
 import { getCurrentUser } from "@/lib/session";
 import { generateExcerpt } from "@/lib/story";
 import cloudinary from "@/lib/cloudinary";
 
-function createSlug(title: string) {
-  return title
-    .toLowerCase()
-    .trim()
+const slugify = (s: string) =>
+  s.toLowerCase().trim()
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
-}
 
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error
-  ) {
-    return String(
-      (error as { message: unknown }).message
-    );
-  }
-
-  return "Unknown error";
-}
-
-type UploadedStoryImage = {
+type ImageInput = {
   url: string;
   publicId: string;
   caption?: string | null;
 };
 
-/*
-|--------------------------------------------------------------------------
-| GET
-|--------------------------------------------------------------------------
-| Load one pending_review story belonging to the logged-in user.
-|--------------------------------------------------------------------------
-*/
+type Body = {
+  title?: unknown;
+  content?: unknown;
+  category?: unknown;
+  coverImageUrl?: unknown;
+  coverImagePublicId?: unknown;
+  storyImages?: unknown;
+};
+
+const errorMessage = (e: unknown) =>
+  e instanceof Error ? e.message : "Unknown error";
+
+async function getStoryImages(id: string, source = db) {
+  return source
+    .select({
+      id: storyImages.id,
+      storyId: storyImages.storyId,
+      imageUrl: storyImages.imageUrl,
+      publicId: storyImages.publicId,
+      caption: storyImages.caption,
+      displayOrder: storyImages.displayOrder,
+    })
+    .from(storyImages)
+    .where(eq(storyImages.storyId, id))
+    .orderBy(storyImages.displayOrder);
+}
+
+/* GET */
 
 export async function GET(
-  request: Request,
-  context: {
-    params: Promise<{
-      id: string;
-    }>;
-  }
+  _request: Request,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
-
-    if (!user) {
+    if (!user)
       return NextResponse.json(
-        {
-          message:
-            "Your session has expired. Please log in again.",
-        },
-        {
-          status: 401,
-        }
+        { message: "Your session has expired. Please log in again." },
+        { status: 401 }
       );
-    }
 
     const { id } = await context.params;
-
-    if (!id) {
+    if (!id)
       return NextResponse.json(
-        {
-          message:
-            "The story could not be identified.",
-        },
-        {
-          status: 400,
-        }
+        { message: "The story could not be identified." },
+        { status: 400 }
       );
-    }
 
-    const story = await db
+    const result = await db
       .select({
         id: stories.id,
         title: stories.title,
         content: stories.content,
         excerpt: stories.excerpt,
         slug: stories.slug,
-
         coverImage: stories.coverImage,
-        coverImagePublicId:
-          stories.coverImagePublicId,
-
+        coverImagePublicId: stories.coverImagePublicId,
         categoryId: stories.categoryId,
         category: categories.name,
-
         status: stories.status,
-
         createdAt: stories.createdAt,
         updatedAt: stories.updatedAt,
       })
       .from(stories)
       .innerJoin(
         categories,
-        eq(
-          stories.categoryId,
-          categories.id
-        )
+        eq(stories.categoryId, categories.id)
       )
       .where(
         and(
           eq(stories.id, id),
           eq(stories.authorId, user.id),
-          eq(
-            stories.status,
-            "pending_review"
-          ),
+          eq(stories.status, "pending_review"),
           eq(stories.isDeleted, false)
         )
       )
       .limit(1);
 
-    if (story.length === 0) {
+    if (!result[0])
       return NextResponse.json(
         {
           message:
             "This story could not be found, or it is no longer available for editing.",
         },
-        {
-          status: 404,
-        }
+        { status: 404 }
       );
-    }
 
-    const additionalImages =
-      await db
-        .select({
-          id: storyImages.id,
-          storyId: storyImages.storyId,
-          imageUrl: storyImages.imageUrl,
-          publicId: storyImages.publicId,
-          caption: storyImages.caption,
-          displayOrder:
-            storyImages.displayOrder,
-        })
-        .from(storyImages)
-        .where(
-          eq(
-            storyImages.storyId,
-            id
-          )
-        )
-        .orderBy(
-          storyImages.displayOrder
-        );
-
-    return NextResponse.json(
-      {
-        story: {
-          ...story[0],
-          images: additionalImages,
-        },
+    return NextResponse.json({
+      story: {
+        ...result[0],
+        images: await getStoryImages(id),
       },
-      {
-        status: 200,
-      }
-    );
+    });
   } catch (error) {
-    console.error(
-      "Fetch pending review story error:",
-      error
-    );
+    console.error("GET edit story error:", error);
 
     return NextResponse.json(
       {
         message:
           "We couldn't load this story right now. Please refresh the page and try again.",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
 
-/*
-|--------------------------------------------------------------------------
-| PUT
-|--------------------------------------------------------------------------
-| Update one pending_review story belonging to the logged-in user.
-|
-| IMPORTANT:
-|
-| - status is NEVER accepted from the client
-| - status is NEVER changed here
-| - ownership is checked
-| - pending_review is checked
-| - only changed story fields are written
-| - story images are touched ONLY when storyImages is supplied
-| - story + images + activity use ONE database transaction
-| - if the transaction fails, the database changes are rolled back
-| - newly uploaded Cloudinary assets are cleaned up on transaction failure
-|--------------------------------------------------------------------------
-*/
+/* PUT */
 
 export async function PUT(
   request: Request,
-  context: {
-    params: Promise<{
-      id: string;
-    }>;
-  }
+  context: { params: Promise<{ id: string }> }
 ) {
-  /*
-  |--------------------------------------------------------------------------
-  | Keep track of newly supplied Cloudinary assets.
-  |
-  | If the database transaction fails, these are the assets that may need
-  | to be removed from Cloudinary because the database never committed them.
-  |--------------------------------------------------------------------------
-  */
-
-  const newlyUploadedPublicIds: string[] = [];
+  const newPublicIds: string[] = [];
 
   try {
-    /*
-    |--------------------------------------------------------------------------
-    | 1. Authenticate
-    |--------------------------------------------------------------------------
-    */
-
     const user = await getCurrentUser();
 
-    if (!user) {
+    if (!user)
       return NextResponse.json(
-        {
-          message:
-            "Your session has expired. Please log in again before saving your changes.",
-        },
-        {
-          status: 401,
-        }
+        { message: "Your session has expired. Please log in again." },
+        { status: 401 }
       );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | 2. Get story ID
-    |--------------------------------------------------------------------------
-    */
 
     const { id } = await context.params;
 
-    if (!id) {
+    if (!id)
       return NextResponse.json(
-        {
-          message:
-            "We couldn't identify the story you are trying to save.",
-        },
-        {
-          status: 400,
-        }
+        { message: "The story could not be identified." },
+        { status: 400 }
       );
-    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | 3. Read request body
-    |--------------------------------------------------------------------------
-    */
-
-    let body: unknown;
+    let body: Body;
 
     try {
       body = await request.json();
-    } catch (error) {
-      console.error(
-        "Invalid pending review story request body:",
-        error
-      );
-
+    } catch {
       return NextResponse.json(
-        {
-          message:
-            "We couldn't read your changes. Please refresh the page and try again.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (
-      typeof body !== "object" ||
-      body === null
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            "The information sent for this story is invalid. Please refresh the page and try again.",
-        },
-        {
-          status: 400,
-        }
+        { message: "Invalid request data." },
+        { status: 400 }
       );
     }
 
@@ -325,540 +173,350 @@ export async function PUT(
       category,
       coverImageUrl,
       coverImagePublicId,
-      storyImages: uploadedImages,
-    } = body as {
-      title?: unknown;
-      content?: unknown;
-      category?: unknown;
-      coverImageUrl?: unknown;
-      coverImagePublicId?: unknown;
-      storyImages?: unknown;
-    };
-
-    /*
-    |--------------------------------------------------------------------------
-    | 4. Validate required fields
-    |--------------------------------------------------------------------------
-    */
+      storyImages: images,
+    } = body;
 
     if (
       typeof title !== "string" ||
       !title.trim()
-    ) {
+    )
       return NextResponse.json(
-        {
-          message:
-            "Please enter a title for your story.",
-        },
-        {
-          status: 400,
-        }
+        { message: "Please enter a story title." },
+        { status: 400 }
       );
-    }
 
     if (
       typeof content !== "string" ||
       !content.trim()
-    ) {
+    )
       return NextResponse.json(
-        {
-          message:
-            "Please add some content to your story before saving.",
-        },
-        {
-          status: 400,
-        }
+        { message: "Please write your story." },
+        { status: 400 }
       );
-    }
 
     if (
       typeof category !== "string" ||
       !category.trim()
-    ) {
+    )
       return NextResponse.json(
-        {
-          message:
-            "Please select a category for your story.",
-        },
-        {
-          status: 400,
-        }
+        { message: "Please select a category." },
+        { status: 400 }
       );
-    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | 5. Validate cover image values
-    |--------------------------------------------------------------------------
-    */
+    if (
+      images !== undefined &&
+      (!Array.isArray(images) ||
+        images.some(
+          (image) =>
+            !image ||
+            typeof image !== "object" ||
+            typeof (image as ImageInput).url !== "string" ||
+            typeof (image as ImageInput).publicId !== "string"
+        ))
+    )
+      return NextResponse.json(
+        { message: "One or more story images are invalid." },
+        { status: 400 }
+      );
 
     if (
       coverImageUrl !== undefined &&
       coverImageUrl !== null &&
       typeof coverImageUrl !== "string"
-    ) {
+    )
       return NextResponse.json(
-        {
-          message:
-            "The cover image URL is invalid.",
-        },
-        {
-          status: 400,
-        }
+        { message: "The cover image URL is invalid." },
+        { status: 400 }
       );
-    }
 
     if (
       coverImagePublicId !== undefined &&
       coverImagePublicId !== null &&
       typeof coverImagePublicId !== "string"
-    ) {
+    )
       return NextResponse.json(
-        {
-          message:
-            "The cover image identifier is invalid.",
-        },
-        {
-          status: 400,
-        }
+        { message: "The cover image identifier is invalid." },
+        { status: 400 }
       );
-    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | 6. Validate storyImages only when supplied
-    |--------------------------------------------------------------------------
-    */
+    const cleanTitle = title.trim();
+    const cleanContent = content.trim();
+    const cleanCategory = category.trim();
 
-    if (
-      uploadedImages !== undefined &&
-      !Array.isArray(uploadedImages)
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            "The additional story images could not be processed. Please refresh the page and try again.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
+    const existing = await db.query.stories.findFirst({
+      where: (s, { eq, and }) =>
+        and(
+          eq(s.id, id),
+          eq(s.authorId, user.id),
+          eq(s.status, "pending_review"),
+          eq(s.isDeleted, false)
+        ),
+    });
 
-    if (
-      Array.isArray(uploadedImages)
-    ) {
-      for (
-        const image of uploadedImages
-      ) {
-        if (
-          typeof image !== "object" ||
-          image === null
-        ) {
-          return NextResponse.json(
-            {
-              message:
-                "One of the story images is invalid. Please remove it and add the image again.",
-            },
-            {
-              status: 400,
-            }
-          );
-        }
-
-        const typedImage =
-          image as {
-            url?: unknown;
-            publicId?: unknown;
-            caption?: unknown;
-          };
-
-        if (
-          typeof typedImage.url !== "string" ||
-          !typedImage.url.trim() ||
-          typeof typedImage.publicId !== "string" ||
-          !typedImage.publicId.trim()
-        ) {
-          return NextResponse.json(
-            {
-              message:
-                "One of the story images is invalid. Please remove it and add the image again.",
-            },
-            {
-              status: 400,
-            }
-          );
-        }
-
-        if (
-          typedImage.caption !== undefined &&
-          typedImage.caption !== null &&
-          typeof typedImage.caption !== "string"
-        ) {
-          return NextResponse.json(
-            {
-              message:
-                "One of the story image captions is invalid.",
-            },
-            {
-              status: 400,
-            }
-          );
-        }
-      }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | 7. Find the story securely
-    |--------------------------------------------------------------------------
-    */
-
-    const existingStory =
-      await db.query.stories.findFirst({
-        where: (
-          stories,
-          { eq, and }
-        ) =>
-          and(
-            eq(
-              stories.id,
-              id
-            ),
-            eq(
-              stories.authorId,
-              user.id
-            ),
-            eq(
-              stories.status,
-              "pending_review"
-            ),
-            eq(
-              stories.isDeleted,
-              false
-            )
-          ),
-      });
-
-    if (!existingStory) {
+    if (!existing)
       return NextResponse.json(
         {
           message:
             "This story cannot be edited because it was not found or is no longer awaiting review.",
         },
-        {
-          status: 404,
-        }
+        { status: 404 }
       );
-    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | 8. Load existing story images
-    |--------------------------------------------------------------------------
-    |
-    | This lets us identify which Cloudinary public IDs already belong to
-    | the story and which ones are newly uploaded.
-    |--------------------------------------------------------------------------
-    */
-
-    const existingImages =
-      await db
-        .select({
-          id: storyImages.id,
-          publicId:
-            storyImages.publicId,
-          imageUrl:
-            storyImages.imageUrl,
-          caption:
-            storyImages.caption,
-          displayOrder:
-            storyImages.displayOrder,
-        })
-        .from(storyImages)
-        .where(
-          eq(
-            storyImages.storyId,
-            id
-          )
-        )
-        .orderBy(
-          storyImages.displayOrder
-        );
-
-    /*
-    |--------------------------------------------------------------------------
-    | 9. Find category
-    |--------------------------------------------------------------------------
-    */
-
-    const cleanTitle =
-      title.trim();
-
-    const cleanContent =
-      content.trim();
-
-    const categoryName =
-      category.trim();
-
-    const existingCategory =
+    const categoryRow =
       await db.query.categories.findFirst({
-        where: (
-          categories,
-          { eq }
-        ) =>
-          eq(
-            categories.name,
-            categoryName
-          ),
+        where: (c, { eq }) =>
+          eq(c.name, cleanCategory),
       });
 
-    if (!existingCategory) {
+    if (!categoryRow)
       return NextResponse.json(
-        {
-          message:
-            "The selected category is no longer available. Please select another category and try again.",
-        },
-        {
-          status: 400,
-        }
+        { message: "The selected category is not available." },
+        { status: 400 }
+      );
+
+    const titleChanged =
+      cleanTitle !== existing.title;
+
+    const contentChanged =
+      cleanContent !== existing.content;
+
+    const categoryChanged =
+      categoryRow.id !== existing.categoryId;
+
+    const coverChanged =
+      coverImageUrl !== undefined &&
+      (coverImageUrl !== existing.coverImage ||
+        coverImagePublicId !==
+          existing.coverImagePublicId);
+
+    const imagesChanged =
+      Array.isArray(images);
+
+    if (
+      !titleChanged &&
+      !contentChanged &&
+      !categoryChanged &&
+      !coverChanged &&
+      !imagesChanged
+    )
+      return NextResponse.json({
+        message: "There were no changes to save.",
+      });
+
+    /* New cover asset */
+    if (
+      coverChanged &&
+      typeof coverImagePublicId === "string" &&
+      coverImagePublicId &&
+      coverImagePublicId !==
+        existing.coverImagePublicId
+    ) {
+      newPublicIds.push(
+        coverImagePublicId
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | 10. Determine what changed
-    |--------------------------------------------------------------------------
-    */
+    /* New story image assets */
+    if (images) {
+      const oldImages =
+        await getStoryImages(id);
 
-    const titleChanged =
-      cleanTitle !==
-      existingStory.title;
-
-    const contentChanged =
-      cleanContent !==
-      existingStory.content;
-
-    const categoryChanged =
-      existingCategory.id !==
-      existingStory.categoryId;
-
-    const finalCoverImage =
-      coverImageUrl !== undefined
-        ? coverImageUrl
-        : existingStory.coverImage;
-
-    const finalCoverImagePublicId =
-      coverImagePublicId !== undefined
-        ? coverImagePublicId
-        : existingStory.coverImagePublicId;
-
-    const coverChanged =
-      finalCoverImage !==
-        existingStory.coverImage ||
-      finalCoverImagePublicId !==
-        existingStory.coverImagePublicId;
-
-    /*
-    |--------------------------------------------------------------------------
-    | storyImages is considered changed ONLY when the client explicitly
-    | supplies the property.
-    |--------------------------------------------------------------------------
-    */
-
-    const imagesWereSupplied =
-      Array.isArray(
-        uploadedImages
+      const oldIds = new Set(
+        oldImages.map((i) => i.publicId)
       );
 
-    /*
-    |--------------------------------------------------------------------------
-    | 11. Identify newly uploaded Cloudinary assets
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-      Array.isArray(uploadedImages)
-    ) {
-      const existingPublicIds =
-        new Set(
-          existingImages.map(
-            (image) =>
-              image.publicId
-          )
-        );
-
-      for (
-        const image of uploadedImages
-      ) {
-        const typedImage =
-          image as UploadedStoryImage;
-
-        if (
-          !existingPublicIds.has(
-            typedImage.publicId
-          )
-        ) {
-          newlyUploadedPublicIds.push(
-            typedImage.publicId
-          );
-        }
+      for (const image of images as ImageInput[]) {
+        if (!oldIds.has(image.publicId))
+          newPublicIds.push(image.publicId);
       }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Cover image newly uploaded?
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-      typeof finalCoverImagePublicId ===
-        "string" &&
-      finalCoverImagePublicId &&
-      finalCoverImagePublicId !==
-        existingStory.coverImagePublicId
-    ) {
-      newlyUploadedPublicIds.push(
-        finalCoverImagePublicId
-      );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | 12. Determine whether anything changed
-    |--------------------------------------------------------------------------
-    */
-
-    const storyFieldsChanged =
-      titleChanged ||
-      contentChanged ||
-      categoryChanged ||
-      coverChanged;
-
-    if (
-      !storyFieldsChanged &&
-      !imagesWereSupplied
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            "There were no changes to save.",
-
-          story: {
-            ...existingStory,
-            images:
-              existingImages,
-          },
-        },
-        {
-          status: 200,
-        }
-      );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | 13. Generate excerpt only when content changed
-    |--------------------------------------------------------------------------
-    */
-
-    const excerpt =
-      contentChanged
-        ? generateExcerpt(
-            cleanContent
-          )
-        : existingStory.excerpt;
-
-    /*
-    |--------------------------------------------------------------------------
-    | 14. Generate slug only when title changed
-    |--------------------------------------------------------------------------
-    */
-
-    let slug =
-      existingStory.slug;
+    /* Generate unique slug only when title changed */
+    let slug = existing.slug;
 
     if (titleChanged) {
-      const baseSlug =
-        createSlug(
-          cleanTitle
-        );
+      const base = slugify(cleanTitle);
 
-      if (!baseSlug) {
+      if (!base)
         return NextResponse.json(
           {
             message:
-              "Your story title contains no usable characters. Please choose a different title.",
+              "Please choose a title containing letters or numbers.",
           },
-          {
-            status: 400,
-          }
+          { status: 400 }
         );
-      }
 
-      slug = baseSlug;
-
-      let counter = 1;
+      slug = base;
+      let n = 1;
 
       while (true) {
-        const existingSlug =
+        const found =
           await db.query.stories.findFirst({
-            where: (
-              stories,
-              { eq }
-            ) =>
-              eq(
-                stories.slug,
-                slug
-              ),
+            where: (s, { eq }) =>
+              eq(s.slug, slug),
           });
 
-        if (
-          !existingSlug ||
-          existingSlug.id === id
-        ) {
+        if (!found || found.id === id)
           break;
-        }
 
-        slug =
-          `${baseSlug}-${counter}`;
-
-        counter++;
+        slug = `${base}-${n++}`;
       }
     }
 
+    const oldCoverId =
+      existing.coverImagePublicId;
+
+    const oldImages = images
+      ? await getStoryImages(id)
+      : [];
+
+    const result = await db.transaction(
+      async (tx) => {
+        const update: Record<string, unknown> = {};
+
+        if (titleChanged) {
+          update.title = cleanTitle;
+          update.slug = slug;
+        }
+
+        if (contentChanged) {
+          update.content = cleanContent;
+          update.excerpt =
+            generateExcerpt(cleanContent);
+        }
+
+        if (categoryChanged)
+          update.categoryId = categoryRow.id;
+
+        if (coverChanged) {
+          update.coverImage =
+            coverImageUrl ?? null;
+          update.coverImagePublicId =
+            coverImagePublicId ?? null;
+        }
+
+        if (Object.keys(update).length)
+          await tx
+            .update(stories)
+            .set(update)
+            .where(eq(stories.id, id));
+
+        if (images) {
+          await tx
+            .delete(storyImages)
+            .where(eq(storyImages.storyId, id));
+
+          if (images.length)
+            await tx.insert(storyImages).values(
+              (images as ImageInput[]).map(
+                (image, index) => ({
+                  storyId: id,
+                  imageUrl: image.url,
+                  publicId: image.publicId,
+                  caption:
+                    image.caption ?? null,
+                  displayOrder: index,
+                })
+              )
+            );
+        }
+
+        const story =
+          await tx.query.stories.findFirst({
+            where: (s, { eq }) =>
+              eq(s.id, id),
+          });
+
+        return story;
+      }
+    );
+
+    if (!result)
+      throw new Error(
+        "The story could not be retrieved after saving."
+      );
+
     /*
-    |--------------------------------------------------------------------------
-    | 15. DATABASE TRANSACTION
-    |--------------------------------------------------------------------------
-    |
-    | The story update, story image replacement and activity record all
-    | happen inside the SAME transaction.
-    |
-    | If anything fails:
-    |
-    | - story changes roll back
-    | - image changes roll back
-    | - activity record rolls back
-    |
-    | The API then returns an error.
-    |
-    | Therefore we NEVER report a successful database save when the
-    | transaction failed.
-    |--------------------------------------------------------------------------
-    */
+     * Remove old Cloudinary assets only AFTER
+     * the database transaction succeeds.
+     */
+    const removedIds: string[] = [];
 
-    try {
-      const transactionResult =
-        await db.transaction(
-          async (tx) => {
-            /*
-            |--------------------------------------------------------------------------
-            | Re-check story inside transaction.
-            |--------------------------------------------------------------------------
-            */
+    if (
+      coverChanged &&
+      oldCoverId &&
+      oldCoverId !== coverImagePublicId
+    )
+      removedIds.push(oldCoverId);
 
-            const currentStory =
-              await tx.query.stories.findFirst({
-        
+    if (images) {
+      const newIds = new Set(
+        (images as ImageInput[]).map(
+          (i) => i.publicId
+        )
+      );
+
+      oldImages.forEach((image) => {
+        if (!newIds.has(image.publicId))
+          removedIds.push(image.publicId);
+      });
+    }
+
+    await Promise.all(
+      removedIds
+        .filter(Boolean)
+        .map((publicId) =>
+          cloudinary.uploader
+            .destroy(publicId)
+            .catch((error) =>
+              console.error(
+                "Cloudinary cleanup error:",
+                publicId,
+                error
+              )
+            )
+        )
+    );
+
+    return NextResponse.json({
+      message:
+        "Changes saved successfully. Your story remains pending review.",
+      story: {
+        ...result,
+        images: await getStoryImages(id),
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Update pending review story error:",
+      error
+    );
+
+    /*
+     * Database failed after Cloudinary upload.
+     * Remove only assets uploaded during this request.
+     */
+    await Promise.all(
+      [...new Set(newPublicIds)]
+        .map((publicId) =>
+          cloudinary.uploader
+            .destroy(publicId)
+            .catch((cleanupError) =>
+              console.error(
+                "Failed to clean up Cloudinary asset:",
+                cleanupError
+              )
+            )
+        )
+    );
+
+    return NextResponse.json(
+      {
+        message:
+          "Your changes could not be saved. Please try again.",
+        error: errorMessage(error),
+      },
+      { status: 500 }
+    );
+  }
+             }
