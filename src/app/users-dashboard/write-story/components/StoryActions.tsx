@@ -124,18 +124,18 @@ export default function StoryActions() {
       );
 
       const coverUploadPromise =
-        coverImage?.url
-          ? Promise.resolve({
-              url: coverImage.url,
-              publicId:
-                coverImage.publicId,
-            })
-          : coverImage
-          ? uploadImage(
-              coverImage.file,
-              "parenting-blog/cover-images"
-            )
-          : Promise.resolve(null);
+  coverImage
+    ? coverImage.url &&
+      coverImage.publicId
+      ? Promise.resolve({
+          url: coverImage.url,
+          publicId: coverImage.publicId,
+        })
+      : uploadImage(
+          coverImage.file,
+          "parenting-blog/cover-images"
+        )
+    : Promise.resolve(null);
 
       /*
       |--------------------------------------------------------------------------
