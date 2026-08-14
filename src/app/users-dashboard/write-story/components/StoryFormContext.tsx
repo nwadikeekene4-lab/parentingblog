@@ -8,7 +8,10 @@ import {
   ReactNode,
 } from "react";
 
-import { useSearchParams } from "next/navigation";
+import {
+  useParams,
+  useSearchParams,
+} from "next/navigation";
 
 
 export type UploadedImage = {
@@ -76,8 +79,36 @@ export function StoryFormProvider({
   const searchParams =
     useSearchParams();
 
+  const params = useParams();
+
+  /*
+  |--------------------------------------------------------------------------
+  | Get story ID
+  |--------------------------------------------------------------------------
+  |
+  | Edit page:
+  | /users-dashboard/edit-story/[id]
+  |
+  | The previous version only checked:
+  | ?edit=...
+  |
+  | That meant the edit page did not load the existing story correctly.
+  |
+  */
+
+  const routeStoryId =
+    typeof params?.id === "string"
+      ? params.id
+      : undefined;
+
+  const queryStoryId =
+    searchParams.get("edit") ??
+    searchParams.get("draftId") ??
+    undefined;
+
   const editStoryId =
-    searchParams.get("edit");
+    routeStoryId ??
+    queryStoryId;
 
 
   const [title, setTitle] =
@@ -95,7 +126,6 @@ export function StoryFormProvider({
   const [storyImages, setStoryImages] =
     useState<UploadedImage[]>([]);
 
-
   const [loadingStory, setLoadingStory] =
     useState(
       Boolean(editStoryId)
@@ -104,7 +134,7 @@ export function StoryFormProvider({
 
   /*
   |--------------------------------------------------------------------------
-  | Load existing pending-review story
+  | Load existing story
   |--------------------------------------------------------------------------
   */
 
@@ -166,124 +196,128 @@ export function StoryFormProvider({
         }
 
 
+        if (cancelled) {
+          return;
+        }
+
+
         /*
         |--------------------------------------------------------------------------
-        | Fill story details
+        | Story details
         |--------------------------------------------------------------------------
         */
 
-        if (!cancelled) {
+        setTitle(
+          story.title ?? ""
+        );
 
-          setTitle(
-            story.title ?? ""
-          );
+        setContent(
+          story.content ?? ""
+        );
 
-          setContent(
-            story.content ?? ""
-          );
-
-          setCategory(
-            story.category?.name ??
-              ""
-          );
+        setCategory(
+          story.category?.name ?? ""
+        );
 
 
-          /*
-          |--------------------------------------------------------------------------
-          | Load existing cover image
-          |--------------------------------------------------------------------------
-          */
+        /*
+        |--------------------------------------------------------------------------
+        | Existing cover image
+        |--------------------------------------------------------------------------
+        */
 
-          if (
-            story.coverImage
-          ) {
+        if (story.coverImage) {
 
-            setCoverImage({
+          setCoverImage({
+
+            id:
+              `existing-cover-${story.id}`,
+
+            /*
+            | This is only a placeholder File.
+            | Because url exists, StoryActions will NOT
+            | upload this image again.
+            */
+
+            file:
+              new File(
+                [],
+                "existing-cover-image"
+              ),
+
+            preview:
+              story.coverImage,
+
+            url:
+              story.coverImage,
+
+            publicId:
+              story.coverImagePublicId ??
+              undefined,
+
+            uploading:
+              false,
+
+          });
+
+        } else {
+
+          setCoverImage(null);
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Existing story images
+        |--------------------------------------------------------------------------
+        */
+
+        const existingImages =
+          Array.isArray(
+            story.images
+          )
+            ? story.images
+            : [];
+
+
+        setStoryImages(
+
+          existingImages.map(
+            (
+              image: {
+                id: string;
+                imageUrl: string;
+                publicId?: string;
+                caption?: string | null;
+              }
+            ) => ({
 
               id:
-                `existing-cover-${story.id}`,
+                image.id,
 
               file:
                 new File(
                   [],
-                  "existing-cover-image"
+                  "existing-story-image"
                 ),
 
               preview:
-                story.coverImage,
+                image.imageUrl,
 
               url:
-                story.coverImage,
+                image.imageUrl,
 
               publicId:
-                story.coverImagePublicId ??
-                undefined,
+                image.publicId,
 
               uploading:
                 false,
 
-            });
+            })
+          )
 
-          } else {
-
-            setCoverImage(null);
-
-          }
-
-
-          /*
-          |--------------------------------------------------------------------------
-          | Load existing story images
-          |--------------------------------------------------------------------------
-          */
-
-          const existingImages =
-            Array.isArray(
-              story.images
-            )
-              ? story.images
-              : [];
-
-
-          setStoryImages(
-
-            existingImages.map(
-              (
-                image: {
-                  id: string;
-                  imageUrl: string;
-                  publicId: string;
-                }
-              ) => ({
-
-                id:
-                  image.id,
-
-                file:
-                  new File(
-                    [],
-                    "existing-story-image"
-                  ),
-
-                preview:
-                  image.imageUrl,
-
-                url:
-                  image.imageUrl,
-
-                publicId:
-                  image.publicId,
-
-                uploading:
-                  false,
-
-              })
-            )
-
-          );
-
-        }
-
+        );
 
       } catch (error) {
 
@@ -302,7 +336,6 @@ export function StoryFormProvider({
           setStoryImages([]);
 
         }
-
 
       } finally {
 
@@ -340,17 +373,21 @@ export function StoryFormProvider({
     publicId: string
   ) {
 
-    setCoverImage((current) =>
+    setCoverImage((current) => {
 
-      current
-        ? {
-            ...current,
-            url,
-            publicId,
-          }
-        : current
+      if (!current) {
+        return current;
+      }
 
-    );
+      return {
+        ...current,
+        url,
+        publicId,
+        preview: url,
+        uploading: false,
+      };
+
+    });
 
   }
 
@@ -371,17 +408,32 @@ export function StoryFormProvider({
     setStoryImages((current) =>
 
       current.map(
-        (image, index) => ({
+        (image, index) => {
 
-          ...image,
+          const uploaded =
+            images[index];
 
-          url:
-            images[index]?.url,
+          if (!uploaded) {
+            return image;
+          }
 
-          publicId:
-            images[index]?.publicId,
+          return {
+            ...image,
 
-        })
+            url:
+              uploaded.url,
+
+            publicId:
+              uploaded.publicId,
+
+            preview:
+              uploaded.url,
+
+            uploading:
+              false,
+          };
+
+        }
       )
 
     );
