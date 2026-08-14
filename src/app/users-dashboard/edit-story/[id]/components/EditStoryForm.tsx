@@ -1,15 +1,9 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-
 import EditCategorySelector from "./EditCategorySelector";
 import EditStoryEditor from "./EditStoryEditor";
-
 import { uploadImage } from "@/lib/uploadImage";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -41,10 +35,6 @@ type EditImage = {
   publicId?: string;
 };
 
-type EditStoryFormProps = {
-  storyId: string;
-};
-
 type InitialState = {
   title: string;
   content: string;
@@ -60,678 +50,336 @@ type InitialState = {
 
 export default function EditStoryForm({
   storyId,
-}: EditStoryFormProps) {
-  const [story, setStory] =
-    useState<StoryData | null>(null);
-
-  const [title, setTitle] =
-    useState("");
-
-  const [content, setContent] =
-    useState("");
-
-  const [category, setCategory] =
-    useState("");
-
+}: {
+  storyId: string;
+}) {
+  const [story, setStory] = useState<StoryData | null>(null);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [category, setCategory] = useState("");
   const [coverImage, setCoverImage] =
     useState<EditImage | null>(null);
-
   const [storyImages, setStoryImages] =
     useState<EditImage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const [loading, setLoading] =
-    useState(true);
+  const initial = useRef<InitialState | null>(null);
 
-  const [saving, setSaving] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
-
-  const [success, setSuccess] =
-    useState("");
-
-  /*
-  |--------------------------------------------------------------------------
-  | ORIGINAL STORY STATE
-  |--------------------------------------------------------------------------
-  |
-  | This is the baseline used to determine whether anything actually changed.
-  |
-  */
-
-  const initialState =
-    useRef<InitialState | null>(null);
-
-  /*
-  |--------------------------------------------------------------------------
-  | LOAD STORY
-  |--------------------------------------------------------------------------
-  */
+  function clearMessages() {
+    setError("");
+    setSuccess("");
+  }
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadStory() {
+    async function load() {
       try {
         setLoading(true);
-        setError("");
-        setSuccess("");
+        clearMessages();
 
-        const response = await fetch(
-          `/api/stories/${storyId}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
+        const res = await fetch(`/api/stories/${storyId}`, {
+          cache: "no-store",
+        });
 
-        const data =
-          await response.json();
+        const data = await res.json();
 
-        if (!response.ok) {
-          throw new Error(
-            data.message ??
-              "Failed to load story."
-          );
+        if (!res.ok) {
+          throw new Error(data.message ?? "Failed to load story.");
         }
 
-        const loadedStory =
-          data.story as StoryData;
+        const s = data.story as StoryData;
+        if (cancelled) return;
 
-        if (cancelled) {
-          return;
-        }
+        const images = (s.images ?? []).map((image) => ({
+          id: image.id,
+          url: image.imageUrl,
+          publicId: image.publicId,
+        }));
 
-        setStory(loadedStory);
-
-        const loadedTitle =
-          loadedStory.title ?? "";
-
-        const loadedContent =
-          loadedStory.content ?? "";
-
-        const loadedCategory =
-          loadedStory.category ?? "";
-
-        const loadedCoverImage =
-          loadedStory.coverImage ?? null;
-
-        const loadedCoverImagePublicId =
-          loadedStory.coverImagePublicId ??
-          null;
-
-        const loadedStoryImages =
-          (loadedStory.images ?? []).map(
-            (image) => ({
-              id: image.id,
-              url: image.imageUrl,
-              publicId: image.publicId,
-            })
-          );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Store the original state.
-        |--------------------------------------------------------------------------
-        */
-
-        initialState.current = {
-          title: loadedTitle,
-          content: loadedContent,
-          category: loadedCategory,
-          coverImage:
-            loadedCoverImage,
-          coverImagePublicId:
-            loadedCoverImagePublicId,
-          storyImages:
-            loadedStoryImages,
+        initial.current = {
+          title: s.title ?? "",
+          content: s.content ?? "",
+          category: s.category ?? "",
+          coverImage: s.coverImage ?? null,
+          coverImagePublicId: s.coverImagePublicId ?? null,
+          storyImages: images,
         };
 
-        setTitle(
-          loadedTitle
+        setStory(s);
+        setTitle(s.title ?? "");
+        setContent(s.content ?? "");
+        setCategory(s.category ?? "");
+
+        setCoverImage(
+          s.coverImage
+            ? {
+                id: `cover-${s.id}`,
+                file: null,
+                preview: s.coverImage,
+                url: s.coverImage,
+                publicId: s.coverImagePublicId ?? undefined,
+              }
+            : null
         );
-
-        setContent(
-          loadedContent
-        );
-
-        setCategory(
-          loadedCategory
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Existing cover image
-        |
-        | IMPORTANT:
-        | Existing Cloudinary images have NO File object.
-        | Therefore they will NEVER be uploaded again.
-        |--------------------------------------------------------------------------
-        */
-
-        if (loadedCoverImage) {
-          setCoverImage({
-            id: `existing-cover-${loadedStory.id}`,
-            file: null,
-            preview:
-              loadedCoverImage,
-            url:
-              loadedCoverImage,
-            publicId:
-              loadedCoverImagePublicId ??
-              undefined,
-          });
-        } else {
-          setCoverImage(null);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Existing story images
-        |--------------------------------------------------------------------------
-        */
 
         setStoryImages(
-          (loadedStory.images ?? []).map(
-            (image) => ({
-              id: image.id,
-              file: null,
-              preview:
-                image.imageUrl,
-              url:
-                image.imageUrl,
-              publicId:
-                image.publicId,
-            })
-          )
+          (s.images ?? []).map((image) => ({
+            id: image.id,
+            file: null,
+            preview: image.imageUrl,
+            url: image.imageUrl,
+            publicId: image.publicId,
+          }))
         );
-      } catch (error) {
-        console.error(
-          "Load story for editing error:",
-          error
-        );
+      } catch (err) {
+        console.error("Load story error:", err);
 
         if (!cancelled) {
           setError(
-            error instanceof Error
-              ? error.message
+            err instanceof Error
+              ? err.message
               : "Failed to load story."
           );
         }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
-    loadStory();
+    load();
 
     return () => {
       cancelled = true;
     };
   }, [storyId]);
 
-  /*
-  |--------------------------------------------------------------------------
-  | COVER IMAGE
-  |--------------------------------------------------------------------------
-  */
-
   function handleCoverImage(
     e: React.ChangeEvent<HTMLInputElement>
   ) {
-    const file =
-      e.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError(
-        "Please select a valid cover image."
-      );
-
+      setError("Please select a valid cover image.");
       e.target.value = "";
       return;
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      setError(
-        "Cover image must be smaller than 10MB."
-      );
-
+      setError("Cover image must be smaller than 10MB.");
       e.target.value = "";
       return;
     }
 
-    setError("");
-    setSuccess("");
+    clearMessages();
 
     if (
       coverImage?.file &&
       coverImage.preview.startsWith("blob:")
     ) {
-      URL.revokeObjectURL(
-        coverImage.preview
-      );
+      URL.revokeObjectURL(coverImage.preview);
     }
-
-    const preview =
-      URL.createObjectURL(file);
 
     setCoverImage({
       id: crypto.randomUUID(),
       file,
-      preview,
+      preview: URL.createObjectURL(file),
     });
 
     e.target.value = "";
   }
 
   function removeCoverImage() {
-    setError("");
-    setSuccess("");
+    clearMessages();
 
     if (
       coverImage?.file &&
       coverImage.preview.startsWith("blob:")
     ) {
-      URL.revokeObjectURL(
-        coverImage.preview
-      );
+      URL.revokeObjectURL(coverImage.preview);
     }
 
     setCoverImage(null);
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | STORY IMAGES
-  |--------------------------------------------------------------------------
-  */
-
   function handleStoryImages(
     e: React.ChangeEvent<HTMLInputElement>
   ) {
-    const files =
-      e.target.files;
+    const files = e.target.files;
+    if (!files) return;
 
-    if (!files) {
-      return;
-    }
+    clearMessages();
 
-    setError("");
-    setSuccess("");
-
-    const newImages: EditImage[] = [];
+    const images: EditImage[] = [];
 
     for (const file of Array.from(files)) {
       if (!file.type.startsWith("image/")) {
-        setError(
-          `${file.name} is not a valid image.`
-        );
+        setError(`${file.name} is not a valid image.`);
         continue;
       }
 
       if (file.size > MAX_FILE_SIZE) {
-        setError(
-          `${file.name} is larger than 10MB.`
-        );
+        setError(`${file.name} is larger than 10MB.`);
         continue;
       }
 
-      newImages.push({
+      images.push({
         id: crypto.randomUUID(),
         file,
-        preview:
-          URL.createObjectURL(file),
+        preview: URL.createObjectURL(file),
       });
     }
 
-    if (newImages.length > 0) {
-      setStoryImages(
-        (current) => [
-          ...current,
-          ...newImages,
-        ]
-      );
+    if (images.length) {
+      setStoryImages((current) => [...current, ...images]);
     }
 
     e.target.value = "";
   }
 
-  function removeStoryImage(
-    id: string
-  ) {
-    setError("");
-    setSuccess("");
+  function removeStoryImage(id: string) {
+    clearMessages();
 
     setStoryImages((current) => {
-      const image =
-        current.find(
-          (item) => item.id === id
-        );
+      const image = current.find((item) => item.id === id);
 
       if (
         image?.file &&
         image.preview.startsWith("blob:")
       ) {
-        URL.revokeObjectURL(
-          image.preview
-        );
+        URL.revokeObjectURL(image.preview);
       }
 
-      return current.filter(
-        (item) => item.id !== id
+      return current.filter((item) => item.id !== id);
+    });
+  }
+
+  function imagesChanged() {
+    const old = initial.current;
+    if (!old) return true;
+
+    if (storyImages.some((image) => image.file)) return true;
+
+    const current = storyImages.map((image) => ({
+      id: image.id,
+      url: image.url ?? "",
+      publicId: image.publicId ?? "",
+    }));
+
+    if (current.length !== old.storyImages.length) return true;
+
+    return current.some((image, i) => {
+      const original = old.storyImages[i];
+
+      return (
+        !original ||
+        image.id !== original.id ||
+        image.url !== original.url ||
+        image.publicId !== original.publicId
       );
     });
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | CHECK WHETHER STORY IMAGES CHANGED
-  |--------------------------------------------------------------------------
-  */
-
-  function haveStoryImagesChanged() {
-    const original =
-      initialState.current;
-
-    if (!original) {
-      return true;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Any new local file means images changed.
-    |--------------------------------------------------------------------------
-    */
-
-    const hasNewFiles =
-      storyImages.some(
-        (image) =>
-          image.file !== null
-      );
-
-    if (hasNewFiles) {
-      return true;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Compare current existing images with original images.
-    |--------------------------------------------------------------------------
-    */
-
-    const currentImages =
-      storyImages.map(
-        (image) => ({
-          id: image.id,
-          url:
-            image.url ?? "",
-          publicId:
-            image.publicId ?? "",
-        })
-      );
-
-    if (
-      currentImages.length !==
-      original.storyImages.length
-    ) {
-      return true;
-    }
-
-    return currentImages.some(
-      (current, index) => {
-        const originalImage =
-          original.storyImages[
-            index
-          ];
-
-        if (!originalImage) {
-          return true;
-        }
-
-        return (
-          current.id !==
-            originalImage.id ||
-          current.url !==
-            originalImage.url ||
-          current.publicId !==
-            originalImage.publicId
-        );
-      }
-    );
-  }
-
-  /*
-  |--------------------------------------------------------------------------
-  | SAVE CHANGES
-  |--------------------------------------------------------------------------
-  */
-
   async function saveChanges() {
-    if (saving) {
+    if (saving) return;
+
+    clearMessages();
+
+    const t = title.trim();
+    const c = content.trim();
+    const cat = category.trim();
+    const old = initial.current;
+
+    if (!t) {
+      setError("Please enter a story title.");
       return;
     }
 
-    setError("");
-    setSuccess("");
+    if (!c) {
+      setError("Please write your story.");
+      return;
+    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Validation
-    |--------------------------------------------------------------------------
-    */
+    if (!cat) {
+      setError("Please select a category.");
+      return;
+    }
 
-    const cleanTitle =
-      title.trim();
-
-    const cleanContent =
-      content.trim();
-
-    const cleanCategory =
-      category.trim();
-
-    if (!cleanTitle) {
+    if (!old) {
       setError(
-        "Please enter a story title."
+        "The original story information is not ready. Please refresh the page."
       );
       return;
     }
 
-    if (!cleanContent) {
-      setError(
-        "Please write your story."
-      );
-      return;
-    }
+    const titleChanged = t !== old.title;
+    const contentChanged = c !== old.content;
+    const categoryChanged = cat !== old.category;
 
-    if (!cleanCategory) {
-      setError(
-        "Please select a category."
-      );
-      return;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Make sure the original story was loaded.
-    |--------------------------------------------------------------------------
-    */
-
-    if (!initialState.current) {
-      setError(
-        "The original story information is not ready. Please refresh the page and try again."
-      );
-      return;
-    }
-
-    const original =
-      initialState.current;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Determine actual changes.
-    |--------------------------------------------------------------------------
-    */
-
-    const titleChanged =
-      cleanTitle !==
-      original.title;
-
-    const contentChanged =
-      cleanContent !==
-      original.content;
-
-    const categoryChanged =
-      cleanCategory !==
-      original.category;
-
-    const coverImageChanged =
-      (coverImage?.url ?? null) !==
-        original.coverImage ||
+    const coverChanged =
+      (coverImage?.url ?? null) !== old.coverImage ||
       (coverImage?.publicId ?? null) !==
-        original.coverImagePublicId;
+        old.coverImagePublicId;
 
-    const storyImagesChanged =
-      haveStoryImagesChanged();
-
-    /*
-    |--------------------------------------------------------------------------
-    | NOTHING CHANGED
-    |--------------------------------------------------------------------------
-    |
-    | Do not even make a database request.
-    |
-    */
+    const storyImagesChanged = imagesChanged();
 
     if (
       !titleChanged &&
       !contentChanged &&
       !categoryChanged &&
-      !coverImageChanged &&
+      !coverChanged &&
       !storyImagesChanged
     ) {
-      setSuccess(
-        "There are no changes to save."
-      );
+      setSuccess("There are no changes to save.");
       return;
     }
 
     setSaving(true);
 
     try {
-      /*
-      |--------------------------------------------------------------------------
-      | COVER IMAGE
-      |--------------------------------------------------------------------------
-      |
-      | Only upload when the user selected a NEW file.
-      |
-      | Existing Cloudinary image:
-      | - is reused
-      | - is NOT uploaded
-      |
-      | Removed image:
-      | - sends null
-      |--------------------------------------------------------------------------
-      */
+      let coverUrl: string | null | undefined;
+      let coverPublicId: string | null | undefined;
 
-      let coverImageUrl:
-        | string
-        | null
-        | undefined;
-
-      let coverImagePublicId:
-        | string
-        | null
-        | undefined;
-
-      if (coverImageChanged) {
+      if (coverChanged) {
         if (coverImage?.file) {
-          const uploadedCover =
-            await uploadImage(
-              coverImage.file,
-              "parenting-blog/cover-images"
-            );
+          const uploaded = await uploadImage(
+            coverImage.file,
+            "parenting-blog/cover-images"
+          );
 
-          coverImageUrl =
-            uploadedCover.url;
-
-          coverImagePublicId =
-            uploadedCover.publicId;
+          coverUrl = uploaded.url;
+          coverPublicId = uploaded.publicId;
         } else {
-          coverImageUrl =
-            coverImage?.url ??
-            null;
-
-          coverImagePublicId =
-            coverImage?.publicId ??
-            null;
+          coverUrl = coverImage?.url ?? null;
+          coverPublicId = coverImage?.publicId ?? null;
         }
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | STORY IMAGES
-      |--------------------------------------------------------------------------
-      |
-      | Only process this section when the user actually changed
-      | the story-image collection.
-      |
-      | Existing images are reused.
-      | New files are uploaded.
-      |--------------------------------------------------------------------------
-      */
-
-      let uploadedStoryImages:
-        | {
-            url: string;
-            publicId: string;
-          }[]
+      let uploadedImages:
+        | { url: string; publicId: string }[]
         | undefined;
 
       if (storyImagesChanged) {
-        uploadedStoryImages =
-          await Promise.all(
-            storyImages.map(
-              async (image) => {
-                if (image.file) {
-                  return uploadImage(
-                    image.file,
-                    "parenting-blog/story-images"
-                  );
+        uploadedImages = await Promise.all(
+          storyImages.map((image) =>
+            image.file
+              ? uploadImage(
+                  image.file,
+                  "parenting-blog/story-images"
+                )
+              : {
+                  url: image.url ?? "",
+                  publicId: image.publicId ?? "",
                 }
-
-                return {
-                  url:
-                    image.url ?? "",
-                  publicId:
-                    image.publicId ??
-                    "",
-                };
-              }
-            )
-          );
+          )
+        );
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Build request.
-      |--------------------------------------------------------------------------
-      |
-      | The text fields are always supplied because the current PUT
-      | endpoint validates title/content/category.
-      |
-      | Images are supplied ONLY when their section changed.
-      |--------------------------------------------------------------------------
-      */
-
-      const requestBody: {
+      const body: {
         title: string;
         content: string;
         category: string;
@@ -742,164 +390,311 @@ export default function EditStoryForm({
           publicId: string;
         }[];
       } = {
-        title:
-          cleanTitle,
-
-        content:
-          cleanContent,
-
-        category:
-          cleanCategory,
+        title: t,
+        content: c,
+        category: cat,
       };
 
-      if (coverImageChanged) {
-        requestBody.coverImageUrl =
-          coverImageUrl ?? null;
-
-        requestBody.coverImagePublicId =
-          coverImagePublicId ?? null;
+      if (coverChanged) {
+        body.coverImageUrl = coverUrl ?? null;
+        body.coverImagePublicId = coverPublicId ?? null;
       }
 
-      if (
-        storyImagesChanged
-      ) {
-        requestBody.storyImages =
-          uploadedStoryImages ?? [];
+      if (storyImagesChanged) {
+        body.storyImages = uploadedImages ?? [];
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | SAVE TO DATABASE
-      |--------------------------------------------------------------------------
-      */
+      const res = await fetch(`/api/stories/${storyId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
 
-      const response =
-        await fetch(
-          `/api/stories/${storyId}`,
-          {
-            method: "PUT",
+      const data = await res.json();
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body: JSON.stringify(
-              requestBody
-            ),
-          }
-        );
-
-      let data: {
-        message?: string;
-        story?: StoryData;
-      } = {};
-
-      try {
-        data =
-          await response.json();
-      } catch {
+      if (!res.ok) {
         throw new Error(
-          "The server returned an invalid response. Your changes were not confirmed as saved."
+          data.message ?? "Failed to save changes."
         );
       }
 
-      if (!response.ok) {
-        throw new Error(
-          data.message ??
-            "Failed to save changes."
-        );
+      if (data.story) {
+        setStory(data.story);
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | SUCCESS
-      |--------------------------------------------------------------------------
-      |
-      | The API only returns success after its database save completes.
-      |--------------------------------------------------------------------------
-      */
+      const savedImages = storyImages.map((image, i) => ({
+        id: image.id,
+        url:
+          image.url ??
+          uploadedImages?.[i]?.url ??
+          "",
+        publicId:
+          image.publicId ??
+          uploadedImages?.[i]?.publicId ??
+          "",
+      }));
 
-      const savedStory =
-        data.story;
+      initial.current = {
+        title: t,
+        content: c,
+        category: cat,
+        coverImage: coverChanged
+          ? coverUrl ?? null
+          : old.coverImage,
+        coverImagePublicId: coverChanged
+          ? coverPublicId ?? null
+          : old.coverImagePublicId,
+        storyImages: savedImages,
+      };
 
-      if (savedStory) {
-        setStory(
-          savedStory
-        );
-      }
+      if (storyImagesChanged && uploadedImages) {
+        setStoryImages((current) =>
+          current.map((image, i) => {
+            const uploaded = uploadedImages?.[i];
 
-      /*
-      |--------------------------------------------------------------------------
-      | Reset the original baseline.
-      |
-      | This means another Save click will NOT repeat the same operation.
-      |--------------------------------------------------------------------------
-      */
+            if (!image.file || !uploaded) return image;
 
-      const savedCover =
-        coverImageChanged
-          ? coverImageUrl ??
-            null
-          : original.coverImage;
+            if (image.preview.startsWith("blob:")) {
+              URL.revokeObjectURL(image.preview);
+            }
 
-      const savedCoverPublicId =
-        coverImageChanged
-          ? coverImagePublicId ??
-            null
-          : original.coverImagePublicId;
-
-      const savedImages =
-        storyImages.map(
-          (image, index) => ({
-            id:
-              image.id,
-            url:
-              image.url ??
-              uploadedStoryImages?.[
-                index
-              ]?.url ??
-              "",
-            publicId:
-              image.publicId ??
-              uploadedStoryImages?.[
-                index
-              ]?.publicId ??
-              "",
+            return {
+              ...image,
+              file: null,
+              preview: uploaded.url,
+              url: uploaded.url,
+              publicId: uploaded.publicId,
+            };
           })
         );
+      }
 
-      initialState.current = {
-        title:
-          cleanTitle,
+      if (coverChanged && coverImage?.file && coverUrl) {
+        if (coverImage.preview.startsWith("blob:")) {
+          URL.revokeObjectURL(coverImage.preview);
+        }
 
-        content:
-          cleanContent,
+        setCoverImage({
+          ...coverImage,
+          file: null,
+          preview: coverUrl,
+          url: coverUrl,
+          publicId: coverPublicId ?? undefined,
+        });
+      }
 
-        category:
-          cleanCategory,
+      setSuccess(
+        "Changes saved successfully. Your story remains pending review."
+      );
 
-        coverImage:
-          savedCover,
+      setTimeout(() => {
+        window.location.href =
+          "/users-dashboard/pending-review";
+      }, 1000);
+    } catch (err) {
+      console.error("Save edited story error:", err);
 
-        coverImagePublicId:
-          savedCoverPublicId,
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while saving."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
-        storyImages:
-          savedImages,
-      };
+  if (loading) {
+    return (
+      <section className="rounded-2xl bg-white p-8 text-center shadow-sm">
+        <p className="text-gray-600">Loading story...</p>
+      </section>
+    );
+  }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Replace newly uploaded image URLs with their permanent URLs.
-      |--------------------------------------------------------------------------
-      */
+  if (error && !story) {
+    return (
+      <section className="rounded-2xl border border-red-200 bg-red-50 p-8 shadow-sm">
+        <h2 className="text-xl font-bold text-red-800">
+          Unable to load story
+        </h2>
+        <p className="mt-2 text-red-700">{error}</p>
+      </section>
+    );
+  }
 
-      if (
-        storyImagesChanged &&
-        uploadedStoryImages
-      ) {
-        setStoryImages(
-          (current) =>
-            current.map(
-              (image, index) => 
+  if (!story) {
+    return (
+      <section className="rounded-2xl bg-white p-8 text-center shadow-sm">
+        <p className="text-gray-600">Story not found.</p>
+      </section>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <h2 className="font-semibold text-yellow-900">
+          Story is awaiting review
+        </h2>
+        <p className="mt-1 text-sm text-yellow-800">
+          You can make changes to your story here.
+          After saving, it will remain pending review.
+        </p>
+      </section>
+
+      <EditStoryEditor
+        title={title}
+        content={content}
+        onTitleChange={(value) => {
+          setTitle(value);
+          clearMessages();
+        }}
+        onContentChange={(value) => {
+          setContent(value);
+          clearMessages();
+        }}
+      />
+
+      <EditCategorySelector
+        category={category}
+        onCategoryChange={(value) => {
+          setCategory(value);
+          clearMessages();
+        }}
+      />
+
+      <section className="rounded-2xl bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-bold text-gray-900">
+          Cover Image
+        </h2>
+
+        <p className="mt-2 mb-5 text-sm text-gray-500">
+          Replace the cover image if needed.
+        </p>
+
+        {coverImage ? (
+          <div className="space-y-4">
+            <div className="relative h-72 overflow-hidden rounded-2xl">
+              <Image
+                src={coverImage.preview}
+                alt="Cover Preview"
+                fill
+                unoptimized
+                className="object-cover"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={removeCoverImage}
+              disabled={saving}
+              className="rounded-xl border border-red-500 px-5 py-2 font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              Remove Image
+            </button>
+          </div>
+        ) : (
+          <label className="flex h-64 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-blue-500 hover:bg-blue-50">
+            <span className="text-5xl">📷</span>
+            <p className="mt-4 font-semibold text-gray-700">
+              Click to upload cover image
+            </p>
+            <p className="mt-2 text-sm text-gray-500">
+              JPG, PNG or WEBP (Max 10MB)
+            </p>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleCoverImage}
+              disabled={saving}
+              className="hidden"
+            />
+          </label>
+        )}
+      </section>
+
+      <section className="rounded-2xl bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-bold text-gray-900">
+          Story Images
+        </h2>
+
+        <p className="mt-2 mb-5 text-sm text-gray-500">
+          Add, remove or replace additional story images.
+        </p>
+
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleStoryImages}
+          disabled={saving}
+          className="mb-6 block w-full rounded-lg border border-gray-300 p-3"
+        />
+
+        {!storyImages.length ? (
+          <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-500">
+            No additional images selected.
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {storyImages.map((image) => (
+              <div
+                key={image.id}
+                className="overflow-hidden rounded-xl border border-gray-200"
+              >
+                <div className="relative h-48">
+                  <Image
+                    src={image.preview}
+                    alt="Story Image"
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    removeStoryImage(image.id)
+                  }
+                  disabled={saving}
+                  className="w-full border-t border-gray-200 py-3 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+          {success}
+        </div>
+      )}
+
+      <section className="rounded-2xl bg-white p-6 shadow-sm">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={saveChanges}
+            disabled={saving}
+            className="rounded-xl bg-blue-600 px-8 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving ? "Saving Changes..." : "Save Changes"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+  }
