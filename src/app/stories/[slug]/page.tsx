@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { stories } from "@/db/schema";
 
 import { getCurrentUser } from "@/lib/session";
-import BookmarkButton from "../../components/story/BookmarkButton";
+
 
 type Props = {
   params: Promise<{
@@ -152,17 +152,7 @@ export default async function StoryPage({
 
         </div>
 
-        {/* Bookmark Button */}
-
-        {currentUser && (
-          <div className="mt-6">
-            <BookmarkButton
-  storyId={story.id}
-  storySlug={story.slug}
-/>
-          </div>
-        )}
-
+        
       </header>
 
       {/* Story Content */}
