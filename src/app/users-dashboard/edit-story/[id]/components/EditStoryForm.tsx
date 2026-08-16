@@ -321,9 +321,10 @@ export default function EditStoryForm({
     const categoryChanged = cat !== old.category;
 
     const coverChanged =
-      (coverImage?.url ?? null) !== old.coverImage ||
-      (coverImage?.publicId ?? null) !==
-        old.coverImagePublicId;
+  !!coverImage?.file ||
+  (coverImage?.url ?? null) !== old.coverImage ||
+  (coverImage?.publicId ?? null) !==
+    old.coverImagePublicId;
 
     const storyImagesChanged = imagesChanged();
 
