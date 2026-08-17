@@ -1,11 +1,30 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { comments, stories, users, notifications } from "@/db/schema";
+import {
+  comments,
+  stories,
+  users,
+  notifications,
+} from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
 
 const MAX_COMMENT_LENGTH = 2000;
+
+type CommentTreeItem = {
+  id: string;
+  content: string;
+  parentCommentId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  user: {
+    id: string;
+    displayName: string;
+    profileImage: string | null;
+  };
+  replies: CommentTreeItem[];
+};
 
 function cleanText(value: unknown) {
   return typeof value === "string"
@@ -13,76 +32,156 @@ function cleanText(value: unknown) {
     : "";
 }
 
+/*
+|--------------------------------------------------------------------------
+| GET — FETCH COMMENTS
+|--------------------------------------------------------------------------
+*/
+
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const storyId = cleanText(searchParams.get("storyId"));
+    const { searchParams } =
+      new URL(request.url);
+
+    const storyId = cleanText(
+      searchParams.get("storyId")
+    );
 
     if (!storyId) {
       return NextResponse.json(
-        { message: "Story ID is required." },
+        {
+          message:
+            "Story ID is required.",
+        },
         { status: 400 }
       );
     }
 
-    const story = await db.query.stories.findFirst({
-      where: and(
-        eq(stories.id, storyId),
-        eq(stories.status, "published"),
-        eq(stories.isDeleted, false)
-      ),
-      columns: { id: true },
-    });
+    /*
+    |--------------------------------------------------------------------------
+    | Verify published story
+    |--------------------------------------------------------------------------
+    */
+
+    const story =
+      await db.query.stories.findFirst({
+        where: and(
+          eq(stories.id, storyId),
+          eq(
+            stories.status,
+            "published"
+          ),
+          eq(
+            stories.isDeleted,
+            false
+          )
+        ),
+        columns: {
+          id: true,
+        },
+      });
 
     if (!story) {
       return NextResponse.json(
-        { message: "Story not found." },
+        {
+          message:
+            "Story not found.",
+        },
         { status: 404 }
       );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fetch approved comments + user information
+    |--------------------------------------------------------------------------
+    */
 
     const result = await db
       .select({
         id: comments.id,
         content: comments.content,
-        parentCommentId: comments.parentCommentId,
-        isApproved: comments.isApproved,
-        createdAt: comments.createdAt,
-        updatedAt: comments.updatedAt,
+        parentCommentId:
+          comments.parentCommentId,
+        createdAt:
+          comments.createdAt,
+        updatedAt:
+          comments.updatedAt,
         userId: users.id,
-        displayName: users.displayName,
-        profileImage: users.profileImage,
+        displayName:
+          users.displayName,
+        profileImage:
+          users.profileImage,
       })
       .from(comments)
-      .innerJoin(users, eq(comments.userId, users.id))
-      .where(
-        and(
-          eq(comments.storyId, storyId),
-          eq(comments.isDeleted, false),
-          eq(comments.isApproved, true)
+      .innerJoin(
+        users,
+        eq(
+          comments.userId,
+          users.id
         )
       )
-      .orderBy(desc(comments.createdAt));
+      .where(
+        and(
+          eq(
+            comments.storyId,
+            storyId
+          ),
+          eq(
+            comments.isDeleted,
+            false
+          ),
+          eq(
+            comments.isApproved,
+            true
+          )
+        )
+      )
+      .orderBy(
+        desc(
+          comments.createdAt
+        )
+      );
 
-    const commentsMap = new Map<string, any>();
-    const roots: any[] = [];
+    /*
+    |--------------------------------------------------------------------------
+    | Build comment tree
+    |--------------------------------------------------------------------------
+    */
+
+    const commentsMap =
+      new Map<
+        string,
+        CommentTreeItem
+      >();
+
+    const roots: CommentTreeItem[] =
+      [];
 
     for (const comment of result) {
-      const item = {
+      const item: CommentTreeItem = {
         id: comment.id,
         content: comment.content,
-        parentCommentId: comment.parentCommentId,
-        createdAt: comment.createdAt,
-        updatedAt: comment.updatedAt,
+        parentCommentId:
+          comment.parentCommentId,
+        createdAt:
+          comment.createdAt,
+        updatedAt:
+          comment.updatedAt,
         user: {
           id: comment.userId,
-          displayName: comment.displayName,
-          profileImage: comment.profileImage,
+          displayName:
+            comment.displayName,
+          profileImage:
+            comment.profileImage,
         },
         replies: [],
       };
 
-      commentsMap.set(comment.id, item);
+      commentsMap.set(
+        comment.id,
+        item
+      );
 
       if (!comment.parentCommentId) {
         roots.push(item);
@@ -90,169 +189,368 @@ export async function GET(request: Request) {
     }
 
     for (const comment of result) {
-      if (!comment.parentCommentId) continue;
+      if (!comment.parentCommentId) {
+        continue;
+      }
 
-      const parent = commentsMap.get(comment.parentCommentId);
+      const parent =
+        commentsMap.get(
+          comment.parentCommentId
+        );
 
-      if (parent) {
-        parent.replies.push(commentsMap.get(comment.id));
+      const child =
+        commentsMap.get(
+          comment.id
+        );
+
+      if (parent && child) {
+        parent.replies.push(
+          child
+        );
       }
     }
 
     return NextResponse.json(
-      { comments: roots },
+      {
+        comments: roots,
+      },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Fetch comments error:", error);
+    console.error(
+      "Fetch comments error:",
+      error
+    );
 
     return NextResponse.json(
-      { message: "Failed to fetch comments." },
+      {
+        message:
+          "Failed to fetch comments.",
+      },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: Request) {
+/*
+|--------------------------------------------------------------------------
+| POST — CREATE COMMENT / REPLY
+|--------------------------------------------------------------------------
+*/
+
+export async function POST(
+  request: Request
+) {
   try {
-    const user = await getCurrentUser();
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication
+    |--------------------------------------------------------------------------
+    */
+
+    const user =
+      await getCurrentUser();
 
     if (!user) {
       return NextResponse.json(
-        { message: "You must be logged in to comment." },
+        {
+          message:
+            "You must be logged in to comment.",
+        },
         { status: 401 }
       );
     }
 
-    const body = await request.json();
+    /*
+    |--------------------------------------------------------------------------
+    | Read request
+    |--------------------------------------------------------------------------
+    */
 
-    const storyId = cleanText(body.storyId);
-    const content = cleanText(body.content);
+    const body =
+      await request.json();
+
+    const storyId = cleanText(
+      body.storyId
+    );
+
+    const content = cleanText(
+      body.content
+    );
+
     const parentCommentId =
-      cleanText(body.parentCommentId) || null;
+      cleanText(
+        body.parentCommentId
+      ) || null;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate content
+    |--------------------------------------------------------------------------
+    */
 
     if (!storyId || !content) {
       return NextResponse.json(
-        { message: "Story ID and comment are required." },
-        { status: 400 }
-      );
-    }
-
-    if (content.length > MAX_COMMENT_LENGTH) {
-      return NextResponse.json(
         {
-          message: `Comment cannot exceed ${MAX_COMMENT_LENGTH} characters.`,
+          message:
+            "Story ID and comment are required.",
         },
         { status: 400 }
       );
     }
 
-    const story = await db.query.stories.findFirst({
-      where: and(
-        eq(stories.id, storyId),
-        eq(stories.status, "published"),
-        eq(stories.isDeleted, false)
-      ),
-      columns: {
-        id: true,
-        slug: true,
-        title: true,
-        authorId: true,
-      },
-    });
+    if (
+      content.length >
+      MAX_COMMENT_LENGTH
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            `Comment cannot exceed ${MAX_COMMENT_LENGTH} characters.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Verify published story
+    |--------------------------------------------------------------------------
+    */
+
+    const story =
+      await db.query.stories.findFirst({
+        where: and(
+          eq(stories.id, storyId),
+          eq(
+            stories.status,
+            "published"
+          ),
+          eq(
+            stories.isDeleted,
+            false
+          )
+        ),
+        columns: {
+          id: true,
+          slug: true,
+          title: true,
+          authorId: true,
+        },
+      });
 
     if (!story) {
       return NextResponse.json(
-        { message: "Story not found." },
+        {
+          message:
+            "Story not found.",
+        },
         { status: 404 }
       );
     }
 
-    let parentComment = null;
+    /*
+    |--------------------------------------------------------------------------
+    | Validate parent comment
+    |--------------------------------------------------------------------------
+    */
+
+    let parentComment: {
+      id: string;
+      userId: string;
+    } | null = null;
 
     if (parentCommentId) {
-      parentComment = await db.query.comments.findFirst({
-        where: and(
-          eq(comments.id, parentCommentId),
-          eq(comments.storyId, storyId),
-          eq(comments.isDeleted, false),
-          eq(comments.isApproved, true)
-        ),
-        columns: {
-          id: true,
-          userId: true,
-        },
-      });
+      parentComment =
+        await db.query.comments.findFirst(
+          {
+            where: and(
+              eq(
+                comments.id,
+                parentCommentId
+              ),
+              eq(
+                comments.storyId,
+                storyId
+              ),
+              eq(
+                comments.isDeleted,
+                false
+              ),
+              eq(
+                comments.isApproved,
+                true
+              )
+            ),
+            columns: {
+              id: true,
+              userId: true,
+            },
+          }
+        );
 
       if (!parentComment) {
         return NextResponse.json(
-          { message: "The comment you are replying to was not found." },
+          {
+            message:
+              "The comment you are replying to was not found.",
+          },
           { status: 404 }
         );
       }
 
-      if (parentComment.userId === user.id) {
+      /*
+      |--------------------------------------------------------------------------
+      | Prevent self-replies
+      |--------------------------------------------------------------------------
+      */
+
+      if (
+        parentComment.userId ===
+        user.id
+      ) {
         return NextResponse.json(
-          { message: "You cannot reply to your own comment." },
+          {
+            message:
+              "You cannot reply to your own comment.",
+          },
           { status: 400 }
         );
       }
     }
 
-    const [comment] = await db
-      .insert(comments)
-      .values({
-        storyId,
-        userId: user.id,
-        parentCommentId,
-        content,
-        isApproved: true,
-      })
-      .returning();
+    /*
+    |--------------------------------------------------------------------------
+    | Create comment
+    |--------------------------------------------------------------------------
+    */
 
-    const notificationUserId = parentComment
-      ? parentComment.userId
-      : story.authorId;
+    const [comment] =
+      await db
+        .insert(comments)
+        .values({
+          storyId,
+          userId: user.id,
+          parentCommentId,
+          content,
+          isApproved: true,
+        })
+        .returning({
+          id: comments.id,
+          content:
+            comments.content,
+          parentCommentId:
+            comments.parentCommentId,
+          createdAt:
+            comments.createdAt,
+          updatedAt:
+            comments.updatedAt,
+        });
 
-    if (notificationUserId !== user.id) {
-      await db.insert(notifications).values({
-        userId: notificationUserId,
-        type: parentComment ? "reply" : "comment",
-        message: parentComment
-          ? `${user.displayName} replied to your comment on "${story.title}".`
-          : `${user.displayName} commented on "${story.title}".`,
-        link: `/stories/${story.slug}`,
-        storyId: story.id,
-        commentId: comment.id,
-      });
+    /*
+    |--------------------------------------------------------------------------
+    | Determine notification recipient
+    |--------------------------------------------------------------------------
+    |
+    | New comment:
+    | → Story author
+    |
+    | Reply:
+    | → Person whose comment was replied to
+    |--------------------------------------------------------------------------
+    */
+
+    const notificationUserId =
+      parentComment
+        ? parentComment.userId
+        : story.authorId;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create notification
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      notificationUserId !==
+      user.id
+    ) {
+      await db
+        .insert(notifications)
+        .values({
+          userId:
+            notificationUserId,
+
+          type: parentComment
+            ? "reply"
+            : "comment",
+
+          message:
+            parentComment
+              ? `${user.displayName} replied to your comment on "${story.title}".`
+              : `${user.displayName} commented on "${story.title}".`,
+
+          link:
+            `/stories/${story.slug}`,
+
+          storyId:
+            story.id,
+
+          commentId:
+            comment.id,
+        });
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Return created comment
+    |--------------------------------------------------------------------------
+    */
 
     return NextResponse.json(
       {
-        message: parentComment
-          ? "Reply added successfully."
-          : "Comment added successfully.",
+        message:
+          parentComment
+            ? "Reply added successfully."
+            : "Comment added successfully.",
+
         comment: {
           id: comment.id,
-          content: comment.content,
-          parentCommentId: comment.parentCommentId,
-          createdAt: comment.createdAt,
+          content:
+            comment.content,
+          parentCommentId:
+            comment.parentCommentId,
+          createdAt:
+            comment.createdAt,
+          updatedAt:
+            comment.updatedAt,
+
           user: {
             id: user.id,
-            displayName: user.displayName,
-            profileImage: user.profileImage ?? null,
+            displayName:
+              user.displayName,
+            profileImage:
+              user.profileImage ??
+              null,
           },
+
           replies: [],
         },
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error("Create comment error:", error);
+    console.error(
+      "Create comment error:",
+      error
+    );
 
     return NextResponse.json(
-      { message: "Failed to create comment." },
+      {
+        message:
+          "Failed to create comment.",
+      },
       { status: 500 }
     );
   }
-    }
+  }
