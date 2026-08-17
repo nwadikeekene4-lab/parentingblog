@@ -532,6 +532,7 @@ export const storyBookmarks = pgTable(
 =========================== */
 
 export const notifications = pgTable("notifications", {
+export const notifications = pgTable("notifications", {
 
   id: uuid("id")
     .defaultRandom()
@@ -549,6 +550,53 @@ export const notifications = pgTable("notifications", {
   message: text("message")
     .notNull(),
 
+  /*
+  |--------------------------------------------------------------------------
+  | NOTIFICATION DESTINATION
+  |--------------------------------------------------------------------------
+  |
+  | For example:
+  |
+  | /stories/my-story-slug
+  | /dashboard/stories/my-story-slug
+  |
+  | This allows a notification to take the user directly
+  | to the content that caused the notification.
+  |--------------------------------------------------------------------------
+  */
+
+  link: text("link"),
+
+  /*
+  |--------------------------------------------------------------------------
+  | OPTIONAL STORY REFERENCE
+  |--------------------------------------------------------------------------
+  |
+  | Stores the story ID when the notification is related
+  | to a particular story.
+  |--------------------------------------------------------------------------
+  */
+
+  storyId: uuid("story_id")
+    .references(() => stories.id, {
+      onDelete: "cascade",
+    }),
+
+  /*
+  |--------------------------------------------------------------------------
+  | OPTIONAL COMMENT REFERENCE
+  |--------------------------------------------------------------------------
+  |
+  | Stores the comment ID when the notification is related
+  | to a particular comment or reply.
+  |--------------------------------------------------------------------------
+  */
+
+  commentId: uuid("comment_id")
+    .references(() => comments.id, {
+      onDelete: "cascade",
+    }),
+
   isRead: boolean("is_read")
     .default(false)
     .notNull(),
@@ -558,7 +606,6 @@ export const notifications = pgTable("notifications", {
     .notNull(),
 
 });
-
 /* ===========================
    USER ACTIVITIES
 =========================== */
