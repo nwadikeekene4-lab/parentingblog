@@ -57,12 +57,6 @@ export async function GET(request: Request) {
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Verify published story
-    |--------------------------------------------------------------------------
-    */
-
     const story =
       await db.query.stories.findFirst({
         where: and(
@@ -90,12 +84,6 @@ export async function GET(request: Request) {
         { status: 404 }
       );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Fetch approved comments + user information
-    |--------------------------------------------------------------------------
-    */
 
     const result = await db
       .select({
@@ -142,12 +130,6 @@ export async function GET(request: Request) {
           comments.createdAt
         )
       );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Build comment tree
-    |--------------------------------------------------------------------------
-    */
 
     const commentsMap =
       new Map<
@@ -242,12 +224,6 @@ export async function POST(
   request: Request
 ) {
   try {
-    /*
-    |--------------------------------------------------------------------------
-    | Authentication
-    |--------------------------------------------------------------------------
-    */
-
     const user =
       await getCurrentUser();
 
@@ -260,12 +236,6 @@ export async function POST(
         { status: 401 }
       );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Read request
-    |--------------------------------------------------------------------------
-    */
 
     const body =
       await request.json();
@@ -282,12 +252,6 @@ export async function POST(
       cleanText(
         body.parentCommentId
       ) || null;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Validate content
-    |--------------------------------------------------------------------------
-    */
 
     if (!storyId || !content) {
       return NextResponse.json(
@@ -311,12 +275,6 @@ export async function POST(
         { status: 400 }
       );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Verify published story
-    |--------------------------------------------------------------------------
-    */
 
     const story =
       await db.query.stories.findFirst({
@@ -349,20 +307,16 @@ export async function POST(
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Validate parent comment
-    |--------------------------------------------------------------------------
-    */
-
-    let parentComment: {
-      id: string;
-      userId: string;
-    } | null = null;
+    let parentComment:
+      | {
+          id: string;
+          userId: string;
+        }
+      | null = null;
 
     if (parentCommentId) {
       parentComment =
-        await db.query.comments.findFirst(
+        (await db.query.comments.findFirst(
           {
             where: and(
               eq(
@@ -387,7 +341,7 @@ export async function POST(
               userId: true,
             },
           }
-        );
+        )) ?? null;
 
       if (!parentComment) {
         return NextResponse.json(
@@ -398,12 +352,6 @@ export async function POST(
           { status: 404 }
         );
       }
-
-      /*
-      |--------------------------------------------------------------------------
-      | Prevent self-replies
-      |--------------------------------------------------------------------------
-      */
 
       if (
         parentComment.userId ===
@@ -418,12 +366,6 @@ export async function POST(
         );
       }
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Create comment
-    |--------------------------------------------------------------------------
-    */
 
     const [comment] =
       await db
@@ -447,29 +389,10 @@ export async function POST(
             comments.updatedAt,
         });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Determine notification recipient
-    |--------------------------------------------------------------------------
-    |
-    | New comment:
-    | → Story author
-    |
-    | Reply:
-    | → Person whose comment was replied to
-    |--------------------------------------------------------------------------
-    */
-
     const notificationUserId =
       parentComment
         ? parentComment.userId
         : story.authorId;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Create notification
-    |--------------------------------------------------------------------------
-    */
 
     if (
       notificationUserId !==
@@ -500,12 +423,6 @@ export async function POST(
             comment.id,
         });
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Return created comment
-    |--------------------------------------------------------------------------
-    */
 
     return NextResponse.json(
       {
@@ -553,4 +470,4 @@ export async function POST(
       { status: 500 }
     );
   }
-  }
+        }
