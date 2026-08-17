@@ -549,6 +549,7 @@ export default function ProfilePage() {
 
       <section className="rounded-2xl bg-white p-8 shadow-sm">
         <div className="flex flex-col items-center gap-4">
+
           {profileImage ? (
             <img
               src={profileImage}
@@ -559,6 +560,20 @@ export default function ProfilePage() {
             <div className="flex h-28 w-28 items-center justify-center rounded-full bg-blue-100 text-5xl">
               👤
             </div>
+          )}
+
+          {/* Display Name */}
+
+          <p className="text-xl font-bold text-gray-900">
+            {displayName || "Your Name"}
+          </p>
+
+          {/* Email */}
+
+          {profile?.email && (
+            <p className="text-sm text-gray-500">
+              {profile.email}
+            </p>
           )}
 
           <input
@@ -584,12 +599,6 @@ export default function ProfilePage() {
               ? "Uploading..."
               : "Change Profile Picture"}
           </button>
-
-          {profile?.email && (
-            <p className="text-sm text-gray-500">
-              {profile.email}
-            </p>
-          )}
         </div>
       </section>
 
@@ -708,4 +717,4 @@ export default function ProfilePage() {
       </section>
     </div>
   );
-    }
+      }
