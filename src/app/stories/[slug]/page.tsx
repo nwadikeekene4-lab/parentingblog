@@ -4,9 +4,9 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { stories } from "@/db/schema";
-
 import { getCurrentUser } from "@/lib/session";
 
+import CommentsSection from "@/app/components/comments/CommentsSection";
 
 type Props = {
   params: Promise<{
@@ -19,28 +19,23 @@ export default async function StoryPage({
 }: Props) {
   const { slug } = await params;
 
-  const currentUser =
-    await getCurrentUser();
+  const currentUser = await getCurrentUser();
 
-  const story =
-    await db.query.stories.findFirst({
-      where: eq(stories.slug, slug),
+  const story = await db.query.stories.findFirst({
+    where: eq(stories.slug, slug),
 
-      with: {
-        author: true,
+    with: {
+      author: true,
 
-        category: true,
+      category: true,
 
-        images: {
-          orderBy: (
-            images,
-            { asc }
-          ) => [
-            asc(images.displayOrder),
-          ],
-        },
+      images: {
+        orderBy: (images, { asc }) => [
+          asc(images.displayOrder),
+        ],
       },
-    });
+    },
+  });
 
   if (!story || story.isDeleted) {
     notFound();
@@ -63,16 +58,12 @@ export default async function StoryPage({
     }
 
     const isAuthor =
-      currentUser.id ===
-      story.authorId;
+      currentUser.id === story.authorId;
 
     const isAdmin =
       currentUser.role === "admin";
 
-    if (
-      !isAuthor &&
-      !isAdmin
-    ) {
+    if (!isAuthor && !isAdmin) {
       notFound();
     }
   }
@@ -84,15 +75,12 @@ export default async function StoryPage({
   */
 
   const words =
-    story.content
-      .trim()
-      .split(/\s+/).length;
+    story.content.trim().split(/\s+/).length;
 
-  const readTime =
-    Math.max(
-      1,
-      Math.ceil(words / 200)
-    );
+  const readTime = Math.max(
+    1,
+    Math.ceil(words / 200)
+  );
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
@@ -101,7 +89,6 @@ export default async function StoryPage({
 
       {story.coverImage && (
         <div className="relative mb-10 h-72 overflow-hidden rounded-3xl shadow-xl md:h-[520px]">
-
           <Image
             src={story.coverImage}
             alt={story.title}
@@ -110,7 +97,6 @@ export default async function StoryPage({
             sizes="100vw"
             className="object-cover"
           />
-
         </div>
       )}
 
@@ -151,8 +137,6 @@ export default async function StoryPage({
           </span>
 
         </div>
-
-        
       </header>
 
       {/* Story Content */}
@@ -168,10 +152,7 @@ export default async function StoryPage({
                 paragraph.trim() !== ""
             )
             .map(
-              (
-                paragraph,
-                index
-              ) => (
+              (paragraph, index) => (
                 <p
                   key={index}
                   className="mb-8 whitespace-pre-wrap text-justify"
@@ -190,41 +171,35 @@ export default async function StoryPage({
       {story.images.length > 0 && (
         <section className="mx-auto mt-16 max-w-4xl space-y-12">
 
-          {story.images.map(
-            (image) => (
-              <figure
-                key={image.id}
-                className="overflow-hidden rounded-3xl bg-white shadow-lg"
-              >
+          {story.images.map((image) => (
+            <figure
+              key={image.id}
+              className="overflow-hidden rounded-3xl bg-white shadow-lg"
+            >
 
-                <div className="relative h-72 w-full md:h-[520px]">
+              <div className="relative h-72 w-full md:h-[520px]">
 
-                  <Image
-                    src={
-                      image.imageUrl
-                    }
-                    alt={
-                      image.caption ||
-                      story.title
-                    }
-                    fill
-                    sizes="100vw"
-                    className="object-cover"
-                  />
+                <Image
+                  src={image.imageUrl}
+                  alt={
+                    image.caption ||
+                    story.title
+                  }
+                  fill
+                  sizes="100vw"
+                  className="object-cover"
+                />
 
-                </div>
+              </div>
 
-                {image.caption && (
-                  <figcaption className="px-6 py-5 text-center text-sm italic text-slate-500">
-                    {
-                      image.caption
-                    }
-                  </figcaption>
-                )}
+              {image.caption && (
+                <figcaption className="px-6 py-5 text-center text-sm italic text-slate-500">
+                  {image.caption}
+                </figcaption>
+              )}
 
-              </figure>
-            )
-          )}
+            </figure>
+          ))}
 
         </section>
       )}
@@ -238,13 +213,17 @@ export default async function StoryPage({
         </h2>
 
         <p className="mt-4 text-slate-600">
-          Thank you for reading this parenting story.
-          We hope it inspired, encouraged or helped you
-          in some way.
+          Thank you for reading this parenting
+          story. We hope it inspired, encouraged
+          or helped you in some way.
         </p>
 
       </section>
 
+      {/* Comments */}
+
+      <CommentsSection storyId={story.id} />
+
     </main>
   );
-            }
+        }
