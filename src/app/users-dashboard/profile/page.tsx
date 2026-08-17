@@ -789,5 +789,80 @@ export default function ProfilePage() {
               )}
             </button>
           </div>
+                </div>
+      </section>
+
+      {/* PROFILE INFORMATION NOTE */}
+
+      <section className="rounded-2xl border border-blue-100 bg-blue-50/70 px-5 py-5 sm:px-8">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-extrabold text-blue-700">
+            i
+          </div>
+
+          <div>
+            <h3 className="text-sm font-bold text-blue-950">
+              About your profile
+            </h3>
+
+            <p className="mt-1 text-xs leading-5 text-blue-800 sm:text-sm">
+              Your display name and profile picture
+              may be visible to other members when
+              you participate in the community.
+              Your email address is kept private.
+            </p>
+          </div>
         </div>
-      </secti
+      </section>
+
+      {/* UNSAVED CHANGES INDICATOR */}
+
+      {hasChanges && (
+        <div className="sticky bottom-4 z-20">
+          <div className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 shadow-lg sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 text-lg">
+                •
+              </span>
+
+              <div>
+                <p className="text-sm font-bold text-amber-900">
+                  You have unsaved changes
+                </p>
+
+                <p className="mt-0.5 text-xs text-amber-800">
+                  Save your changes before leaving
+                  this page.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={saveChanges}
+              disabled={
+                saving ||
+                uploadingImage
+              }
+              className="inline-flex min-h-10 items-center justify-center rounded-xl bg-amber-600 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-amber-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {saving ? (
+                <>
+                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* BOTTOM SPACING */}
+
+      <div className="h-2 sm:h-4" />
+    </div>
+  );
+              }
+  
