@@ -2,65 +2,132 @@ import { NextResponse } from "next/server";
 import { eq, desc } from "drizzle-orm";
 
 import { db } from "@/db";
-import { notifications } from "@/db/schema";
-import { getCurrentUser } from "@/lib/session";
+
+import {
+  notifications,
+} from "@/db/schema";
+
+import {
+  getCurrentUser,
+} from "@/lib/session";
 
 
 /*
 |--------------------------------------------------------------------------
 | GET NOTIFICATIONS
 |--------------------------------------------------------------------------
+| Fetch all notifications belonging to the currently logged-in user.
+|
+| Each notification includes:
+| - link       → where the notification should navigate
+| - storyId    → related story
+| - commentId  → related comment/reply
+|--------------------------------------------------------------------------
 */
 
 export async function GET() {
+
   try {
 
-    const user = await getCurrentUser();
+    /*
+    |--------------------------------------------------------------------------
+    | 1. Get current user
+    |--------------------------------------------------------------------------
+    */
+
+    const user =
+      await getCurrentUser();
+
 
     if (!user) {
+
       return NextResponse.json(
         {
-          message: "Unauthorized",
+          message:
+            "Unauthorized",
         },
         {
           status: 401,
         }
       );
+
     }
 
 
-const userNotifications =
-  await db
-    .select({
-      id: notifications.id,
-      type: notifications.type,
-      message: notifications.message,
-      link: notifications.link,
-      storyId: notifications.storyId,
-      commentId: notifications.commentId,
-      isRead: notifications.isRead,
-      createdAt: notifications.createdAt,
-    })
-    .from(notifications)
-    .where(
-      eq(
-        notifications.userId,
-        user.id
-      )
-    )
-    .orderBy(
-      desc(
-        notifications.createdAt
-      )
-    );
+    /*
+    |--------------------------------------------------------------------------
+    | 2. Fetch user's notifications
+    |--------------------------------------------------------------------------
+    */
 
+    const userNotifications =
+      await db
+        .select({
+
+          id:
+            notifications.id,
+
+          type:
+            notifications.type,
+
+          message:
+            notifications.message,
+
+          link:
+            notifications.link,
+
+          storyId:
+            notifications.storyId,
+
+          commentId:
+            notifications.commentId,
+
+          isRead:
+            notifications.isRead,
+
+          createdAt:
+            notifications.createdAt,
+
+        })
+
+        .from(
+          notifications
+        )
+
+        .where(
+          eq(
+            notifications.userId,
+            user.id
+          )
+        )
+
+        .orderBy(
+          desc(
+            notifications.createdAt
+          )
+        );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 3. Count unread notifications
+    |--------------------------------------------------------------------------
+    */
 
     const unreadCount =
       userNotifications.filter(
-        (notification) =>
+        (
+          notification
+        ) =>
           !notification.isRead
       ).length;
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | 4. Return notifications
+    |--------------------------------------------------------------------------
+    */
 
     return NextResponse.json(
       {
@@ -74,12 +141,14 @@ const userNotifications =
       }
     );
 
+
   } catch (error) {
 
     console.error(
       "Fetch notifications error:",
       error
     );
+
 
     return NextResponse.json(
       {
@@ -90,38 +159,63 @@ const userNotifications =
         status: 500,
       }
     );
+
   }
+
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| MARK ALL AS READ
+| PATCH — MARK ALL AS READ
 |--------------------------------------------------------------------------
 */
 
 export async function PATCH() {
+
   try {
 
-    const user = await getCurrentUser();
+    /*
+    |--------------------------------------------------------------------------
+    | 1. Get current user
+    |--------------------------------------------------------------------------
+    */
+
+    const user =
+      await getCurrentUser();
+
 
     if (!user) {
+
       return NextResponse.json(
         {
-          message: "Unauthorized",
+          message:
+            "Unauthorized",
         },
         {
           status: 401,
         }
       );
+
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | 2. Mark only this user's notifications as read
+    |--------------------------------------------------------------------------
+    */
+
     await db
-      .update(notifications)
+      .update(
+        notifications
+      )
+
       .set({
-        isRead: true,
+        isRead:
+          true,
       })
+
       .where(
         eq(
           notifications.userId,
@@ -129,6 +223,12 @@ export async function PATCH() {
         )
       );
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | 3. Success
+    |--------------------------------------------------------------------------
+    */
 
     return NextResponse.json(
       {
@@ -140,12 +240,14 @@ export async function PATCH() {
       }
     );
 
+
   } catch (error) {
 
     console.error(
       "Mark notifications as read error:",
       error
     );
+
 
     return NextResponse.json(
       {
@@ -156,35 +258,58 @@ export async function PATCH() {
         status: 500,
       }
     );
+
   }
+
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| CLEAR ALL NOTIFICATIONS
+| DELETE — CLEAR ALL NOTIFICATIONS
 |--------------------------------------------------------------------------
 */
 
 export async function DELETE() {
+
   try {
 
-    const user = await getCurrentUser();
+    /*
+    |--------------------------------------------------------------------------
+    | 1. Get current user
+    |--------------------------------------------------------------------------
+    */
+
+    const user =
+      await getCurrentUser();
+
 
     if (!user) {
+
       return NextResponse.json(
         {
-          message: "Unauthorized",
+          message:
+            "Unauthorized",
         },
         {
           status: 401,
         }
       );
+
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | 2. Delete only this user's notifications
+    |--------------------------------------------------------------------------
+    */
+
     await db
-      .delete(notifications)
+      .delete(
+        notifications
+      )
+
       .where(
         eq(
           notifications.userId,
@@ -192,6 +317,12 @@ export async function DELETE() {
         )
       );
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | 3. Success
+    |--------------------------------------------------------------------------
+    */
 
     return NextResponse.json(
       {
@@ -203,12 +334,14 @@ export async function DELETE() {
       }
     );
 
+
   } catch (error) {
 
     console.error(
       "Clear notifications error:",
       error
     );
+
 
     return NextResponse.json(
       {
@@ -219,5 +352,7 @@ export async function DELETE() {
         status: 500,
       }
     );
+
   }
-}
+
+            }
