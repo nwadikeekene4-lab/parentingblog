@@ -138,18 +138,19 @@ export default async function PendingReviewPage({
 
                 <div className="flex flex-wrap gap-3 pt-2">
                   <Link
-                    href={`/users-dashboard/edit-story/${story.id}`}
-                    className="inline-flex rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700"
-                  >
-                    Edit Story
-                  </Link>
-
+  href={`/users-dashboard/edit-story/${story.id}`}
+  aria-label={`Edit ${story.title}`}
+  className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md active:translate-y-0 active:scale-95 active:bg-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+>
+  Edit Story
+</Link>
                   <Link
-                    href={`/stories/${story.slug}`}
-                    className="inline-flex rounded-xl border border-gray-300 px-4 py-2 font-medium text-gray-700 transition hover:bg-gray-100"
-                  >
-                    Preview Story
-                  </Link>
+  href={`/stories/${story.slug}`}
+  aria-label={`Preview ${story.title}`}
+  className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-2.5 font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-400 hover:bg-gray-50 hover:shadow-md active:translate-y-0 active:scale-95 active:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
+>
+  Preview Story
+</Link>
                 </div>
               </div>
             </article>
