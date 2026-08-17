@@ -6,7 +6,6 @@ import { users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
 import { createActivity } from "@/lib/activity";
 
-
 /*
 |--------------------------------------------------------------------------
 | GET PROFILE
@@ -44,12 +43,8 @@ export async function GET() {
         status: 200,
       }
     );
-
   } catch (error) {
-    console.error(
-      "Fetch profile error:",
-      error
-    );
+    console.error("Fetch profile error:", error);
 
     return NextResponse.json(
       {
@@ -62,16 +57,13 @@ export async function GET() {
   }
 }
 
-
 /*
 |--------------------------------------------------------------------------
 | PATCH PROFILE
 |--------------------------------------------------------------------------
 */
 
-export async function PATCH(
-  request: Request
-) {
+export async function PATCH(request: Request) {
   try {
     const user = await getCurrentUser();
 
@@ -96,6 +88,11 @@ export async function PATCH(
       profileImage,
     } = body;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Validate display name
+    |--------------------------------------------------------------------------
+    */
 
     if (
       typeof displayName !== "string" ||
@@ -103,8 +100,7 @@ export async function PATCH(
     ) {
       return NextResponse.json(
         {
-          message:
-            "Display name is required.",
+          message: "Display name is required.",
         },
         {
           status: 400,
@@ -112,10 +108,9 @@ export async function PATCH(
       );
     }
 
+    const newDisplayName = displayName.trim();
 
-    if (
-      displayName.trim().length > 100
-    ) {
+    if (newDisplayName.length > 100) {
       return NextResponse.json(
         {
           message:
@@ -127,183 +122,189 @@ export async function PATCH(
       );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Normalize values
+    |--------------------------------------------------------------------------
+    */
 
-    const newDisplayName =
-  displayName.trim();
+    const newBio =
+      typeof bio === "string"
+        ? bio.trim() || null
+        : null;
 
-const newBio =
-  typeof bio === "string"
-    ? bio.trim() || null
-    : null;
+    const newCountry =
+      typeof country === "string"
+        ? country.trim() || null
+        : null;
 
-const newCountry =
-  typeof country === "string"
-    ? country.trim() || null
-    : null;
+    const newState =
+      typeof state === "string"
+        ? state.trim() || null
+        : null;
 
-const newState =
-  typeof state === "string"
-    ? state.trim() || null
-    : null;
+    const newProfileImage =
+      typeof profileImage === "string"
+        ? profileImage.trim() || null
+        : null;
 
-const newProfileImage =
-  typeof profileImage === "string"
-    ? profileImage.trim() || null
-    : null;
+    /*
+    |--------------------------------------------------------------------------
+    | Detect changes
+    |--------------------------------------------------------------------------
+    */
 
+    const displayNameChanged =
+      user.displayName !== newDisplayName;
 
-/*
-|--------------------------------------------------------------------------
-| Check which profile fields actually changed
-|--------------------------------------------------------------------------
-*/
+    const bioChanged =
+      (user.bio ?? null) !== newBio;
 
-const displayNameChanged =
-  user.displayName !== newDisplayName;
+    const countryChanged =
+      (user.country ?? null) !== newCountry;
 
-const bioChanged =
-  (user.bio ?? null) !== newBio;
+    const stateChanged =
+      (user.state ?? null) !== newState;
 
-const countryChanged =
-  (user.country ?? null) !== newCountry;
+    const profileImageChanged =
+      (user.profileImage ?? null) !==
+      newProfileImage;
 
-const stateChanged =
-  (user.state ?? null) !== newState;
+    /*
+    |--------------------------------------------------------------------------
+    | SAVE PROFILE FIRST
+    |--------------------------------------------------------------------------
+    */
 
-const profileImageChanged =
-  (user.profileImage ?? null) !==
-  newProfileImage;
+    await db
+      .update(users)
+      .set({
+        displayName: newDisplayName,
+        bio: newBio,
+        country: newCountry,
+        state: newState,
+        profileImage: newProfileImage,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, user.id));
 
+    /*
+    |--------------------------------------------------------------------------
+    | Record activities separately.
+    |
+    | An activity failure must NOT make a successful
+    | profile update appear to the user as a failure.
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Update profile
-|--------------------------------------------------------------------------
-*/
+    const activities: {
+      type:
+        | "profile_display_name_updated"
+        | "profile_bio_updated"
+        | "profile_country_updated"
+        | "profile_state_updated"
+        | "profile_image_updated";
+      message: string;
+    }[] = [];
 
-await db
-  .update(users)
-  .set({
-    displayName:
-      newDisplayName,
+    if (displayNameChanged) {
+      activities.push({
+        type: "profile_display_name_updated",
+        message: "You updated your display name.",
+      });
+    }
 
-    bio:
-      newBio,
+    if (bioChanged) {
+      activities.push({
+        type: "profile_bio_updated",
+        message: "You updated your bio.",
+      });
+    }
 
-    country:
-      newCountry,
+    if (countryChanged) {
+      activities.push({
+        type: "profile_country_updated",
+        message: "You updated your country.",
+      });
+    }
 
-    state:
-      newState,
+    if (stateChanged) {
+      activities.push({
+        type: "profile_state_updated",
+        message: "You updated your state.",
+      });
+    }
 
-    profileImage:
-      newProfileImage,
+    if (profileImageChanged) {
+      activities.push({
+        type: "profile_image_updated",
+        message: "You updated your profile picture.",
+      });
+    }
 
-    updatedAt:
-      new Date(),
-  })
-  .where(
-    eq(
-      users.id,
-      user.id
-    )
-  );
+    for (const activity of activities) {
+      try {
+        await createActivity({
+          userId: user.id,
+          type: activity.type,
+          message: activity.message,
+        });
+      } catch (activityError) {
+        console.error(
+          "Failed to record profile activity:",
+          activityError
+        );
+      }
+    }
 
-
-/*
-|--------------------------------------------------------------------------
-| Record profile activities
-|--------------------------------------------------------------------------
-*/
-
-if (displayNameChanged) {
-  await createActivity({
-    userId: user.id,
-    type:
-      "profile_display_name_updated",
-    message:
-      "You updated your display name.",
-  });
-}
-
-if (bioChanged) {
-  await createActivity({
-    userId: user.id,
-    type:
-      "profile_bio_updated",
-    message:
-      "You updated your bio.",
-  });
-}
-
-if (countryChanged) {
-  await createActivity({
-    userId: user.id,
-    type:
-      "profile_country_updated",
-    message:
-      "You updated your country.",
-  });
-}
-
-if (stateChanged) {
-  await createActivity({
-    userId: user.id,
-    type:
-      "profile_state_updated",
-    message:
-      "You updated your state.",
-  });
-}
-
-if (profileImageChanged) {
-  await createActivity({
-    userId: user.id,
-    type:
-      "profile_image_updated",
-    message:
-      "You updated your profile picture.",
-  });
-  }
+    /*
+    |--------------------------------------------------------------------------
+    | Fetch the actual saved profile
+    |--------------------------------------------------------------------------
+    */
 
     const updatedUser =
       await db.query.users.findFirst({
         where: (users, { eq }) =>
-          eq(
-            users.id,
-            user.id
-          ),
+          eq(users.id, user.id),
       });
 
+    if (!updatedUser) {
+      return NextResponse.json(
+        {
+          message:
+            "Profile was updated, but the saved profile could not be loaded.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Return saved profile
+    |--------------------------------------------------------------------------
+    */
 
     return NextResponse.json(
       {
-        message:
-          "Profile updated successfully.",
+        message: "Profile updated successfully.",
 
-        profile: updatedUser
-          ? {
-              id: updatedUser.id,
-              displayName:
-                updatedUser.displayName,
-              email:
-                updatedUser.email,
-              profileImage:
-                updatedUser.profileImage,
-              bio:
-                updatedUser.bio,
-              country:
-                updatedUser.country,
-              state:
-                updatedUser.state,
-            }
-          : null,
+        profile: {
+          id: updatedUser.id,
+          displayName: updatedUser.displayName,
+          email: updatedUser.email,
+          profileImage: updatedUser.profileImage,
+          bio: updatedUser.bio,
+          country: updatedUser.country,
+          state: updatedUser.state,
+        },
       },
       {
         status: 200,
       }
     );
-
   } catch (error) {
     console.error(
       "Update profile error:",
@@ -312,8 +313,7 @@ if (profileImageChanged) {
 
     return NextResponse.json(
       {
-        message:
-          "Failed to update profile.",
+        message: "Failed to update profile.",
       },
       {
         status: 500,
