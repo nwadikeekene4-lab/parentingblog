@@ -13,14 +13,24 @@ type ProfileData = {
 
 type Notification = {
   id: string;
+
   type:
     | "comment"
     | "reply"
     | "like"
     | "bookmark"
     | "system";
+
   message: string;
+
+  link: string | null;
+
+  storyId: string | null;
+
+  commentId: string | null;
+
   isRead: boolean;
+
   createdAt: string;
 };
 
