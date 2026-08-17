@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
 type DashboardHeaderProps = {
   onMenuClick: () => void;
@@ -76,15 +75,20 @@ function getNotificationTitle(
 function formatNotificationTime(
   dateString: string
 ) {
-  const date = new Date(dateString);
-  const now = new Date();
+  const date =
+    new Date(dateString);
+
+  const now =
+    new Date();
 
   const difference =
-    now.getTime() - date.getTime();
+    now.getTime() -
+    date.getTime();
 
-  const minutes = Math.floor(
-    difference / 60000
-  );
+  const minutes =
+    Math.floor(
+      difference / 60000
+    );
 
   if (minutes < 1) {
     return "Just now";
@@ -96,9 +100,10 @@ function formatNotificationTime(
     } ago`;
   }
 
-  const hours = Math.floor(
-    minutes / 60
-  );
+  const hours =
+    Math.floor(
+      minutes / 60
+    );
 
   if (hours < 24) {
     return `${hours} hour${
@@ -106,9 +111,10 @@ function formatNotificationTime(
     } ago`;
   }
 
-  const days = Math.floor(
-    hours / 24
-  );
+  const days =
+    Math.floor(
+      hours / 24
+    );
 
   if (days < 7) {
     return `${days} day${
@@ -122,6 +128,7 @@ function formatNotificationTime(
 export default function DashboardHeader({
   onMenuClick,
 }: DashboardHeaderProps) {
+
   const [profile, setProfile] =
     useState<ProfileData | null>(null);
 
@@ -140,6 +147,7 @@ export default function DashboardHeader({
   const [markingAsRead, setMarkingAsRead] =
     useState(false);
 
+
   /*
   |--------------------------------------------------------------------------
   | LOAD HEADER DATA
@@ -147,11 +155,14 @@ export default function DashboardHeader({
   */
 
   async function loadHeaderData() {
+
     try {
+
       const [
         profileResponse,
         notificationsResponse,
       ] = await Promise.all([
+
         fetch("/api/profile", {
           cache: "no-store",
         }),
@@ -159,18 +170,24 @@ export default function DashboardHeader({
         fetch("/api/notifications", {
           cache: "no-store",
         }),
+
       ]);
 
+
       if (profileResponse.ok) {
+
         const profileData =
           await profileResponse.json();
 
         setProfile(
           profileData.profile
         );
+
       }
 
+
       if (notificationsResponse.ok) {
+
         const notificationsData =
           await notificationsResponse.json();
 
@@ -181,14 +198,20 @@ export default function DashboardHeader({
         setUnreadCount(
           notificationsData.unreadCount ?? 0
         );
+
       }
+
     } catch (error) {
+
       console.error(
         "Failed to load dashboard header data:",
         error
       );
+
     }
+
   }
+
 
   /*
   |--------------------------------------------------------------------------
@@ -197,7 +220,9 @@ export default function DashboardHeader({
   */
 
   async function loadNotifications() {
+
     try {
+
       setLoadingNotifications(true);
 
       const response =
@@ -208,15 +233,20 @@ export default function DashboardHeader({
           }
         );
 
+
       const data =
         await response.json();
 
+
       if (!response.ok) {
+
         throw new Error(
           data.message ??
             "Failed to load notifications."
         );
+
       }
+
 
       setNotifications(
         data.notifications ?? []
@@ -225,15 +255,22 @@ export default function DashboardHeader({
       setUnreadCount(
         data.unreadCount ?? 0
       );
+
     } catch (error) {
+
       console.error(
         "Failed to load notifications:",
         error
       );
+
     } finally {
+
       setLoadingNotifications(false);
+
     }
+
   }
+
 
   /*
   |--------------------------------------------------------------------------
@@ -242,38 +279,53 @@ export default function DashboardHeader({
   */
 
   useEffect(() => {
+
     loadHeaderData();
 
+
     function handleProfileUpdated() {
+
       loadHeaderData();
+
     }
 
+
     function handleNotificationUpdated() {
+
       loadHeaderData();
+
     }
+
 
     window.addEventListener(
       "profileUpdated",
       handleProfileUpdated
     );
 
+
     window.addEventListener(
       "notificationUpdated",
       handleNotificationUpdated
     );
 
+
     return () => {
+
       window.removeEventListener(
         "profileUpdated",
         handleProfileUpdated
       );
 
+
       window.removeEventListener(
         "notificationUpdated",
         handleNotificationUpdated
       );
+
     };
+
   }, []);
+
 
   /*
   |--------------------------------------------------------------------------
@@ -282,17 +334,24 @@ export default function DashboardHeader({
   */
 
   async function handleNotificationClick() {
+
     const nextState =
       !showNotifications;
+
 
     setShowNotifications(
       nextState
     );
 
+
     if (nextState) {
+
       await loadNotifications();
+
     }
+
   }
+
 
   /*
   |--------------------------------------------------------------------------
@@ -301,16 +360,19 @@ export default function DashboardHeader({
   */
 
   async function markAllAsRead() {
-    if (markingAsRead) {
+
+    if (
+      markingAsRead ||
+      unreadCount === 0
+    ) {
       return;
     }
 
-    if (unreadCount === 0) {
-      return;
-    }
 
     try {
+
       setMarkingAsRead(true);
+
 
       const response =
         await fetch(
@@ -320,15 +382,20 @@ export default function DashboardHeader({
           }
         );
 
+
       const data =
         await response.json();
 
+
       if (!response.ok) {
+
         throw new Error(
           data.message ??
             "Failed to mark notifications as read."
         );
+
       }
+
 
       setNotifications(
         (currentNotifications) =>
@@ -340,7 +407,9 @@ export default function DashboardHeader({
           )
       );
 
+
       setUnreadCount(0);
+
 
       /*
       |--------------------------------------------------------------------------
@@ -353,15 +422,23 @@ export default function DashboardHeader({
           "notificationUpdated"
         )
       );
+
+
     } catch (error) {
+
       console.error(
         "Failed to mark notifications as read:",
         error
       );
+
     } finally {
+
       setMarkingAsRead(false);
+
     }
+
   }
+
 
   const profileInitial =
     profile?.displayName
@@ -369,13 +446,9 @@ export default function DashboardHeader({
       ?.charAt(0)
       ?.toUpperCase() || "U";
 
-  /*
-  |--------------------------------------------------------------------------
-  | HEADER
-  |--------------------------------------------------------------------------
-  */
 
   return (
+
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm md:px-6">
 
       {/* Left */}
@@ -390,11 +463,13 @@ export default function DashboardHeader({
           ☰
         </button>
 
+
         <h1 className="text-lg font-semibold text-gray-900">
           Users Dashboard
         </h1>
 
       </div>
+
 
       {/* Right */}
 
@@ -406,7 +481,9 @@ export default function DashboardHeader({
 
           <button
             type="button"
-            onClick={handleNotificationClick}
+            onClick={
+              handleNotificationClick
+            }
             className="relative rounded-lg p-2 text-xl transition hover:bg-gray-100"
             aria-label="Notifications"
             aria-expanded={
@@ -416,12 +493,17 @@ export default function DashboardHeader({
 
             🔔
 
+
             {unreadCount > 0 && (
+
               <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+
                 {unreadCount > 99
                   ? "99+"
                   : unreadCount}
+
               </span>
+
             )}
 
           </button>
@@ -443,10 +525,13 @@ export default function DashboardHeader({
                     Notifications
                   </h2>
 
+
                   {unreadCount > 0 && (
+
                     <p className="mt-0.5 text-xs text-gray-500">
                       {unreadCount} unread
                     </p>
+
                   )}
 
                 </div>
@@ -456,15 +541,19 @@ export default function DashboardHeader({
 
                   <button
                     type="button"
-                    onClick={markAllAsRead}
+                    onClick={
+                      markAllAsRead
+                    }
                     disabled={
                       markingAsRead
                     }
                     className="text-xs font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50"
                   >
+
                     {markingAsRead
                       ? "Updating..."
                       : "Mark all as read"}
+
                   </button>
 
                 )}
@@ -472,7 +561,7 @@ export default function DashboardHeader({
               </div>
 
 
-              {/* Notifications */}
+              {/* Notifications List */}
 
               <div className="max-h-[400px] overflow-y-auto">
 
@@ -494,9 +583,11 @@ export default function DashboardHeader({
                       🔔
                     </div>
 
+
                     <p className="mt-3 text-sm font-medium text-gray-700">
                       No notifications
                     </p>
+
 
                     <p className="mt-1 text-xs text-gray-500">
                       You're all caught up.
@@ -525,9 +616,11 @@ export default function DashboardHeader({
                           <div className="flex gap-3">
 
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-base shadow-sm">
+
                               {getNotificationIcon(
                                 notification.type
                               )}
+
                             </div>
 
 
@@ -536,9 +629,11 @@ export default function DashboardHeader({
                               <div className="flex items-start justify-between gap-2">
 
                                 <p className="text-sm font-semibold text-gray-900">
+
                                   {getNotificationTitle(
                                     notification.type
                                   )}
+
                                 </p>
 
 
@@ -554,16 +649,18 @@ export default function DashboardHeader({
 
 
                               <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-600">
-                                {
-                                  notification.message
-                                }
+
+                                {notification.message}
+
                               </p>
 
 
                               <p className="mt-1 text-[10px] text-gray-400">
+
                                 {formatNotificationTime(
                                   notification.createdAt
                                 )}
+
                               </p>
 
                             </div>
@@ -584,7 +681,7 @@ export default function DashboardHeader({
 
               <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
 
-                <Link
+                <a
                   href="/dashboard/notifications"
                   onClick={() =>
                     setShowNotifications(
@@ -594,7 +691,7 @@ export default function DashboardHeader({
                   className="block text-center text-sm font-semibold text-blue-600 transition hover:text-blue-700"
                 >
                   View all notifications
-                </Link>
+                </a>
 
               </div>
 
@@ -607,8 +704,7 @@ export default function DashboardHeader({
 
         {/* Profile */}
 
-        <Link
-          href="/dashboard/profile"
+        <button
           className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700"
           aria-label="Profile"
         >
@@ -632,10 +728,11 @@ export default function DashboardHeader({
 
           )}
 
-        </Link>
+        </button>
 
       </div>
 
     </header>
+
   );
   }
