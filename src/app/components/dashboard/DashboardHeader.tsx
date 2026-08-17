@@ -35,7 +35,6 @@ type Notification = {
   createdAt: string;
 };
 
-
 function getNotificationIcon(
   type: Notification["type"]
 ) {
@@ -59,7 +58,6 @@ function getNotificationIcon(
       return "🔔";
   }
 }
-
 
 function getNotificationTitle(
   type: Notification["type"]
@@ -85,24 +83,18 @@ function getNotificationTitle(
   }
 }
 
-
 function formatNotificationTime(
   dateString: string
 ) {
-  const date =
-    new Date(dateString);
-
-  const now =
-    new Date();
+  const date = new Date(dateString);
+  const now = new Date();
 
   const difference =
-    now.getTime() -
-    date.getTime();
+    now.getTime() - date.getTime();
 
-  const minutes =
-    Math.floor(
-      difference / 60000
-    );
+  const minutes = Math.floor(
+    difference / 60000
+  );
 
   if (minutes < 1) {
     return "Just now";
@@ -114,10 +106,9 @@ function formatNotificationTime(
     } ago`;
   }
 
-  const hours =
-    Math.floor(
-      minutes / 60
-    );
+  const hours = Math.floor(
+    minutes / 60
+  );
 
   if (hours < 24) {
     return `${hours} hour${
@@ -125,10 +116,9 @@ function formatNotificationTime(
     } ago`;
   }
 
-  const days =
-    Math.floor(
-      hours / 24
-    );
+  const days = Math.floor(
+    hours / 24
+  );
 
   if (days < 7) {
     return `${days} day${
@@ -139,38 +129,28 @@ function formatNotificationTime(
   return date.toLocaleDateString();
 }
 
-
 export default function DashboardHeader({
   onMenuClick,
 }: DashboardHeaderProps) {
-
-  const router =
-    useRouter();
-
+  const router = useRouter();
 
   const [profile, setProfile] =
     useState<ProfileData | null>(null);
 
-
   const [unreadCount, setUnreadCount] =
     useState(0);
-
 
   const [notifications, setNotifications] =
     useState<Notification[]>([]);
 
-
   const [showNotifications, setShowNotifications] =
     useState(false);
-
 
   const [loadingNotifications, setLoadingNotifications] =
     useState(false);
 
-
   const [markingAsRead, setMarkingAsRead] =
     useState(false);
-
 
   /*
   |--------------------------------------------------------------------------
@@ -179,14 +159,11 @@ export default function DashboardHeader({
   */
 
   async function loadHeaderData() {
-
     try {
-
       const [
         profileResponse,
         notificationsResponse,
       ] = await Promise.all([
-
         fetch("/api/profile", {
           cache: "no-store",
         }),
@@ -194,48 +171,38 @@ export default function DashboardHeader({
         fetch("/api/notifications", {
           cache: "no-store",
         }),
-
       ]);
 
-
       if (profileResponse.ok) {
-
         const profileData =
           await profileResponse.json();
 
         setProfile(
           profileData.profile
         );
-
       }
 
-
       if (notificationsResponse.ok) {
-
         const notificationsData =
           await notificationsResponse.json();
 
         setNotifications(
-          notificationsData.notifications ?? []
+          notificationsData.notifications ??
+            []
         );
 
         setUnreadCount(
-          notificationsData.unreadCount ?? 0
+          notificationsData.unreadCount ??
+            0
         );
-
       }
-
     } catch (error) {
-
       console.error(
         "Failed to load dashboard header data:",
         error
       );
-
     }
-
   }
-
 
   /*
   |--------------------------------------------------------------------------
@@ -244,33 +211,25 @@ export default function DashboardHeader({
   */
 
   async function loadNotifications() {
-
     try {
-
       setLoadingNotifications(true);
 
-      const response =
-        await fetch(
-          "/api/notifications",
-          {
-            cache: "no-store",
-          }
-        );
-
+      const response = await fetch(
+        "/api/notifications",
+        {
+          cache: "no-store",
+        }
+      );
 
       const data =
         await response.json();
 
-
       if (!response.ok) {
-
         throw new Error(
           data.message ??
             "Failed to load notifications."
         );
-
       }
-
 
       setNotifications(
         data.notifications ?? []
@@ -279,22 +238,15 @@ export default function DashboardHeader({
       setUnreadCount(
         data.unreadCount ?? 0
       );
-
     } catch (error) {
-
       console.error(
         "Failed to load notifications:",
         error
       );
-
     } finally {
-
       setLoadingNotifications(false);
-
     }
-
   }
-
 
   /*
   |--------------------------------------------------------------------------
@@ -303,53 +255,38 @@ export default function DashboardHeader({
   */
 
   useEffect(() => {
-
     loadHeaderData();
 
-
     function handleProfileUpdated() {
-
       loadHeaderData();
-
     }
-
 
     function handleNotificationUpdated() {
-
       loadHeaderData();
-
     }
-
 
     window.addEventListener(
       "profileUpdated",
       handleProfileUpdated
     );
 
-
     window.addEventListener(
       "notificationUpdated",
       handleNotificationUpdated
     );
 
-
     return () => {
-
       window.removeEventListener(
         "profileUpdated",
         handleProfileUpdated
       );
 
-
       window.removeEventListener(
         "notificationUpdated",
         handleNotificationUpdated
       );
-
     };
-
   }, []);
-
 
   /*
   |--------------------------------------------------------------------------
@@ -358,24 +295,17 @@ export default function DashboardHeader({
   */
 
   async function handleNotificationClick() {
-
     const nextState =
       !showNotifications;
-
 
     setShowNotifications(
       nextState
     );
 
-
     if (nextState) {
-
       await loadNotifications();
-
     }
-
   }
-
 
   /*
   |--------------------------------------------------------------------------
@@ -386,49 +316,14 @@ export default function DashboardHeader({
   function handleNotificationItemClick(
     notification: Notification
   ) {
-
-    /*
-    |--------------------------------------------------------------------------
-    | Close dropdown first
-    |--------------------------------------------------------------------------
-    */
-
     setShowNotifications(false);
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Use the notification's direct link.
-    |--------------------------------------------------------------------------
-    |
-    | This is important because story pages use
-    | the story slug rather than the story ID.
-    |
-    */
-
     if (notification.link) {
-
       router.push(
         notification.link
       );
-
-      return;
-
     }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | No direct destination
-    |--------------------------------------------------------------------------
-    |
-    | Some notifications may not have a destination.
-    | In that case, simply close the dropdown.
-    |
-    */
-
   }
-
 
   /*
   |--------------------------------------------------------------------------
@@ -437,7 +332,6 @@ export default function DashboardHeader({
   */
 
   async function markAllAsRead() {
-
     if (
       markingAsRead ||
       unreadCount === 0
@@ -445,34 +339,25 @@ export default function DashboardHeader({
       return;
     }
 
-
     try {
-
       setMarkingAsRead(true);
 
-
-      const response =
-        await fetch(
-          "/api/notifications",
-          {
-            method: "PATCH",
-          }
-        );
-
+      const response = await fetch(
+        "/api/notifications",
+        {
+          method: "PATCH",
+        }
+      );
 
       const data =
         await response.json();
 
-
       if (!response.ok) {
-
         throw new Error(
           data.message ??
             "Failed to mark notifications as read."
         );
-
       }
-
 
       setNotifications(
         (currentNotifications) =>
@@ -484,38 +369,22 @@ export default function DashboardHeader({
           )
       );
 
-
       setUnreadCount(0);
-
-
-      /*
-      |--------------------------------------------------------------------------
-      | Tell other parts of the dashboard
-      |--------------------------------------------------------------------------
-      */
 
       window.dispatchEvent(
         new Event(
           "notificationUpdated"
         )
       );
-
-
     } catch (error) {
-
       console.error(
         "Failed to mark notifications as read:",
         error
       );
-
     } finally {
-
       setMarkingAsRead(false);
-
     }
-
   }
-
 
   /*
   |--------------------------------------------------------------------------
@@ -524,13 +393,10 @@ export default function DashboardHeader({
   */
 
   function handleProfileClick() {
-
     router.push(
       "/users-dashboard/profile"
     );
-
   }
-
 
   const profileInitial =
     profile?.displayName
@@ -538,287 +404,253 @@ export default function DashboardHeader({
       ?.charAt(0)
       ?.toUpperCase() || "U";
 
-
   return (
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-3 shadow-sm sm:px-4 md:px-6">
+      {/* LEFT SIDE */}
 
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm md:px-6">
-
-      {/* Left */}
-
-      <div className="flex items-center gap-3">
-
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         <button
+          type="button"
           onClick={onMenuClick}
-          className="rounded-lg p-2 transition hover:bg-gray-100 lg:hidden"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl text-gray-700 transition hover:bg-gray-100 active:scale-95 lg:hidden"
           aria-label="Open menu"
         >
           ☰
         </button>
 
-
-        <h1 className="text-lg font-semibold text-gray-900">
+        <h1 className="truncate text-base font-bold text-gray-900 sm:text-lg">
           Users Dashboard
         </h1>
-
       </div>
 
+      {/* RIGHT SIDE */}
 
-      {/* Right */}
-
-      <div className="flex items-center gap-4">
-
-        {/* Notifications */}
+      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+        {/* NOTIFICATIONS */}
 
         <div className="relative">
-
           <button
             type="button"
             onClick={
               handleNotificationClick
             }
-            className="relative rounded-lg p-2 text-xl transition hover:bg-gray-100"
+            className="relative flex h-10 w-10 items-center justify-center rounded-xl text-xl transition hover:bg-gray-100 active:scale-95"
             aria-label="Notifications"
             aria-expanded={
               showNotifications
             }
           >
-
             🔔
 
-
             {unreadCount > 0 && (
-
-              <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-
+              <span className="absolute -right-0.5 -top-0.5 flex min-h-[19px] min-w-[19px] items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
                 {unreadCount > 99
                   ? "99+"
                   : unreadCount}
-
               </span>
-
             )}
-
           </button>
 
-
-          {/* Notification Dropdown */}
+          {/* NOTIFICATION DROPDOWN */}
 
           {showNotifications && (
+            <>
+              {/* Mobile backdrop */}
 
-            <div className="absolute right-0 top-12 z-50 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+              <button
+                type="button"
+                aria-label="Close notifications"
+                onClick={() =>
+                  setShowNotifications(
+                    false
+                  )
+                }
+                className="fixed inset-0 z-40 bg-black/10 sm:hidden"
+              />
 
-              {/* Dropdown Header */}
+              <div className="fixed left-3 right-3 top-[4.5rem] z-50 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-[390px]">
+                {/* HEADER */}
 
-              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-4 sm:px-5">
+                  <div className="min-w-0">
+                    <h2 className="text-base font-bold text-gray-900">
+                      Notifications
+                    </h2>
 
-                <div>
-
-                  <h2 className="font-semibold text-gray-900">
-                    Notifications
-                  </h2>
-
+                    {unreadCount > 0 ? (
+                      <p className="mt-1 text-xs font-medium text-gray-500">
+                        {unreadCount} unread
+                        notification
+                        {unreadCount === 1
+                          ? ""
+                          : "s"}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-gray-500">
+                        You're all caught up
+                      </p>
+                    )}
+                  </div>
 
                   {unreadCount > 0 && (
-
-                    <p className="mt-0.5 text-xs text-gray-500">
-                      {unreadCount} unread
-                    </p>
-
+                    <button
+                      type="button"
+                      onClick={
+                        markAllAsRead
+                      }
+                      disabled={
+                        markingAsRead
+                      }
+                      className="shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {markingAsRead
+                        ? "Updating..."
+                        : "Mark all read"}
+                    </button>
                   )}
-
                 </div>
 
+                {/* LIST */}
 
-                {unreadCount > 0 && (
+                <div className="max-h-[min(62vh,420px)] overflow-y-auto overscroll-contain">
+                  {loadingNotifications ? (
+                    <div className="px-5 py-12 text-center">
+                      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-lg">
+                        🔔
+                      </div>
 
-                  <button
-                    type="button"
-                    onClick={
-                      markAllAsRead
-                    }
-                    disabled={
-                      markingAsRead
-                    }
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50"
-                  >
+                      <p className="text-sm font-semibold text-gray-700">
+                        Loading notifications...
+                      </p>
 
-                    {markingAsRead
-                      ? "Updating..."
-                      : "Mark all as read"}
-
-                  </button>
-
-                )}
-
-              </div>
-
-
-              {/* Notifications List */}
-
-              <div className="max-h-[400px] overflow-y-auto">
-
-                {loadingNotifications ? (
-
-                  <div className="px-5 py-8 text-center">
-
-                    <p className="text-sm text-gray-500">
-                      Loading notifications...
-                    </p>
-
-                  </div>
-
-                ) : notifications.length === 0 ? (
-
-                  <div className="px-5 py-10 text-center">
-
-                    <div className="text-3xl">
-                      🔔
+                      <p className="mt-1 text-xs text-gray-500">
+                        Please wait a moment.
+                      </p>
                     </div>
+                  ) : notifications.length ===
+                    0 ? (
+                    <div className="px-5 py-12 text-center">
+                      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-2xl">
+                        🔔
+                      </div>
 
+                      <p className="mt-4 text-sm font-bold text-gray-800">
+                        No notifications
+                      </p>
 
-                    <p className="mt-3 text-sm font-medium text-gray-700">
-                      No notifications
-                    </p>
+                      <p className="mx-auto mt-1 max-w-[240px] text-xs leading-5 text-gray-500">
+                        New comments, replies,
+                        likes and other updates
+                        will appear here.
+                      </p>
+                    </div>
+                  ) : (
+                    notifications
+                      .slice(0, 8)
+                      .map(
+                        (
+                          notification
+                        ) => (
+                          <button
+                            key={
+                              notification.id
+                            }
+                            type="button"
+                            onClick={() =>
+                              handleNotificationItemClick(
+                                notification
+                              )
+                            }
+                            className={`group flex w-full gap-3 border-b border-gray-100 px-4 py-4 text-left transition last:border-b-0 hover:bg-gray-50 active:bg-gray-100 sm:px-5 ${
+                              !notification.isRead
+                                ? "bg-blue-50/70"
+                                : "bg-white"
+                            }`}
+                          >
+                            {/* ICON */}
 
-
-                    <p className="mt-1 text-xs text-gray-500">
-                      You're all caught up.
-                    </p>
-
-                  </div>
-
-                ) : (
-
-                  notifications
-                    .slice(0, 8)
-                    .map(
-                      (notification) => (
-
-                        <button
-                          key={
-                            notification.id
-                          }
-                          type="button"
-                          onClick={() =>
-                            handleNotificationItemClick(
-                              notification
-                            )
-                          }
-                          className={`block w-full border-b border-gray-100 px-4 py-3 text-left transition hover:bg-gray-50 ${
-                            !notification.isRead
-                              ? "bg-blue-50/60"
-                              : "bg-white"
-                          }`}
-                        >
-
-                          <div className="flex gap-3">
-
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-base shadow-sm">
-
+                            <div
+                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base shadow-sm ring-1 ${
+                                !notification.isRead
+                                  ? "bg-white ring-blue-100"
+                                  : "bg-gray-50 ring-gray-200"
+                              }`}
+                            >
                               {getNotificationIcon(
                                 notification.type
                               )}
-
                             </div>
 
+                            {/* CONTENT */}
 
                             <div className="min-w-0 flex-1">
-
-                              <div className="flex items-start justify-between gap-2">
-
-                                <p className="text-sm font-semibold text-gray-900">
-
+                              <div className="flex items-start gap-2">
+                                <p className="min-w-0 flex-1 text-sm font-bold leading-5 text-gray-900">
                                   {getNotificationTitle(
                                     notification.type
                                   )}
-
                                 </p>
 
-
                                 {!notification.isRead && (
-
-                                  <span className="shrink-0 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                                  <span className="shrink-0 rounded-full bg-blue-600 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
                                     New
                                   </span>
-
                                 )}
-
                               </div>
 
-
-                              <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-600">
-
-                                {notification.message}
-
+                              <p className="mt-1.5 break-words text-xs leading-5 text-gray-600">
+                                {
+                                  notification.message
+                                }
                               </p>
 
-
-                              <p className="mt-1 text-[10px] text-gray-400">
-
+                              <p className="mt-1.5 text-[10px] font-medium text-gray-400">
                                 {formatNotificationTime(
                                   notification.createdAt
                                 )}
-
                               </p>
-
                             </div>
-
-                          </div>
-
-                        </button>
-
+                          </button>
+                        )
                       )
-                    )
+                  )}
+                </div>
 
-                )}
+                {/* FOOTER */}
 
+                <div className="border-t border-gray-200 bg-gray-50 p-3 sm:p-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNotifications(
+                        false
+                      );
+
+                      router.push(
+                        "/users-dashboard/notifications"
+                      );
+                    }}
+                    className="flex min-h-10 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-bold text-blue-600 ring-1 ring-gray-200 transition hover:bg-blue-50 hover:text-blue-700 active:scale-[0.99]"
+                  >
+                    View all notifications
+                  </button>
+                </div>
               </div>
-
-
-              {/* Footer */}
-
-              <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
-
-                <button
-                  type="button"
-                  onClick={() => {
-
-                    setShowNotifications(
-                      false
-                    );
-
-                    router.push(
-                      "/users-dashboard/notifications"
-                    );
-
-                  }}
-                  className="block w-full text-center text-sm font-semibold text-blue-600 transition hover:text-blue-700"
-                >
-                  View all notifications
-                </button>
-
-              </div>
-
-            </div>
-
+            </>
           )}
-
         </div>
 
-
-        {/* Profile */}
+        {/* PROFILE */}
 
         <button
           type="button"
           onClick={
             handleProfileClick
           }
-          className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700"
-          aria-label="Profile"
+          className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-sm font-bold text-white shadow-sm ring-2 ring-white transition hover:bg-blue-700 active:scale-95"
+          aria-label="Open profile"
         >
-
           {profile?.profileImage ? (
-
             <img
               src={
                 profile.profileImage
@@ -829,18 +661,11 @@ export default function DashboardHeader({
               }
               className="h-full w-full object-cover"
             />
-
           ) : (
-
             profileInitial
-
           )}
-
         </button>
-
       </div>
-
     </header>
-
   );
   }
