@@ -530,8 +530,6 @@ export const storyBookmarks = pgTable(
 /* ===========================
    NOTIFICATIONS
 =========================== */
-
-export const notifications = pgTable("notifications", {
 export const notifications = pgTable("notifications", {
 
   id: uuid("id")
