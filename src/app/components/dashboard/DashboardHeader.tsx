@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type DashboardHeaderProps = {
   onMenuClick: () => void;
@@ -34,6 +35,7 @@ type Notification = {
   createdAt: string;
 };
 
+
 function getNotificationIcon(
   type: Notification["type"]
 ) {
@@ -58,6 +60,7 @@ function getNotificationIcon(
   }
 }
 
+
 function getNotificationTitle(
   type: Notification["type"]
 ) {
@@ -81,6 +84,7 @@ function getNotificationTitle(
       return "Notification";
   }
 }
+
 
 function formatNotificationTime(
   dateString: string
@@ -135,24 +139,34 @@ function formatNotificationTime(
   return date.toLocaleDateString();
 }
 
+
 export default function DashboardHeader({
   onMenuClick,
 }: DashboardHeaderProps) {
 
+  const router =
+    useRouter();
+
+
   const [profile, setProfile] =
     useState<ProfileData | null>(null);
+
 
   const [unreadCount, setUnreadCount] =
     useState(0);
 
+
   const [notifications, setNotifications] =
     useState<Notification[]>([]);
+
 
   const [showNotifications, setShowNotifications] =
     useState(false);
 
+
   const [loadingNotifications, setLoadingNotifications] =
     useState(false);
+
 
   const [markingAsRead, setMarkingAsRead] =
     useState(false);
@@ -365,6 +379,74 @@ export default function DashboardHeader({
 
   /*
   |--------------------------------------------------------------------------
+  | CLICK NOTIFICATION
+  |--------------------------------------------------------------------------
+  */
+
+  function handleNotificationItemClick(
+    notification: Notification
+  ) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Close dropdown first
+    |--------------------------------------------------------------------------
+    */
+
+    setShowNotifications(false);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | If the notification already has
+    | a direct link, use it.
+    |--------------------------------------------------------------------------
+    */
+
+    if (notification.link) {
+
+      router.push(
+        notification.link
+      );
+
+      return;
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fallback for story notifications
+    |--------------------------------------------------------------------------
+    |
+    | This allows older notifications that may
+    | only have storyId to still work.
+    |
+    */
+
+    if (notification.storyId) {
+
+      router.push(
+        `/stories/${notification.storyId}`
+      );
+
+      return;
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | If there is no destination,
+    | simply close the notification dropdown.
+    |--------------------------------------------------------------------------
+    */
+
+  }
+
+
+  /*
+  |--------------------------------------------------------------------------
   | MARK ALL AS READ
   |--------------------------------------------------------------------------
   */
@@ -446,6 +528,21 @@ export default function DashboardHeader({
       setMarkingAsRead(false);
 
     }
+
+  }
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | PROFILE
+  |--------------------------------------------------------------------------
+  */
+
+  function handleProfileClick() {
+
+    router.push(
+      "/dashboard/profile"
+    );
 
   }
 
@@ -612,11 +709,17 @@ export default function DashboardHeader({
                     .map(
                       (notification) => (
 
-                        <div
+                        <button
                           key={
                             notification.id
                           }
-                          className={`border-b border-gray-100 px-4 py-3 transition hover:bg-gray-50 ${
+                          type="button"
+                          onClick={() =>
+                            handleNotificationItemClick(
+                              notification
+                            )
+                          }
+                          className={`block w-full border-b border-gray-100 px-4 py-3 text-left transition hover:bg-gray-50 ${
                             !notification.isRead
                               ? "bg-blue-50/60"
                               : "bg-white"
@@ -677,7 +780,7 @@ export default function DashboardHeader({
 
                           </div>
 
-                        </div>
+                        </button>
 
                       )
                     )
@@ -691,17 +794,23 @@ export default function DashboardHeader({
 
               <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
 
-                <a
-                  href="/dashboard/notifications"
-                  onClick={() =>
+                <button
+                  type="button"
+                  onClick={() => {
+
                     setShowNotifications(
                       false
-                    )
-                  }
-                  className="block text-center text-sm font-semibold text-blue-600 transition hover:text-blue-700"
+                    );
+
+                    router.push(
+                      "/dashboard/notifications"
+                    );
+
+                  }}
+                  className="block w-full text-center text-sm font-semibold text-blue-600 transition hover:text-blue-700"
                 >
                   View all notifications
-                </a>
+                </button>
 
               </div>
 
@@ -715,6 +824,10 @@ export default function DashboardHeader({
         {/* Profile */}
 
         <button
+          type="button"
+          onClick={
+            handleProfileClick
+          }
           className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700"
           aria-label="Profile"
         >
