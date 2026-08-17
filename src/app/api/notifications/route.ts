@@ -29,27 +29,30 @@ export async function GET() {
     }
 
 
-    const userNotifications =
-      await db
-        .select({
-          id: notifications.id,
-          type: notifications.type,
-          message: notifications.message,
-          isRead: notifications.isRead,
-          createdAt: notifications.createdAt,
-        })
-        .from(notifications)
-        .where(
-          eq(
-            notifications.userId,
-            user.id
-          )
-        )
-        .orderBy(
-          desc(
-            notifications.createdAt
-          )
-        );
+const userNotifications =
+  await db
+    .select({
+      id: notifications.id,
+      type: notifications.type,
+      message: notifications.message,
+      link: notifications.link,
+      storyId: notifications.storyId,
+      commentId: notifications.commentId,
+      isRead: notifications.isRead,
+      createdAt: notifications.createdAt,
+    })
+    .from(notifications)
+    .where(
+      eq(
+        notifications.userId,
+        user.id
+      )
+    )
+    .orderBy(
+      desc(
+        notifications.createdAt
+      )
+    );
 
 
     const unreadCount =
