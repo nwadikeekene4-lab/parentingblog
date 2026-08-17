@@ -398,9 +398,12 @@ export default function DashboardHeader({
 
     /*
     |--------------------------------------------------------------------------
-    | If the notification already has
-    | a direct link, use it.
+    | Use the notification's direct link.
     |--------------------------------------------------------------------------
+    |
+    | This is important because story pages use
+    | the story slug rather than the story ID.
+    |
     */
 
     if (notification.link) {
@@ -416,30 +419,12 @@ export default function DashboardHeader({
 
     /*
     |--------------------------------------------------------------------------
-    | Fallback for story notifications
+    | No direct destination
     |--------------------------------------------------------------------------
     |
-    | This allows older notifications that may
-    | only have storyId to still work.
+    | Some notifications may not have a destination.
+    | In that case, simply close the dropdown.
     |
-    */
-
-    if (notification.storyId) {
-
-      router.push(
-        `/stories/${notification.storyId}`
-      );
-
-      return;
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | If there is no destination,
-    | simply close the notification dropdown.
-    |--------------------------------------------------------------------------
     */
 
   }
@@ -541,7 +526,7 @@ export default function DashboardHeader({
   function handleProfileClick() {
 
     router.push(
-      "/dashboard/profile"
+      "/users-dashboard/profile"
     );
 
   }
@@ -803,7 +788,7 @@ export default function DashboardHeader({
                     );
 
                     router.push(
-                      "/dashboard/notifications"
+                      "/users-dashboard/notifications"
                     );
 
                   }}
