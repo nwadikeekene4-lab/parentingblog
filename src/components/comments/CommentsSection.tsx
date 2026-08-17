@@ -27,23 +27,28 @@ const MAX_COMMENT_LENGTH = 2000;
 function formatDate(date: string) {
   const value = new Date(date);
   const now = new Date();
+
   const minutes = Math.floor(
     (now.getTime() - value.getTime()) / 60000
   );
 
   if (minutes < 1) return "Just now";
-  if (minutes < 60)
+
+  if (minutes < 60) {
     return `${minutes}m ago`;
+  }
 
   const hours = Math.floor(minutes / 60);
 
-  if (hours < 24)
+  if (hours < 24) {
     return `${hours}h ago`;
+  }
 
   const days = Math.floor(hours / 24);
 
-  if (days < 7)
+  if (days < 7) {
     return `${days}d ago`;
+  }
 
   return value.toLocaleDateString();
 }
@@ -59,13 +64,17 @@ function Avatar({
       ?.charAt(0)
       ?.toUpperCase() || "U";
 
-  return user.profileImage ? (
-    <img
-      src={user.profileImage}
-      alt={user.displayName}
-      className="h-9 w-9 shrink-0 rounded-full object-cover"
-    />
-  ) : (
+  if (user.profileImage) {
+    return (
+      <img
+        src={user.profileImage}
+        alt={user.displayName}
+        className="h-9 w-9 shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+
+  return (
     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
       {initial}
     </div>
@@ -102,7 +111,7 @@ function CommentCard({
           <button
             type="button"
             onClick={() => onReply(comment)}
-            className="text-xs font-bold text-blue-600 hover:text-blue-700"
+            className="text-xs font-bold text-blue-600 transition hover:text-blue-700"
           >
             Reply
           </button>
@@ -127,24 +136,21 @@ function CommentCard({
 export default function CommentsSection({
   storyId,
 }: CommentsSectionProps) {
-  const [comments, setComments] = useState<
-    CommentItem[]
-  >([]);
+  const [comments, setComments] = useState<CommentItem[]>(
+    []
+  );
 
-  const [content, setContent] =
-    useState("");
+  const [content, setContent] = useState("");
 
   const [replyTo, setReplyTo] =
     useState<CommentItem | null>(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
   const [submitting, setSubmitting] =
     useState(false);
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
   async function loadComments() {
     try {
@@ -193,8 +199,7 @@ export default function CommentsSection({
   }, [storyId]);
 
   async function submitComment() {
-    const trimmedContent =
-      content.trim();
+    const trimmedContent = content.trim();
 
     if (!trimmedContent) {
       setError("Please enter a comment.");
@@ -220,8 +225,7 @@ export default function CommentsSection({
         {
           method: "POST",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             storyId,
@@ -271,17 +275,20 @@ export default function CommentsSection({
     setReplyTo(comment);
     setError("");
 
-    window.scrollTo({
-      top:
-        window.scrollY +
-        document
-          .getElementById(
-            "comments-form"
-          )
-          ?.getBoundingClientRect().top! -
-        120,
-      behavior: "smooth",
-    });
+    const form =
+      document.getElementById(
+        "comments-form"
+      );
+
+    if (form) {
+      window.scrollTo({
+        top:
+          window.scrollY +
+          form.getBoundingClientRect().top -
+          120,
+        behavior: "smooth",
+      });
+    }
   }
 
   return (
@@ -302,8 +309,8 @@ export default function CommentsSection({
         className="mb-8 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5"
       >
         {replyTo && (
-          <div className="mb-3 flex items-center justify-between rounded-xl bg-blue-50 px-3 py-2">
-            <p className="text-xs text-blue-700">
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-blue-50 px-3 py-2">
+            <p className="min-w-0 text-xs text-blue-700">
               Replying to{" "}
               <strong>
                 {replyTo.user.displayName}
@@ -315,7 +322,7 @@ export default function CommentsSection({
               onClick={() =>
                 setReplyTo(null)
               }
-              className="text-xs font-bold text-blue-600 hover:text-blue-800"
+              className="shrink-0 text-xs font-bold text-blue-600 transition hover:text-blue-800"
             >
               Cancel
             </button>
@@ -410,4 +417,4 @@ export default function CommentsSection({
       )}
     </section>
   );
-  }
+    }
