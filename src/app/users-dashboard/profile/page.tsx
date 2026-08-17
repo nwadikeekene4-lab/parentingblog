@@ -73,16 +73,17 @@ export default function ProfilePage() {
         return;
       }
 
-      const headerOffset = 80;
+      const headerOffset = 90;
 
       const elementPosition =
-        messageRef.current.getBoundingClientRect().top +
-        window.scrollY;
+        messageRef.current.getBoundingClientRect()
+          .top + window.scrollY;
 
       window.scrollTo({
         top: Math.max(
           0,
-          elementPosition - headerOffset
+          elementPosition -
+            headerOffset
         ),
         behavior: "smooth",
       });
@@ -110,8 +111,12 @@ export default function ProfilePage() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const response =
-          await fetch("/api/profile");
+        const response = await fetch(
+          "/api/profile",
+          {
+            cache: "no-store",
+          }
+        );
 
         const data =
           await response.json();
@@ -136,8 +141,7 @@ export default function ProfilePage() {
         );
 
         setBio(
-          loadedProfile.bio ??
-            ""
+          loadedProfile.bio ?? ""
         );
 
         setCountry(
@@ -205,12 +209,6 @@ export default function ProfilePage() {
         uploaded.url
       );
 
-      /*
-      |--------------------------------------------------------------------------
-      | Save the new image immediately
-      |--------------------------------------------------------------------------
-      */
-
       const response =
         await fetch(
           "/api/profile",
@@ -226,8 +224,7 @@ export default function ProfilePage() {
               displayName:
                 displayName.trim(),
 
-              bio:
-                bio.trim(),
+              bio: bio.trim(),
 
               country:
                 country.trim(),
@@ -265,8 +262,7 @@ export default function ProfilePage() {
         );
 
         setBio(
-          updatedProfile.bio ??
-            ""
+          updatedProfile.bio ?? ""
         );
 
         setCountry(
@@ -284,21 +280,9 @@ export default function ProfilePage() {
         );
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Notify Dashboard Header
-      |--------------------------------------------------------------------------
-      */
-
       window.dispatchEvent(
         new Event("profileUpdated")
       );
-
-      /*
-      |--------------------------------------------------------------------------
-      | Image was saved successfully.
-      |--------------------------------------------------------------------------
-      */
 
       setHasChanges(false);
 
@@ -318,17 +302,14 @@ export default function ProfilePage() {
           ? error.message
           : "Failed to upload profile picture."
       );
+
+      scrollToMessage();
     } finally {
       setUploadingImage(false);
 
-      /*
-      |--------------------------------------------------------------------------
-      | Allow selecting the same file again
-      |--------------------------------------------------------------------------
-      */
-
       if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+        fileInputRef.current.value =
+          "";
       }
     }
   }
@@ -378,8 +359,7 @@ export default function ProfilePage() {
               displayName:
                 displayName.trim(),
 
-              bio:
-                bio.trim(),
+              bio: bio.trim(),
 
               country:
                 country.trim(),
@@ -417,8 +397,7 @@ export default function ProfilePage() {
         );
 
         setBio(
-          updatedProfile.bio ??
-            ""
+          updatedProfile.bio ?? ""
         );
 
         setCountry(
@@ -436,25 +415,9 @@ export default function ProfilePage() {
         );
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | Notify Dashboard Header
-      |--------------------------------------------------------------------------
-      |
-      | DashboardHeader listens for this event and reloads
-      | the display name and profile image immediately.
-      |--------------------------------------------------------------------------
-      */
-
       window.dispatchEvent(
         new Event("profileUpdated")
       );
-
-      /*
-      |--------------------------------------------------------------------------
-      | SAVE SUCCESSFUL
-      |--------------------------------------------------------------------------
-      */
 
       setHasChanges(false);
 
@@ -489,19 +452,24 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="space-y-8">
+      <div className="mx-auto w-full max-w-4xl space-y-6 sm:space-y-8">
         <section>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl font-extrabold tracking-tight text-gray-950 sm:text-3xl">
             My Profile
           </h1>
 
-          <p className="mt-2 text-sm text-gray-600">
-            Update your personal information and public profile.
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
+            Update your personal information
+            and public profile.
           </p>
         </section>
 
-        <section className="rounded-2xl bg-white p-8 text-center shadow-sm">
-          <p className="text-sm text-gray-600">
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm sm:p-8">
+          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-blue-50">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+          </div>
+
+          <p className="text-sm font-medium text-gray-700">
             Loading your profile...
           </p>
         </section>
@@ -516,104 +484,169 @@ export default function ProfilePage() {
   */
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
+    <div className="mx-auto w-full max-w-4xl space-y-6 sm:space-y-8">
+      {/* PAGE HEADER */}
 
       <section>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-2xl font-extrabold tracking-tight text-gray-950 sm:text-3xl">
           My Profile
         </h1>
 
-        <p className="mt-2 text-sm text-gray-600">
-          Update your personal information and public profile.
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
+          Update your personal information
+          and public profile.
         </p>
       </section>
 
-      {/* Messages */}
+      {/* MESSAGES */}
 
-      <div ref={messageRef}>
+      <div
+        ref={messageRef}
+        className="scroll-mt-24"
+      >
         {message && (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-            {message}
+          <div
+            role="status"
+            className="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3.5 text-sm font-semibold text-green-800"
+          >
+            <span className="mt-0.5">
+              ✓
+            </span>
+
+            <span>{message}</span>
           </div>
         )}
 
         {errorMessage && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            {errorMessage}
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm font-semibold text-red-800"
+          >
+            <span className="mt-0.5">
+              !
+            </span>
+
+            <span>
+              {errorMessage}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Profile Card */}
+      {/* PROFILE SUMMARY CARD */}
 
-      <section className="rounded-2xl bg-white p-8 shadow-sm">
-        <div className="flex flex-col items-center gap-4">
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white px-5 py-5 sm:px-8">
+          <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+            Profile Picture
+          </h2>
 
-          {profileImage ? (
-            <img
-              src={profileImage}
-              alt="Profile picture"
-              className="h-28 w-28 rounded-full object-cover ring-4 ring-blue-50"
-            />
-          ) : (
-            <div className="flex h-28 w-28 items-center justify-center rounded-full bg-blue-100 text-5xl">
-              👤
-            </div>
-          )}
-
-          {/* Display Name */}
-
-          <p className="text-xl font-bold text-gray-900">
-            {displayName || "Your Name"}
+          <p className="mt-1 text-xs leading-5 text-gray-600 sm:text-sm">
+            Choose a clear image that represents
+            you in the community.
           </p>
+        </div>
 
-          {/* Email */}
+        <div className="px-5 py-7 sm:px-8 sm:py-8">
+          <div className="flex flex-col items-center text-center">
+            {/* PROFILE IMAGE */}
 
-          {profile?.email && (
-            <p className="text-sm text-gray-500">
-              {profile.email}
+            <div className="relative">
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt="Profile picture"
+                  className="h-28 w-28 rounded-full object-cover shadow-md ring-4 ring-blue-50 sm:h-32 sm:w-32"
+                />
+              ) : (
+                <div className="flex h-28 w-28 items-center justify-center rounded-full bg-blue-100 text-5xl shadow-sm ring-4 ring-blue-50 sm:h-32 sm:w-32">
+                  👤
+                </div>
+              )}
+
+              <div className="absolute bottom-1 right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-sm text-white shadow-sm">
+                ✎
+              </div>
+            </div>
+
+            {/* NAME */}
+
+            <p className="mt-5 text-xl font-extrabold text-gray-950 sm:text-2xl">
+              {displayName ||
+                "Your Name"}
             </p>
-          )}
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleProfilePicture}
-            className="hidden"
-          />
+            {/* EMAIL */}
 
-          <button
-            type="button"
-            onClick={() =>
-              fileInputRef.current?.click()
-            }
-            disabled={
-              uploadingImage ||
-              saving
-            }
-            className="rounded-lg border border-blue-600 px-5 py-2 text-sm font-medium text-blue-600 transition hover:bg-blue-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {uploadingImage
-              ? "Uploading..."
-              : "Change Profile Picture"}
-          </button>
+            {profile?.email && (
+              <p className="mt-1 break-all px-4 text-sm font-medium text-gray-600">
+                {profile.email}
+              </p>
+            )}
+
+            {/* FILE INPUT */}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={
+                handleProfilePicture
+              }
+              className="hidden"
+            />
+
+            {/* BUTTON */}
+
+            <button
+              type="button"
+              onClick={() =>
+                fileInputRef.current?.click()
+              }
+              disabled={
+                uploadingImage ||
+                saving
+              }
+              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-600 bg-white px-5 text-sm font-bold text-blue-700 shadow-sm transition hover:bg-blue-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {uploadingImage
+                ? "Uploading..."
+                : "Change Profile Picture"}
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* Form */}
+      {/* FORM CARD */}
 
-      <section className="rounded-2xl bg-white p-8 shadow-sm">
-        <div className="space-y-6">
-          {/* Display Name */}
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-100 bg-gray-50/70 px-5 py-5 sm:px-8">
+          <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+            Personal Information
+          </h2>
+
+          <p className="mt-1 text-xs leading-5 text-gray-600 sm:text-sm">
+            Keep your profile information
+            accurate and up to date.
+          </p>
+        </div>
+
+        <div className="space-y-6 px-5 py-6 sm:px-8 sm:py-8">
+          {/* DISPLAY NAME */}
 
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700">
+            <label
+              htmlFor="displayName"
+              className="mb-2 block text-sm font-bold text-gray-900"
+            >
               Display Name
+              <span className="ml-1 text-red-500">
+                *
+              </span>
             </label>
 
             <input
+              id="displayName"
               type="text"
               value={displayName}
               onChange={(e) => {
@@ -625,18 +658,31 @@ export default function ProfilePage() {
               }}
               placeholder="Enter your display name"
               maxLength={100}
-              className="h-12 w-full rounded-xl border border-gray-300 px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              autoComplete="name"
+              className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-[15px] font-medium text-gray-950 shadow-sm outline-none placeholder:text-gray-500 transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
+
+            <p className="mt-1.5 text-xs text-gray-500">
+              This is the name other community
+              members will see.
+            </p>
           </div>
 
-          {/* Bio */}
+          {/* BIO */}
 
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700">
+            <label
+              htmlFor="bio"
+              className="mb-2 block text-sm font-bold text-gray-900"
+            >
               Bio
+              <span className="ml-2 text-xs font-medium text-gray-500">
+                Optional
+              </span>
             </label>
 
             <textarea
+              id="bio"
               rows={5}
               value={bio}
               onChange={(e) => {
@@ -647,19 +693,26 @@ export default function ProfilePage() {
                 handleFieldChange();
               }}
               placeholder="Tell the community about yourself..."
-              className="w-full rounded-xl border border-gray-300 p-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              className="min-h-32 w-full resize-y rounded-xl border border-gray-300 bg-white p-4 text-[15px] font-medium leading-6 text-gray-950 shadow-sm outline-none placeholder:text-gray-500 transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
           </div>
 
-          {/* Country + State */}
+          {/* COUNTRY + STATE */}
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700">
+              <label
+                htmlFor="country"
+                className="mb-2 block text-sm font-bold text-gray-900"
+              >
                 Country
+                <span className="ml-2 text-xs font-medium text-gray-500">
+                  Optional
+                </span>
               </label>
 
               <input
+                id="country"
                 type="text"
                 value={country}
                 onChange={(e) => {
@@ -669,17 +722,25 @@ export default function ProfilePage() {
 
                   handleFieldChange();
                 }}
-                placeholder="Country"
-                className="h-12 w-full rounded-xl border border-gray-300 px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                placeholder="Enter your country"
+                autoComplete="country-name"
+                className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-[15px] font-medium text-gray-950 shadow-sm outline-none placeholder:text-gray-500 transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700">
+              <label
+                htmlFor="state"
+                className="mb-2 block text-sm font-bold text-gray-900"
+              >
                 State / Province
+                <span className="ml-2 text-xs font-medium text-gray-500">
+                  Optional
+                </span>
               </label>
 
               <input
+                id="state"
                 type="text"
                 value={state}
                 onChange={(e) => {
@@ -689,15 +750,25 @@ export default function ProfilePage() {
 
                   handleFieldChange();
                 }}
-                placeholder="State or Province"
-                className="h-12 w-full rounded-xl border border-gray-300 px-4 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                placeholder="Enter your state or province"
+                autoComplete="address-level1"
+                className="h-12 w-full rounded-xl border border-gray-300 bg-white px-4 text-[15px] font-medium text-gray-950 shadow-sm outline-none placeholder:text-gray-500 transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
               />
             </div>
           </div>
 
-          {/* Save */}
+          {/* SAVE AREA */}
 
-          <div className="flex justify-end">
+          <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs leading-5 text-gray-500">
+              Changes are saved when you select
+              <span className="font-semibold text-gray-700">
+                {" "}
+                Save Changes
+              </span>
+              .
+            </p>
+
             <button
               type="button"
               onClick={saveChanges}
@@ -706,15 +777,17 @@ export default function ProfilePage() {
                 uploadingImage ||
                 !hasChanges
               }
-              className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-blue-600 px-6 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none sm:w-auto"
             >
-              {saving
-                ? "Saving..."
-                : "Save Changes"}
+              {saving ? (
+                <>
+                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
             </button>
           </div>
         </div>
-      </section>
-    </div>
-  );
-      }
+      </secti
