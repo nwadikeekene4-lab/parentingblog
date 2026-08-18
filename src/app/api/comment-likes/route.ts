@@ -1,4 +1,9 @@
-import { and, count, eq, inArray } from "drizzle-orm";
+import {
+  and,
+  count,
+  eq,
+  inArray,
+} from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/db";
@@ -6,15 +11,84 @@ import {
   comments,
   commentLikes,
   notifications,
-  stories,
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
+
+const GUEST_COOKIE_NAME =
+  "parenting_blog_guest_id";
+
+const GUEST_COOKIE_MAX_AGE =
+  60 * 60 * 24 * 365;
+
+/*
+|--------------------------------------------------------------------------
+| HELPERS
+|--------------------------------------------------------------------------
+*/
+
+function isValidUUID(
+  value: string
+) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
+}
+
+function getGuestId(
+  request: NextRequest
+) {
+  const guestId =
+    request.cookies.get(
+      GUEST_COOKIE_NAME
+    )?.value;
+
+  if (
+    guestId &&
+    isValidUUID(guestId)
+  ) {
+    return guestId;
+  }
+
+  return null;
+}
+
+function createGuestResponse(
+  data: unknown,
+  guestId: string | null,
+  status = 200
+) {
+  const response =
+    NextResponse.json(
+      data,
+      { status }
+    );
+
+  if (guestId) {
+    response.cookies.set(
+      GUEST_COOKIE_NAME,
+      guestId,
+      {
+        httpOnly: true,
+        secure:
+          process.env.NODE_ENV ===
+          "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge:
+          GUEST_COOKIE_MAX_AGE,
+      }
+    );
+  }
+
+  return response;
+}
 
 /*
 |--------------------------------------------------------------------------
 | GET
 |--------------------------------------------------------------------------
-| Returns like counts and the current user's like state.
+| Returns like counts and the current
+| visitor's like state.
 |
 | Supports:
 |
@@ -39,15 +113,23 @@ export async function GET(
     const multipleCommentIds =
       searchParams.get("commentIds");
 
-    let commentIds: string[] = [];
+    let commentIds: string[] =
+      [];
 
     if (singleCommentId) {
-      commentIds = [singleCommentId];
-    } else if (multipleCommentIds) {
-      commentIds = multipleCommentIds
-        .split(",")
-        .map((id) => id.trim())
-        .filter(Boolean);
+      commentIds = [
+        singleCommentId,
+      ];
+    } else if (
+      multipleCommentIds
+    ) {
+      commentIds =
+        multipleCommentIds
+          .split(",")
+          .map((id) =>
+            id.trim()
+          )
+          .filter(Boolean);
     }
 
     if (commentIds.length === 0) {
@@ -101,7 +183,11 @@ export async function GET(
     }
 
     /*
-     * Get total like counts in one query.
+     * Get total like counts.
+     *
+     * This includes BOTH:
+     * - registered users
+     * - anonymous visitors
      */
 
     const likeCounts =
@@ -109,6 +195,7 @@ export async function GET(
         .select({
           commentId:
             commentLikes.commentId,
+
           count: count(
             commentLikes.id
           ),
@@ -125,17 +212,31 @@ export async function GET(
         );
 
     /*
-     * Get current user.
+     * Authentication is optional.
      *
-     * Authentication is optional for GET.
-     * Logged-out visitors can still see
-     * like counts.
+     * Registered users use userId.
+     *
+     * Anonymous visitors use guestId.
      */
 
     const currentUser =
       await getCurrentUser();
 
-    const userLikes =
+    let guestId: string | null =
+      null;
+
+    if (!currentUser) {
+      guestId =
+        getGuestId(request) ??
+        crypto.randomUUID();
+    }
+
+    /*
+     * Find likes belonging to the
+     * current visitor.
+     */
+
+    const identityLikes =
       currentUser
         ? await db
             .select({
@@ -155,21 +256,41 @@ export async function GET(
                 )
               )
             )
-        : [];
+        : await db
+            .select({
+              commentId:
+                commentLikes.commentId,
+            })
+            .from(commentLikes)
+            .where(
+              and(
+                inArray(
+                  commentLikes.commentId,
+                  validIds
+                ),
+                eq(
+                  commentLikes.guestId,
+                  guestId!
+                )
+              )
+            );
 
     const likedSet =
       new Set(
-        userLikes.map(
-          (like) => like.commentId
+        identityLikes.map(
+          (like) =>
+            like.commentId
         )
       );
 
     const countMap =
       new Map(
-        likeCounts.map((item) => [
-          item.commentId,
-          Number(item.count),
-        ])
+        likeCounts.map(
+          (item) => [
+            item.commentId,
+            Number(item.count),
+          ]
+        )
       );
 
     const result: Record<
@@ -183,15 +304,25 @@ export async function GET(
     for (const commentId of validIds) {
       result[commentId] = {
         liked:
-          likedSet.has(commentId),
+          likedSet.has(
+            commentId
+          ),
+
         likeCount:
-          countMap.get(commentId) ?? 0,
+          countMap.get(
+            commentId
+          ) ?? 0,
       };
     }
 
-    return NextResponse.json({
-      comments: result,
-    });
+    return createGuestResponse(
+      {
+        comments: result,
+      },
+      currentUser
+        ? null
+        : guestId
+    );
   } catch (error) {
     console.error(
       "Comment likes GET error:",
@@ -213,6 +344,12 @@ export async function GET(
 | POST
 |--------------------------------------------------------------------------
 | Likes a comment.
+|
+| Registered user:
+|   userId is stored.
+|
+| Anonymous visitor:
+|   guestId is stored.
 |--------------------------------------------------------------------------
 */
 
@@ -223,21 +360,23 @@ export async function POST(
     const currentUser =
       await getCurrentUser();
 
-    if (!currentUser) {
-      return NextResponse.json(
-        {
-          message:
-            "You must be logged in to like a comment.",
-        },
-        { status: 401 }
-      );
-    }
+    /*
+     * Anonymous visitors receive a
+     * persistent guest identity.
+     */
+
+    const guestId =
+      currentUser
+        ? null
+        : getGuestId(request) ??
+          crypto.randomUUID();
 
     const body =
       await request.json();
 
     const commentId =
-      typeof body?.commentId === "string"
+      typeof body?.commentId ===
+      "string"
         ? body.commentId.trim()
         : "";
 
@@ -251,23 +390,29 @@ export async function POST(
       );
     }
 
+    /*
+     * Verify the comment exists.
+     */
+
     const comment =
-      await db.query.comments.findFirst({
-        where: and(
-          eq(
-            comments.id,
-            commentId
+      await db.query.comments.findFirst(
+        {
+          where: and(
+            eq(
+              comments.id,
+              commentId
+            ),
+            eq(
+              comments.isDeleted,
+              false
+            )
           ),
-          eq(
-            comments.isDeleted,
-            false
-          )
-        ),
-        with: {
-          user: true,
-          story: true,
-        },
-      });
+          with: {
+            user: true,
+            story: true,
+          },
+        }
+      );
 
     if (!comment) {
       return NextResponse.json(
@@ -280,25 +425,43 @@ export async function POST(
     }
 
     /*
-     * Prevent duplicate likes.
-     *
-     * The database unique constraint is
-     * the final protection.
+     * Check for an existing like.
      */
 
     const existingLike =
-      await db.query.commentLikes.findFirst({
-        where: and(
-          eq(
-            commentLikes.commentId,
-            commentId
-          ),
-          eq(
-            commentLikes.userId,
-            currentUser.id
+      currentUser
+        ? await db.query.commentLikes.findFirst(
+            {
+              where: and(
+                eq(
+                  commentLikes.commentId,
+                  commentId
+                ),
+                eq(
+                  commentLikes.userId,
+                  currentUser.id
+                )
+              ),
+            }
           )
-        ),
-      });
+        : await db.query.commentLikes.findFirst(
+            {
+              where: and(
+                eq(
+                  commentLikes.commentId,
+                  commentId
+                ),
+                eq(
+                  commentLikes.guestId,
+                  guestId!
+                )
+              ),
+            }
+          );
+
+    /*
+     * Already liked.
+     */
 
     if (existingLike) {
       const result =
@@ -316,35 +479,82 @@ export async function POST(
             )
           );
 
-      return NextResponse.json({
-        liked: true,
-        likeCount:
-          Number(result[0]?.count) || 0,
-      });
+      return createGuestResponse(
+        {
+          liked: true,
+
+          likeCount:
+            Number(
+              result[0]?.count
+            ) || 0,
+        },
+        currentUser
+          ? null
+          : guestId
+      );
     }
 
-    await db.insert(commentLikes).values({
-      commentId,
-      userId: currentUser.id,
-    });
+    /*
+     * Create the like.
+     *
+     * Exactly one identity is stored.
+     */
+
+    await db
+      .insert(commentLikes)
+      .values({
+        commentId,
+
+        userId:
+          currentUser?.id ??
+          null,
+
+        guestId:
+          currentUser
+            ? null
+            : guestId,
+      });
 
     /*
-     * Do not notify a user about their own like.
+     * Only registered users can
+     * generate notifications.
+     *
+     * Anonymous visitors can like
+     * comments but cannot receive
+     * or generate account notifications.
      */
 
     if (
+      currentUser &&
+      comment.userId &&
       comment.userId !==
-      currentUser.id
+        currentUser.id
     ) {
-      await db.insert(notifications).values({
-        userId: comment.userId,
-        type: "like",
-        message: `${currentUser.displayName} liked your comment.`,
-        link: `/stories/${comment.story.slug}`,
-        storyId: comment.storyId,
-        commentId: comment.id,
-      });
+      await db
+        .insert(notifications)
+        .values({
+          userId:
+            comment.userId,
+
+          type: "like",
+
+          message:
+            `${currentUser.displayName} liked your comment.`,
+
+          link:
+            `/stories/${comment.story.slug}`,
+
+          storyId:
+            comment.storyId,
+
+          commentId:
+            comment.id,
+        });
     }
+
+    /*
+     * Get updated like count.
+     */
 
     const result =
       await db
@@ -361,11 +571,19 @@ export async function POST(
           )
         );
 
-    return NextResponse.json({
-      liked: true,
-      likeCount:
-        Number(result[0]?.count) || 0,
-    });
+    return createGuestResponse(
+      {
+        liked: true,
+
+        likeCount:
+          Number(
+            result[0]?.count
+          ) || 0,
+      },
+      currentUser
+        ? null
+        : guestId
+    );
   } catch (error) {
     console.error(
       "Comment like POST error:",
@@ -386,7 +604,13 @@ export async function POST(
 |--------------------------------------------------------------------------
 | DELETE
 |--------------------------------------------------------------------------
-| Removes the current user's like.
+| Removes the current visitor's like.
+|
+| Registered user:
+|   userId
+|
+| Anonymous visitor:
+|   guestId
 |--------------------------------------------------------------------------
 */
 
@@ -397,21 +621,22 @@ export async function DELETE(
     const currentUser =
       await getCurrentUser();
 
-    if (!currentUser) {
-      return NextResponse.json(
-        {
-          message:
-            "You must be logged in to unlike a comment.",
-        },
-        { status: 401 }
-      );
-    }
+    /*
+     * Anonymous visitors must use
+     * their existing guest cookie.
+     */
+
+    const guestId =
+      currentUser
+        ? null
+        : getGuestId(request);
 
     const body =
       await request.json();
 
     const commentId =
-      typeof body?.commentId === "string"
+      typeof body?.commentId ===
+      "string"
         ? body.commentId.trim()
         : "";
 
@@ -425,20 +650,45 @@ export async function DELETE(
       );
     }
 
-    await db
-      .delete(commentLikes)
-      .where(
-        and(
-          eq(
-            commentLikes.commentId,
-            commentId
-          ),
-          eq(
-            commentLikes.userId,
-            currentUser.id
+    /*
+     * Remove only this visitor's like.
+     */
+
+    if (currentUser) {
+      await db
+        .delete(commentLikes)
+        .where(
+          and(
+            eq(
+              commentLikes.commentId,
+              commentId
+            ),
+            eq(
+              commentLikes.userId,
+              currentUser.id
+            )
           )
-        )
-      );
+        );
+    } else if (guestId) {
+      await db
+        .delete(commentLikes)
+        .where(
+          and(
+            eq(
+              commentLikes.commentId,
+              commentId
+            ),
+            eq(
+              commentLikes.guestId,
+              guestId
+            )
+          )
+        );
+    }
+
+    /*
+     * Get updated count.
+     */
 
     const result =
       await db
@@ -457,8 +707,11 @@ export async function DELETE(
 
     return NextResponse.json({
       liked: false,
+
       likeCount:
-        Number(result[0]?.count) || 0,
+        Number(
+          result[0]?.count
+        ) || 0,
     });
   } catch (error) {
     console.error(
@@ -474,4 +727,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+  }
