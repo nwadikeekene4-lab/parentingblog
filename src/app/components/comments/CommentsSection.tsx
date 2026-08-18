@@ -32,9 +32,7 @@ function formatDate(date: string) {
   const now = new Date();
 
   const minutes = Math.floor(
-    (now.getTime() -
-      value.getTime()) /
-      60000
+    (now.getTime() - value.getTime()) / 60000
   );
 
   if (minutes < 1) {
@@ -45,17 +43,13 @@ function formatDate(date: string) {
     return `${minutes}m ago`;
   }
 
-  const hours = Math.floor(
-    minutes / 60
-  );
+  const hours = Math.floor(minutes / 60);
 
   if (hours < 24) {
     return `${hours}h ago`;
   }
 
-  const days = Math.floor(
-    hours / 24
-  );
+  const days = Math.floor(hours / 24);
 
   if (days < 7) {
     return `${days}d ago`;
@@ -97,9 +91,7 @@ function CommentCard({
   onReply,
 }: {
   comment: CommentItem;
-  onReply: (
-    comment: CommentItem
-  ) => void;
+  onReply: (comment: CommentItem) => void;
 }) {
   return (
     <div className="flex gap-3">
@@ -118,38 +110,29 @@ function CommentCard({
 
         <div className="mt-1 flex items-center gap-3 px-2">
           <span className="text-[11px] text-gray-400">
-            {formatDate(
-              comment.createdAt
-            )}
+            {formatDate(comment.createdAt)}
           </span>
 
-          <CommentLikeButton
-            commentId={comment.id}
-          />
+          <CommentLikeButton commentId={comment.id} />
 
           <button
             type="button"
-            onClick={() =>
-              onReply(comment)
-            }
+            onClick={() => onReply(comment)}
             className="text-xs font-bold text-blue-600 transition hover:text-blue-700"
           >
             Reply
           </button>
         </div>
 
-        {comment.replies?.length >
-          0 && (
+        {comment.replies?.length > 0 && (
           <div className="mt-4 space-y-4 border-l-2 border-gray-100 pl-4 sm:pl-6">
-            {comment.replies.map(
-              (reply) => (
-                <CommentCard
-                  key={reply.id}
-                  comment={reply}
-                  onReply={onReply}
-                />
-              )
-            )}
+            {comment.replies.map((reply) => (
+              <CommentCard
+                key={reply.id}
+                comment={reply}
+                onReply={onReply}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -160,62 +143,45 @@ function CommentCard({
 export default function CommentsSection({
   storyId,
 }: CommentsSectionProps) {
-  const [comments, setComments] =
-    useState<CommentItem[]>([]);
+  const [comments, setComments] = useState<CommentItem[]>([]);
 
-  const [content, setContent] =
-    useState("");
+  const [content, setContent] = useState("");
 
-  const [anonymousName, setAnonymousName] =
-    useState("");
+  const [anonymousName, setAnonymousName] = useState("");
 
-  const [replyTo, setReplyTo] =
-    useState<CommentItem | null>(
-      null
-    );
+  const [replyTo, setReplyTo] = useState<CommentItem | null>(
+    null
+  );
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [submitting, setSubmitting] =
-    useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
   async function loadComments() {
     try {
       setLoading(true);
       setError("");
 
-      const response =
-        await fetch(
-          `/api/comments?storyId=${encodeURIComponent(
-            storyId
-          )}`,
-          {
-            cache: "no-store",
-          }
-        );
+      const response = await fetch(
+        `/api/comments?storyId=${encodeURIComponent(storyId)}`,
+        {
+          cache: "no-store",
+        }
+      );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.message ||
-            "Failed to load comments."
+          data.message || "Failed to load comments."
         );
       }
 
-      setComments(
-        data.comments ?? []
-      );
+      setComments(data.comments ?? []);
     } catch (error) {
-      console.error(
-        "Load comments error:",
-        error
-      );
+      console.error("Load comments error:", error);
 
       setError(
         error instanceof Error
@@ -234,23 +200,15 @@ export default function CommentsSection({
   }, [storyId]);
 
   async function submitComment() {
-    const trimmedContent =
-      content.trim();
-
-    const trimmedAnonymousName =
-      anonymousName.trim();
+    const trimmedContent = content.trim();
+    const trimmedAnonymousName = anonymousName.trim();
 
     if (!trimmedContent) {
-      setError(
-        "Please enter a comment."
-      );
+      setError("Please enter a comment.");
       return;
     }
 
-    if (
-      trimmedContent.length >
-      MAX_COMMENT_LENGTH
-    ) {
+    if (trimmedContent.length > MAX_COMMENT_LENGTH) {
       setError(
         `Your comment cannot exceed ${MAX_COMMENT_LENGTH} characters.`
       );
@@ -271,35 +229,24 @@ export default function CommentsSection({
       setSubmitting(true);
       setError("");
 
-      const response =
-        await fetch(
-          "/api/comments",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              storyId,
-              content:
-                trimmedContent,
-              parentCommentId:
-                replyTo?.id ?? null,
-              anonymousName:
-                trimmedAnonymousName ||
-                null,
-            }),
-          }
-        );
+      const response = await fetch("/api/comments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          storyId,
+          content: trimmedContent,
+          parentCommentId: replyTo?.id ?? null,
+          anonymousName: trimmedAnonymousName || null,
+        }),
+      });
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.message ||
-            "Failed to submit comment."
+          data.message || "Failed to submit comment."
         );
       }
 
@@ -310,15 +257,10 @@ export default function CommentsSection({
       await loadComments();
 
       window.dispatchEvent(
-        new Event(
-          "notificationUpdated"
-        )
+        new Event("notificationUpdated")
       );
     } catch (error) {
-      console.error(
-        "Submit comment error:",
-        error
-      );
+      console.error("Submit comment error:", error);
 
       setError(
         error instanceof Error
@@ -330,23 +272,19 @@ export default function CommentsSection({
     }
   }
 
-  function handleReply(
-    comment: CommentItem
-  ) {
+  function handleReply(comment: CommentItem) {
     setReplyTo(comment);
     setError("");
 
-    const form =
-      document.getElementById(
-        "comments-form"
-      );
+    const form = document.getElementById(
+      "comments-form"
+    );
 
     if (form) {
       window.scrollTo({
         top:
           window.scrollY +
-          form.getBoundingClientRect()
-            .top -
+          form.getBoundingClientRect().top -
           120,
         behavior: "smooth",
       });
@@ -374,18 +312,13 @@ export default function CommentsSection({
             <p className="min-w-0 truncate text-xs text-blue-700">
               Replying to{" "}
               <strong>
-                {
-                  replyTo.user
-                    .displayName
-                }
+                {replyTo.user.displayName}
               </strong>
             </p>
 
             <button
               type="button"
-              onClick={() =>
-                setReplyTo(null)
-              }
+              onClick={() => setReplyTo(null)}
               className="shrink-0 text-xs font-bold text-blue-600 transition hover:text-blue-800"
             >
               Cancel
@@ -397,28 +330,24 @@ export default function CommentsSection({
           type="text"
           value={anonymousName}
           onChange={(event) =>
-            setAnonymousName(
-              event.target.value
-            )
+            setAnonymousName(event.target.value)
           }
-          maxLength={
-            MAX_ANONYMOUS_NAME_LENGTH
-          }
-          placeholder="Your name (optional for anonymous visitors)"
+          maxLength={MAX_ANONYMOUS_NAME_LENGTH}
+          placeholder="Your name (required if commenting without an account)"
           autoComplete="name"
-          className="mb-3 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+          className="mb-2 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
         />
+
+        <p className="mb-3 px-1 text-[11px] text-gray-400">
+          You can comment without creating an account.
+        </p>
 
         <textarea
           value={content}
           onChange={(event) =>
-            setContent(
-              event.target.value
-            )
+            setContent(event.target.value)
           }
-          maxLength={
-            MAX_COMMENT_LENGTH
-          }
+          maxLength={MAX_COMMENT_LENGTH}
           rows={4}
           placeholder={
             replyTo
@@ -429,26 +358,16 @@ export default function CommentsSection({
         />
 
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-1">
-            <span className="text-[11px] text-gray-400">
-              {content.length.toLocaleString()}{" "}
-              /{" "}
-              {MAX_COMMENT_LENGTH}
-            </span>
-
-            <span className="text-[11px] text-gray-400">
-              You can comment without an account.
-            </span>
-          </div>
+          <span className="text-[11px] text-gray-400">
+            {content.length.toLocaleString()} /{" "}
+            {MAX_COMMENT_LENGTH}
+          </span>
 
           <button
             type="button"
-            onClick={
-              submitComment
-            }
+            onClick={submitComment}
             disabled={
-              submitting ||
-              !content.trim()
+              submitting || !content.trim()
             }
             className="min-h-10 rounded-xl bg-blue-600 px-5 text-sm font-bold text-white transition hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -469,27 +388,22 @@ export default function CommentsSection({
 
       {loading ? (
         <div className="space-y-5">
-          {[1, 2, 3].map(
-            (item) => (
-              <div
-                key={item}
-                className="flex animate-pulse gap-3"
-              >
-                <div className="h-9 w-9 shrink-0 rounded-full bg-gray-200" />
+          {[1, 2, 3].map((item) => (
+            <div
+              key={item}
+              className="flex animate-pulse gap-3"
+            >
+              <div className="h-9 w-9 shrink-0 rounded-full bg-gray-200" />
 
-                <div className="flex-1">
-                  <div className="h-20 rounded-2xl bg-gray-100" />
-                </div>
+              <div className="flex-1">
+                <div className="h-20 rounded-2xl bg-gray-100" />
               </div>
-            )
-          )}
+            </div>
+          ))}
         </div>
-      ) : comments.length ===
-        0 ? (
+      ) : comments.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-300 px-5 py-10 text-center">
-          <div className="text-3xl">
-            💬
-          </div>
+          <div className="text-3xl">💬</div>
 
           <p className="mt-3 text-sm font-bold text-gray-800">
             No comments yet
@@ -501,17 +415,13 @@ export default function CommentsSection({
         </div>
       ) : (
         <div className="space-y-6">
-          {comments.map(
-            (comment) => (
-              <CommentCard
-                key={comment.id}
-                comment={comment}
-                onReply={
-                  handleReply
-                }
-              />
-            )
-          )}
+          {comments.map((comment) => (
+            <CommentCard
+              key={comment.id}
+              comment={comment}
+              onReply={handleReply}
+            />
+          ))}
         </div>
       )}
     </section>
