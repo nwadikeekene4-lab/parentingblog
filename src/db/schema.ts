@@ -574,15 +574,15 @@ export const storyLikes = pgTable(
     */
 
     likeIdentityCheck: check(
-      "story_likes_identity_check",
-      `
-      (
-        ("user_id" IS NOT NULL AND "guest_id" IS NULL)
-        OR
-        ("user_id" IS NULL AND "guest_id" IS NOT NULL)
-      )
-      `
-    ),
+  "story_likes_identity_check",
+  sql`
+    (
+      ("user_id" IS NOT NULL AND "guest_id" IS NULL)
+      OR
+      ("user_id" IS NULL AND "guest_id" IS NOT NULL)
+    )
+  `
+),
 
     /*
     |--------------------------------------------------------------------------
