@@ -11,6 +11,8 @@ import {
   pgEnum,
   unique,
   foreignKey,
+  check,
+  index,
 } from "drizzle-orm/pg-core";
 
 
@@ -214,9 +216,9 @@ export const stories = pgTable("stories", {
 
   coverImage: text("cover_image"),
 
-coverImagePublicId: text(
-  "cover_image_public_id"
-),
+  coverImagePublicId: text(
+    "cover_image_public_id"
+  ),
 
   authorId: uuid("author_id")
     .references(() => users.id, {
@@ -276,12 +278,12 @@ export const storyImages = pgTable("story_images", {
     .notNull(),
 
   imageUrl: text("image_url")
-  .notNull(),
+    .notNull(),
 
-publicId: text("public_id")
-  .notNull(),
+  publicId: text("public_id")
+    .notNull(),
 
-caption: text("caption"),
+  caption: text("caption"),
 
   displayOrder: integer("display_order")
     .default(0)
@@ -357,6 +359,7 @@ export const storyTags = pgTable(
   })
 );
 
+
 /* ===========================
    COMMENTS
 =========================== */
@@ -375,11 +378,31 @@ export const comments = pgTable(
       })
       .notNull(),
 
+    /*
+    |--------------------------------------------------------------------------
+    | REGISTERED USER
+    |--------------------------------------------------------------------------
+    |
+    | Nullable because visitors can also comment.
+    |--------------------------------------------------------------------------
+    */
+
     userId: uuid("user_id")
       .references(() => users.id, {
         onDelete: "cascade",
-      })
-      .notNull(),
+      }),
+
+    /*
+    |--------------------------------------------------------------------------
+    | VISITOR IDENTITY
+    |--------------------------------------------------------------------------
+    |
+    | This will be generated and managed securely by the server.
+    | It must NOT be supplied directly by the client form.
+    |--------------------------------------------------------------------------
+    */
+
+    guestId: uuid("guest_id"),
 
     parentCommentId: uuid("parent_comment_id"),
 
@@ -409,8 +432,35 @@ export const comments = pgTable(
       foreignColumns: [table.id],
       name: "comments_parent_comment_fk",
     }).onDelete("cascade"),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Every comment must belong to exactly one identity.
+    |--------------------------------------------------------------------------
+    */
+
+    commentIdentityCheck: check(
+      "comments_identity_check",
+      `
+      (
+        ("user_id" IS NOT NULL AND "guest_id" IS NULL)
+        OR
+        ("user_id" IS NULL AND "guest_id" IS NOT NULL)
+      )
+      `
+    ),
+
+    guestCommentIndex: index(
+      "comments_guest_id_idx"
+    ).on(table.guestId),
+
+    storyCommentIndex: index(
+      "comments_story_id_idx"
+    ).on(table.storyId),
   })
 );
+
+
 /* ===========================
    STORY LIKES
 =========================== */
@@ -429,11 +479,24 @@ export const storyLikes = pgTable(
       })
       .notNull(),
 
+    /*
+    |--------------------------------------------------------------------------
+    | REGISTERED USER
+    |--------------------------------------------------------------------------
+    */
+
     userId: uuid("user_id")
       .references(() => users.id, {
         onDelete: "cascade",
-      })
-      .notNull(),
+      }),
+
+    /*
+    |--------------------------------------------------------------------------
+    | VISITOR
+    |--------------------------------------------------------------------------
+    */
+
+    guestId: uuid("guest_id"),
 
     createdAt: timestamp("created_at")
       .defaultNow()
@@ -441,11 +504,54 @@ export const storyLikes = pgTable(
 
   },
   (table) => ({
-    uniqueStoryLike: unique()
+    /*
+    |--------------------------------------------------------------------------
+    | Registered users can like a story only once.
+    |--------------------------------------------------------------------------
+    */
+
+    uniqueUserStoryLike: unique()
       .on(
         table.storyId,
         table.userId
       ),
+
+    /*
+    |--------------------------------------------------------------------------
+    | A visitor identity can like a story only once.
+    |--------------------------------------------------------------------------
+    */
+
+    uniqueGuestStoryLike: unique()
+      .on(
+        table.storyId,
+        table.guestId
+      ),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Every like must belong to exactly one identity.
+    |--------------------------------------------------------------------------
+    */
+
+    likeIdentityCheck: check(
+      "story_likes_identity_check",
+      `
+      (
+        ("user_id" IS NOT NULL AND "guest_id" IS NULL)
+        OR
+        ("user_id" IS NULL AND "guest_id" IS NOT NULL)
+      )
+      `
+    ),
+
+    guestLikeIndex: index(
+      "story_likes_guest_id_idx"
+    ).on(table.guestId),
+
+    storyLikeIndex: index(
+      "story_likes_story_id_idx"
+    ).on(table.storyId),
   })
 );
 
@@ -527,9 +633,11 @@ export const storyBookmarks = pgTable(
   })
 );
 
+
 /* ===========================
    NOTIFICATIONS
 =========================== */
+
 export const notifications = pgTable("notifications", {
 
   id: uuid("id")
@@ -552,15 +660,6 @@ export const notifications = pgTable("notifications", {
   |--------------------------------------------------------------------------
   | NOTIFICATION DESTINATION
   |--------------------------------------------------------------------------
-  |
-  | For example:
-  |
-  | /stories/my-story-slug
-  | /dashboard/stories/my-story-slug
-  |
-  | This allows a notification to take the user directly
-  | to the content that caused the notification.
-  |--------------------------------------------------------------------------
   */
 
   link: text("link"),
@@ -568,10 +667,6 @@ export const notifications = pgTable("notifications", {
   /*
   |--------------------------------------------------------------------------
   | OPTIONAL STORY REFERENCE
-  |--------------------------------------------------------------------------
-  |
-  | Stores the story ID when the notification is related
-  | to a particular story.
   |--------------------------------------------------------------------------
   */
 
@@ -583,10 +678,6 @@ export const notifications = pgTable("notifications", {
   /*
   |--------------------------------------------------------------------------
   | OPTIONAL COMMENT REFERENCE
-  |--------------------------------------------------------------------------
-  |
-  | Stores the comment ID when the notification is related
-  | to a particular comment or reply.
   |--------------------------------------------------------------------------
   */
 
@@ -604,6 +695,8 @@ export const notifications = pgTable("notifications", {
     .notNull(),
 
 });
+
+
 /* ===========================
    USER ACTIVITIES
 =========================== */
@@ -693,13 +786,11 @@ export const contactMessages = pgTable("contact_messages", {
 
   name: varchar("name", {
     length: 100,
-  })
-    .notNull(),
+  }).notNull(),
 
   email: varchar("email", {
     length: 255,
-  })
-    .notNull(),
+  }).notNull(),
 
   message: text("message")
     .notNull(),
@@ -810,6 +901,7 @@ export const passwordResetTokens = pgTable(
   }
 );
 
+
 /* ===========================
    RELATIONS
 =========================== */
@@ -817,18 +909,22 @@ export const passwordResetTokens = pgTable(
 
 /* USERS */
 
-export const usersRelations = relations(users, ({ many }) => ({
-  stories: many(stories),
-  comments: many(comments),
-  storyLikes: many(storyLikes),
-  commentLikes: many(commentLikes),
-  bookmarks: many(storyBookmarks),
-  notifications: many(notifications),
-  activities: many(userActivities),
-  reports: many(reports),
-  emailTokens: many(emailVerificationTokens),
-  passwordResetTokens: many(passwordResetTokens),
-}));
+export const usersRelations = relations(
+  users,
+  ({ many }) => ({
+    stories: many(stories),
+    comments: many(comments),
+    storyLikes: many(storyLikes),
+    commentLikes: many(commentLikes),
+    bookmarks: many(storyBookmarks),
+    notifications: many(notifications),
+    activities: many(userActivities),
+    reports: many(reports),
+    emailTokens: many(emailVerificationTokens),
+    passwordResetTokens: many(passwordResetTokens),
+  })
+);
+
 
 /* USER ACTIVITIES */
 
@@ -848,6 +944,7 @@ export const userActivitiesRelations = relations(
 
   })
 );
+
 
 /* CATEGORIES */
 
@@ -890,15 +987,22 @@ export const storiesRelations = relations(
   })
 );
 
-export const emailVerificationTokensRelations = relations(
-  emailVerificationTokens,
-  ({ one }) => ({
-    user: one(users, {
-      fields: [emailVerificationTokens.userId],
-      references: [users.id],
-    }),
-  })
-);
+
+/* EMAIL VERIFICATION TOKENS */
+
+export const emailVerificationTokensRelations =
+  relations(
+    emailVerificationTokens,
+    ({ one }) => ({
+      user: one(users, {
+        fields: [
+          emailVerificationTokens.userId,
+        ],
+        references: [users.id],
+      }),
+    })
+  );
+
 
 /* STORY IMAGES */
 
@@ -981,56 +1085,15 @@ export const commentLikesRelations = relations(
   })
 );
 
-export const passwordResetTokensRelations = relations(
-  passwordResetTokens,
-  ({ one }) => ({
-    user: one(users, {
-      fields: [passwordResetTokens.userId],
-      references: [users.id],
-    }),
-  })
-);
 
-/* BOOKMARKS */
+/* PASSWORD RESET TOKENS */
 
-export const bookmarksRelations = relations(
-  storyBookmarks,
-  ({ one }) => ({
-
-    story: one(stories, {
-      fields: [storyBookmarks.storyId],
-      references: [stories.id],
-    }),
-
-    user: one(users, {
-      fields: [storyBookmarks.userId],
-      references: [users.id],
-    }),
-
-  })
-);
-export const storyTagsRelations = relations(
-  storyTags,
-  ({ one }) => ({
-
-    story: one(stories, {
-      fields: [storyTags.storyId],
-      references: [stories.id],
-    }),
-
-    tag: one(tags, {
-      fields: [storyTags.tagId],
-      references: [tags.id],
-    }),
-
-  })
-);
-
-export const tagsRelations = relations(
-  tags,
-  ({ many }) => ({
-
-    stories: many(storyTags),
-
-  })
-);
+export const passwordResetTokensRelations =
+  relations(
+    passwordResetTokens,
+    ({ one }) => ({
+      user: one(users, {
+        fields: [
+          passwordResetTokens.userId,
+        ],
+        references: [users.id
