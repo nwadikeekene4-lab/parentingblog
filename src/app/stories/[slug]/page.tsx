@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { stories } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
 
-import StoryLikeButton from "@/app/components/StoryLikeButton";
+import StoryLikeButton from "@/app/components/storylikebutton";
 import CommentsSection from "@/app/components/comments/CommentsSection";
 
 type Props = {
@@ -235,4 +235,4 @@ export default async function StoryPage({
 
     </main>
   );
-  }
+    }
