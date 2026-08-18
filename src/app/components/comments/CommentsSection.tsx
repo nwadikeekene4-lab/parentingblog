@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import CommentLikeButton from "@/app/components/comments/CommentLikeButton";
 
 type CommentUser = {
-  id: string;
+  id: string | null;
   displayName: string;
   profileImage: string | null;
 };
@@ -25,6 +25,7 @@ type CommentsSectionProps = {
 };
 
 const MAX_COMMENT_LENGTH = 2000;
+const MAX_ANONYMOUS_NAME_LENGTH = 100;
 
 function formatDate(date: string) {
   const value = new Date(date);
@@ -165,6 +166,9 @@ export default function CommentsSection({
   const [content, setContent] =
     useState("");
 
+  const [anonymousName, setAnonymousName] =
+    useState("");
+
   const [replyTo, setReplyTo] =
     useState<CommentItem | null>(
       null
@@ -233,6 +237,9 @@ export default function CommentsSection({
     const trimmedContent =
       content.trim();
 
+    const trimmedAnonymousName =
+      anonymousName.trim();
+
     if (!trimmedContent) {
       setError(
         "Please enter a comment."
@@ -246,6 +253,16 @@ export default function CommentsSection({
     ) {
       setError(
         `Your comment cannot exceed ${MAX_COMMENT_LENGTH} characters.`
+      );
+      return;
+    }
+
+    if (
+      trimmedAnonymousName.length >
+      MAX_ANONYMOUS_NAME_LENGTH
+    ) {
+      setError(
+        `Your name cannot exceed ${MAX_ANONYMOUS_NAME_LENGTH} characters.`
       );
       return;
     }
@@ -269,6 +286,9 @@ export default function CommentsSection({
                 trimmedContent,
               parentCommentId:
                 replyTo?.id ?? null,
+              anonymousName:
+                trimmedAnonymousName ||
+                null,
             }),
           }
         );
@@ -284,6 +304,7 @@ export default function CommentsSection({
       }
 
       setContent("");
+      setAnonymousName("");
       setReplyTo(null);
 
       await loadComments();
@@ -372,6 +393,22 @@ export default function CommentsSection({
           </div>
         )}
 
+        <input
+          type="text"
+          value={anonymousName}
+          onChange={(event) =>
+            setAnonymousName(
+              event.target.value
+            )
+          }
+          maxLength={
+            MAX_ANONYMOUS_NAME_LENGTH
+          }
+          placeholder="Your name (optional for anonymous visitors)"
+          autoComplete="name"
+          className="mb-3 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+        />
+
         <textarea
           value={content}
           onChange={(event) =>
@@ -392,11 +429,17 @@ export default function CommentsSection({
         />
 
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-[11px] text-gray-400">
-            {content.length.toLocaleString()}{" "}
-            /{" "}
-            {MAX_COMMENT_LENGTH}
-          </span>
+          <div className="flex flex-col gap-1">
+            <span className="text-[11px] text-gray-400">
+              {content.length.toLocaleString()}{" "}
+              /{" "}
+              {MAX_COMMENT_LENGTH}
+            </span>
+
+            <span className="text-[11px] text-gray-400">
+              You can comment without an account.
+            </span>
+          </div>
 
           <button
             type="button"
@@ -473,4 +516,4 @@ export default function CommentsSection({
       )}
     </section>
   );
-                }
+    }
