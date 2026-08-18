@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { stories } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
 
+import StoryLikeButton from "@/app/components/StoryLikeButton";
 import CommentsSection from "@/app/components/comments/CommentsSection";
 
 type Props = {
@@ -220,10 +221,18 @@ export default async function StoryPage({
 
       </section>
 
+      {/* Story Like */}
+
+      {story.status === "published" && (
+        <section className="mx-auto mt-10 flex max-w-3xl justify-center">
+          <StoryLikeButton storyId={story.id} />
+        </section>
+      )}
+
       {/* Comments */}
 
       <CommentsSection storyId={story.id} />
 
     </main>
   );
-        }
+  }
