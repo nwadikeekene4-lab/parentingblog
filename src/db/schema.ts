@@ -469,15 +469,15 @@ anonymousName: varchar("anonymous_name", {
     */
 
     commentIdentityCheck: check(
-      "comments_identity_check",
-      `
-      (
-        ("user_id" IS NOT NULL AND "guest_id" IS NULL)
-        OR
-        ("user_id" IS NULL AND "guest_id" IS NOT NULL)
-      )
-      `
-    ),
+  "comments_identity_check",
+  sql`
+    (
+      ("user_id" IS NOT NULL AND "guest_id" IS NULL)
+      OR
+      ("user_id" IS NULL AND "guest_id" IS NOT NULL)
+    )
+  `
+),
 
     /*
     |--------------------------------------------------------------------------
@@ -679,15 +679,15 @@ export const commentLikes = pgTable(
     */
 
     likeIdentityCheck: check(
-      "comment_likes_identity_check",
-      `
-      (
-        ("user_id" IS NOT NULL AND "guest_id" IS NULL)
-        OR
-        ("user_id" IS NULL AND "guest_id" IS NOT NULL)
-      )
-      `
-    ),
+  "comment_likes_identity_check",
+  sql`
+    (
+      ("user_id" IS NOT NULL AND "guest_id" IS NULL)
+      OR
+      ("user_id" IS NULL AND "guest_id" IS NOT NULL)
+    )
+  `
+),
 
     /*
     |--------------------------------------------------------------------------
