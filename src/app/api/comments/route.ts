@@ -11,6 +11,7 @@ import {
 import { getCurrentUser } from "@/lib/session";
 
 const MAX_COMMENT_LENGTH = 2000;
+const MAX_ANONYMOUS_NAME_LENGTH = 100;
 
 type CommentTreeItem = {
   id: string;
@@ -19,7 +20,7 @@ type CommentTreeItem = {
   createdAt: Date;
   updatedAt: Date;
   user: {
-    id: string;
+    id: string | null;
     displayName: string;
     profileImage: string | null;
   };
@@ -85,6 +86,17 @@ export async function GET(request: Request) {
       );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | LEFT JOIN users
+    |--------------------------------------------------------------------------
+    |
+    | Anonymous comments have userId = null.
+    | Therefore we must use LEFT JOIN instead
+    | of INNER JOIN.
+    |
+    */
+
     const result = await db
       .select({
         id: comments.id,
@@ -95,14 +107,21 @@ export async function GET(request: Request) {
           comments.createdAt,
         updatedAt:
           comments.updatedAt,
-        userId: users.id,
+
+        userId:
+          users.id,
+
         displayName:
           users.displayName,
+
         profileImage:
           users.profileImage,
+
+        anonymousName:
+          comments.anonymousName,
       })
       .from(comments)
-      .innerJoin(
+      .leftJoin(
         users,
         eq(
           comments.userId,
@@ -141,22 +160,40 @@ export async function GET(request: Request) {
       [];
 
     for (const comment of result) {
+      const displayName =
+        comment.userId
+          ? comment.displayName ??
+            "User"
+          : comment.anonymousName ??
+            "Anonymous";
+
       const item: CommentTreeItem = {
         id: comment.id,
-        content: comment.content,
+
+        content:
+          comment.content,
+
         parentCommentId:
           comment.parentCommentId,
+
         createdAt:
           comment.createdAt,
+
         updatedAt:
           comment.updatedAt,
+
         user: {
-          id: comment.userId,
-          displayName:
-            comment.displayName,
+          id:
+            comment.userId ??
+            null,
+
+          displayName,
+
           profileImage:
-            comment.profileImage,
+            comment.profileImage ??
+            null,
         },
+
         replies: [],
       };
 
@@ -169,6 +206,12 @@ export async function GET(request: Request) {
         roots.push(item);
       }
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BUILD COMMENT TREE
+    |--------------------------------------------------------------------------
+    */
 
     for (const comment of result) {
       if (!comment.parentCommentId) {
@@ -227,16 +270,6 @@ export async function POST(
     const user =
       await getCurrentUser();
 
-    if (!user) {
-      return NextResponse.json(
-        {
-          message:
-            "You must be logged in to comment.",
-        },
-        { status: 401 }
-      );
-    }
-
     const body =
       await request.json();
 
@@ -252,6 +285,23 @@ export async function POST(
       cleanText(
         body.parentCommentId
       ) || null;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Anonymous name
+    |--------------------------------------------------------------------------
+    */
+
+    const anonymousName =
+      cleanText(
+        body.anonymousName
+      );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate basic fields
+    |--------------------------------------------------------------------------
+    */
 
     if (!storyId || !content) {
       return NextResponse.json(
@@ -275,6 +325,42 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Anonymous users must provide a name.
+    |--------------------------------------------------------------------------
+    */
+
+    if (!user && !anonymousName) {
+      return NextResponse.json(
+        {
+          message:
+            "Please enter your name.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      !user &&
+      anonymousName.length >
+        MAX_ANONYMOUS_NAME_LENGTH
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            `Name cannot exceed ${MAX_ANONYMOUS_NAME_LENGTH} characters.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get published story
+    |--------------------------------------------------------------------------
+    */
 
     const story =
       await db.query.stories.findFirst({
@@ -307,10 +393,16 @@ export async function POST(
       );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Validate parent comment
+    |--------------------------------------------------------------------------
+    */
+
     let parentComment:
       | {
           id: string;
-          userId: string;
+          userId: string | null;
         }
       | null = null;
 
@@ -353,9 +445,20 @@ export async function POST(
         );
       }
 
+      /*
+      |--------------------------------------------------------------------------
+      | Registered users cannot reply to their own comment.
+      |--------------------------------------------------------------------------
+      |
+      | Anonymous visitors don't have a user ID,
+      | so this restriction cannot be checked for them.
+      |
+      */
+
       if (
+        user &&
         parentComment.userId ===
-        user.id
+          user.id
       ) {
         return NextResponse.json(
           {
@@ -367,62 +470,107 @@ export async function POST(
       }
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Create comment
+    |--------------------------------------------------------------------------
+    */
+
     const [comment] =
       await db
         .insert(comments)
         .values({
           storyId,
-          userId: user.id,
+
+          userId:
+            user?.id ?? null,
+
+          anonymousName:
+            user
+              ? null
+              : anonymousName,
+
           parentCommentId,
+
           content,
+
           isApproved: true,
         })
         .returning({
           id: comments.id,
+
           content:
             comments.content,
+
           parentCommentId:
             comments.parentCommentId,
+
           createdAt:
             comments.createdAt,
+
           updatedAt:
             comments.updatedAt,
+
+          anonymousName:
+            comments.anonymousName,
         });
 
-    const notificationUserId =
-      parentComment
-        ? parentComment.userId
-        : story.authorId;
+    /*
+    |--------------------------------------------------------------------------
+    | Notifications
+    |--------------------------------------------------------------------------
+    |
+    | Anonymous visitors have no account,
+    | therefore they cannot receive notifications.
+    |
+    | Registered users still receive notifications.
+    |
+    */
 
-    if (
-      notificationUserId !==
-      user.id
-    ) {
-      await db
-        .insert(notifications)
-        .values({
-          userId:
-            notificationUserId,
+    if (user) {
+      const notificationUserId =
+        parentComment
+          ? parentComment.userId
+          : story.authorId;
 
-          type: parentComment
-            ? "reply"
-            : "comment",
+      if (
+        notificationUserId &&
+        notificationUserId !==
+          user.id
+      ) {
+        await db
+          .insert(notifications)
+          .values({
+            userId:
+              notificationUserId,
 
-          message:
-            parentComment
-              ? `${user.displayName} replied to your comment on "${story.title}".`
-              : `${user.displayName} commented on "${story.title}".`,
+            type:
+              parentComment
+                ? "reply"
+                : "comment",
 
-          link:
-            `/stories/${story.slug}`,
+            message:
+              parentComment
+                ? `${user.displayName} replied to your comment on "${story.title}".`
+                : `${user.displayName} commented on "${story.title}".`,
 
-          storyId:
-            story.id,
+            link:
+              `/stories/${story.slug}`,
 
-          commentId:
-            comment.id,
-        });
+            storyId:
+              story.id,
+
+            commentId:
+              comment.id,
+          });
+      }
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Response
+    |--------------------------------------------------------------------------
+    */
 
     return NextResponse.json(
       {
@@ -433,21 +581,31 @@ export async function POST(
 
         comment: {
           id: comment.id,
+
           content:
             comment.content,
+
           parentCommentId:
             comment.parentCommentId,
+
           createdAt:
             comment.createdAt,
+
           updatedAt:
             comment.updatedAt,
 
           user: {
-            id: user.id,
+            id:
+              user?.id ??
+              null,
+
             displayName:
-              user.displayName,
+              user?.displayName ??
+              comment.anonymousName ??
+              "Anonymous",
+
             profileImage:
-              user.profileImage ??
+              user?.profileImage ??
               null,
           },
 
@@ -470,4 +628,4 @@ export async function POST(
       { status: 500 }
     );
   }
-        }
+}
