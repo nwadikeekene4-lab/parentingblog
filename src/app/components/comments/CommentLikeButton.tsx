@@ -37,6 +37,11 @@ export default function CommentLikeButton({
 
   const loadLikeStatus =
     useCallback(async () => {
+      if (!commentId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const response =
           await fetch(
@@ -44,7 +49,9 @@ export default function CommentLikeButton({
               commentId
             )}`,
             {
+              method: "GET",
               cache: "no-store",
+              credentials: "same-origin",
             }
           );
 
@@ -91,7 +98,8 @@ export default function CommentLikeButton({
   async function toggleLike() {
     if (
       loading ||
-      toggling
+      toggling ||
+      !commentId
     ) {
       return;
     }
@@ -106,6 +114,10 @@ export default function CommentLikeButton({
 
     /*
      * Optimistic update.
+     *
+     * This makes the button respond
+     * immediately while the server
+     * processes the request.
      */
 
     setLiked(!previousLiked);
@@ -127,10 +139,15 @@ export default function CommentLikeButton({
             method: previousLiked
               ? "DELETE"
               : "POST",
+
             headers: {
               "Content-Type":
                 "application/json",
             },
+
+            credentials:
+              "same-origin",
+
             body: JSON.stringify({
               commentId,
             }),
@@ -147,6 +164,12 @@ export default function CommentLikeButton({
         );
       }
 
+      /*
+       * Use the server's final values.
+       * This keeps the UI synchronized
+       * with the database.
+       */
+
       setLiked(
         Boolean(data.liked)
       );
@@ -157,12 +180,28 @@ export default function CommentLikeButton({
         ) || 0
       );
 
+      /*
+       * Keep the existing notification
+       * refresh behavior for registered
+       * users.
+       *
+       * Anonymous likes do not create
+       * notifications on the server,
+       * so this event is harmless for
+       * anonymous visitors.
+       */
+
       window.dispatchEvent(
         new Event(
           "notificationUpdated"
         )
       );
     } catch (error) {
+      /*
+       * Restore the previous state if
+       * the server request fails.
+       */
+
       setLiked(
         previousLiked
       );
@@ -200,10 +239,16 @@ export default function CommentLikeButton({
         toggling
       }
       aria-pressed={liked}
+      aria-busy={toggling}
       aria-label={
         liked
           ? `Unlike comment. ${likeCount} likes`
           : `Like comment. ${likeCount} likes`
+      }
+      title={
+        liked
+          ? "Unlike comment"
+          : "Like comment"
       }
       className={`inline-flex min-h-7 items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-bold transition ${
         liked
@@ -229,4 +274,4 @@ export default function CommentLikeButton({
       </span>
     </button>
   );
-      }
+}
