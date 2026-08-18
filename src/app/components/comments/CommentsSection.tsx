@@ -159,6 +159,32 @@ export default function CommentsSection({
 
   const [error, setError] = useState("");
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  /*
+  |--------------------------------------------------------------------------
+  | CHECK LOGIN STATUS
+  |--------------------------------------------------------------------------
+  */
+
+  async function checkLoginStatus() {
+    try {
+      const response = await fetch("/api/profile", {
+        cache: "no-store",
+      });
+
+      setIsLoggedIn(response.ok);
+    } catch {
+      setIsLoggedIn(false);
+    }
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | LOAD COMMENTS
+  |--------------------------------------------------------------------------
+  */
+
   async function loadComments() {
     try {
       setLoading(true);
@@ -193,31 +219,64 @@ export default function CommentsSection({
     }
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | INITIAL LOAD
+  |--------------------------------------------------------------------------
+  */
+
   useEffect(() => {
+    checkLoginStatus();
+
     if (storyId) {
       loadComments();
     }
   }, [storyId]);
 
+  /*
+  |--------------------------------------------------------------------------
+  | SUBMIT COMMENT / REPLY
+  |--------------------------------------------------------------------------
+  */
+
   async function submitComment() {
     const trimmedContent = content.trim();
-    const trimmedAnonymousName = anonymousName.trim();
+    const trimmedAnonymousName =
+      anonymousName.trim();
 
     if (!trimmedContent) {
       setError("Please enter a comment.");
       return;
     }
 
-    if (trimmedContent.length > MAX_COMMENT_LENGTH) {
+    if (
+      trimmedContent.length >
+      MAX_COMMENT_LENGTH
+    ) {
       setError(
         `Your comment cannot exceed ${MAX_COMMENT_LENGTH} characters.`
       );
       return;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Anonymous name is only relevant to visitors.
+    |--------------------------------------------------------------------------
+    */
+
     if (
+      !isLoggedIn &&
+      !trimmedAnonymousName
+    ) {
+      setError("Please enter your name.");
+      return;
+    }
+
+    if (
+      !isLoggedIn &&
       trimmedAnonymousName.length >
-      MAX_ANONYMOUS_NAME_LENGTH
+        MAX_ANONYMOUS_NAME_LENGTH
     ) {
       setError(
         `Your name cannot exceed ${MAX_ANONYMOUS_NAME_LENGTH} characters.`
@@ -229,24 +288,40 @@ export default function CommentsSection({
       setSubmitting(true);
       setError("");
 
-      const response = await fetch("/api/comments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          storyId,
-          content: trimmedContent,
-          parentCommentId: replyTo?.id ?? null,
-          anonymousName: trimmedAnonymousName || null,
-        }),
-      });
+      const response = await fetch(
+        "/api/comments",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            storyId,
+            content: trimmedContent,
+            parentCommentId:
+              replyTo?.id ?? null,
 
-      const data = await response.json();
+            /*
+             * Only send anonymousName
+             * when the visitor is not logged in.
+             */
+            anonymousName:
+              !isLoggedIn &&
+              trimmedAnonymousName
+                ? trimmedAnonymousName
+                : null,
+          }),
+        }
+      );
+
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Failed to submit comment."
+          data.message ||
+            "Failed to submit comment."
         );
       }
 
@@ -257,10 +332,15 @@ export default function CommentsSection({
       await loadComments();
 
       window.dispatchEvent(
-        new Event("notificationUpdated")
+        new Event(
+          "notificationUpdated"
+        )
       );
     } catch (error) {
-      console.error("Submit comment error:", error);
+      console.error(
+        "Submit comment error:",
+        error
+      );
 
       setError(
         error instanceof Error
@@ -272,19 +352,29 @@ export default function CommentsSection({
     }
   }
 
-  function handleReply(comment: CommentItem) {
+  /*
+  |--------------------------------------------------------------------------
+  | REPLY
+  |--------------------------------------------------------------------------
+  */
+
+  function handleReply(
+    comment: CommentItem
+  ) {
     setReplyTo(comment);
     setError("");
 
-    const form = document.getElementById(
-      "comments-form"
-    );
+    const form =
+      document.getElementById(
+        "comments-form"
+      );
 
     if (form) {
       window.scrollTo({
         top:
           window.scrollY +
-          form.getBoundingClientRect().top -
+          form.getBoundingClientRect()
+            .top -
           120,
         behavior: "smooth",
       });
@@ -318,7 +408,9 @@ export default function CommentsSection({
 
             <button
               type="button"
-              onClick={() => setReplyTo(null)}
+              onClick={() =>
+                setReplyTo(null)
+              }
               className="shrink-0 text-xs font-bold text-blue-600 transition hover:text-blue-800"
             >
               Cancel
@@ -326,28 +418,45 @@ export default function CommentsSection({
           </div>
         )}
 
-        <input
-          type="text"
-          value={anonymousName}
-          onChange={(event) =>
-            setAnonymousName(event.target.value)
-          }
-          maxLength={MAX_ANONYMOUS_NAME_LENGTH}
-          placeholder="Your name (required if commenting without an account)"
-          autoComplete="name"
-          className="mb-2 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
-        />
+        {/* 
+         * Anonymous name field is shown
+         * ONLY to visitors who are not
+         * logged in.
+         */}
+        {!isLoggedIn && (
+          <>
+            <input
+              type="text"
+              value={anonymousName}
+              onChange={(event) =>
+                setAnonymousName(
+                  event.target.value
+                )
+              }
+              maxLength={
+                MAX_ANONYMOUS_NAME_LENGTH
+              }
+              placeholder="Your name"
+              autoComplete="name"
+              className="mb-2 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+            />
 
-        <p className="mb-3 px-1 text-[11px] text-gray-400">
-          You can comment without creating an account.
-        </p>
+            <p className="mb-3 px-1 text-[11px] text-gray-400">
+              You can comment without creating an account.
+            </p>
+          </>
+        )}
 
         <textarea
           value={content}
           onChange={(event) =>
-            setContent(event.target.value)
+            setContent(
+              event.target.value
+            )
           }
-          maxLength={MAX_COMMENT_LENGTH}
+          maxLength={
+            MAX_COMMENT_LENGTH
+          }
           rows={4}
           placeholder={
             replyTo
@@ -365,9 +474,12 @@ export default function CommentsSection({
 
           <button
             type="button"
-            onClick={submitComment}
+            onClick={
+              submitComment
+            }
             disabled={
-              submitting || !content.trim()
+              submitting ||
+              !content.trim()
             }
             className="min-h-10 rounded-xl bg-blue-600 px-5 text-sm font-bold text-white transition hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -388,22 +500,26 @@ export default function CommentsSection({
 
       {loading ? (
         <div className="space-y-5">
-          {[1, 2, 3].map((item) => (
-            <div
-              key={item}
-              className="flex animate-pulse gap-3"
-            >
-              <div className="h-9 w-9 shrink-0 rounded-full bg-gray-200" />
+          {[1, 2, 3].map(
+            (item) => (
+              <div
+                key={item}
+                className="flex animate-pulse gap-3"
+              >
+                <div className="h-9 w-9 shrink-0 rounded-full bg-gray-200" />
 
-              <div className="flex-1">
-                <div className="h-20 rounded-2xl bg-gray-100" />
+                <div className="flex-1">
+                  <div className="h-20 rounded-2xl bg-gray-100" />
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       ) : comments.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-300 px-5 py-10 text-center">
-          <div className="text-3xl">💬</div>
+          <div className="text-3xl">
+            💬
+          </div>
 
           <p className="mt-3 text-sm font-bold text-gray-800">
             No comments yet
@@ -415,13 +531,17 @@ export default function CommentsSection({
         </div>
       ) : (
         <div className="space-y-6">
-          {comments.map((comment) => (
-            <CommentCard
-              key={comment.id}
-              comment={comment}
-              onReply={handleReply}
-            />
-          ))}
+          {comments.map(
+            (comment) => (
+              <CommentCard
+                key={comment.id}
+                comment={comment}
+                onReply={
+                  handleReply
+                }
+              />
+            )
+          )}
         </div>
       )}
     </section>
