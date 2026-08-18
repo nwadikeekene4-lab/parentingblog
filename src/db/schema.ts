@@ -386,10 +386,13 @@ export const comments = pgTable(
     */
 
     userId: uuid("user_id")
-      .references(() => users.id, {
-        onDelete: "cascade",
-      }),
+  .references(() => users.id, {
+    onDelete: "set null",
+  }),
 
+anonymousName: varchar("anonymous_name", {
+  length: 100,
+}),
     /*
     |--------------------------------------------------------------------------
     | ANONYMOUS VISITOR
