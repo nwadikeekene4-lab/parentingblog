@@ -1096,4 +1096,7 @@ export const passwordResetTokensRelations =
         fields: [
           passwordResetTokens.userId,
         ],
-        references: [users.id
+        references: [users.id],
+      }),
+    })
+  );
