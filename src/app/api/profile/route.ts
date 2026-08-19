@@ -61,6 +61,18 @@ export async function GET() {
 |--------------------------------------------------------------------------
 | PATCH PROFILE
 |--------------------------------------------------------------------------
+|
+| Supports partial updates.
+|
+| Example:
+|
+| { profileImage: "..." }
+|
+| updates ONLY the profile image.
+|
+| Personal information can still be updated by
+| sending displayName, bio, country and state.
+|--------------------------------------------------------------------------
 */
 
 export async function PATCH(request: Request) {
@@ -80,41 +92,58 @@ export async function PATCH(request: Request) {
 
     const body = await request.json();
 
-    const {
-      displayName,
-      bio,
-      country,
-      state,
-      profileImage,
-    } = body;
+    /*
+    |--------------------------------------------------------------------------
+    | Determine which fields were actually supplied.
+    |--------------------------------------------------------------------------
+    */
+
+    const hasDisplayName =
+      Object.prototype.hasOwnProperty.call(
+        body,
+        "displayName"
+      );
+
+    const hasBio =
+      Object.prototype.hasOwnProperty.call(
+        body,
+        "bio"
+      );
+
+    const hasCountry =
+      Object.prototype.hasOwnProperty.call(
+        body,
+        "country"
+      );
+
+    const hasState =
+      Object.prototype.hasOwnProperty.call(
+        body,
+        "state"
+      );
+
+    const hasProfileImage =
+      Object.prototype.hasOwnProperty.call(
+        body,
+        "profileImage"
+      );
 
     /*
     |--------------------------------------------------------------------------
-    | Validate display name
+    | Nothing to update.
     |--------------------------------------------------------------------------
     */
 
     if (
-      typeof displayName !== "string" ||
-      !displayName.trim()
+      !hasDisplayName &&
+      !hasBio &&
+      !hasCountry &&
+      !hasState &&
+      !hasProfileImage
     ) {
       return NextResponse.json(
         {
-          message: "Display name is required.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const newDisplayName = displayName.trim();
-
-    if (newDisplayName.length > 100) {
-      return NextResponse.json(
-        {
-          message:
-            "Display name cannot exceed 100 characters.",
+          message: "No profile changes were provided.",
         },
         {
           status: 400,
@@ -124,29 +153,123 @@ export async function PATCH(request: Request) {
 
     /*
     |--------------------------------------------------------------------------
-    | Normalize values
+    | Prepare updated values.
+    |
+    | If a field was NOT supplied, keep the existing
+    | database value unchanged.
     |--------------------------------------------------------------------------
     */
 
-    const newBio =
-      typeof bio === "string"
-        ? bio.trim() || null
-        : null;
+    let newDisplayName =
+      user.displayName;
 
-    const newCountry =
-      typeof country === "string"
-        ? country.trim() || null
-        : null;
+    let newBio =
+      user.bio ?? null;
 
-    const newState =
-      typeof state === "string"
-        ? state.trim() || null
-        : null;
+    let newCountry =
+      user.country ?? null;
 
-    const newProfileImage =
-      typeof profileImage === "string"
-        ? profileImage.trim() || null
-        : null;
+    let newState =
+      user.state ?? null;
+
+    let newProfileImage =
+      user.profileImage ?? null;
+
+    /*
+    |--------------------------------------------------------------------------
+    | DISPLAY NAME
+    |--------------------------------------------------------------------------
+    */
+
+    if (hasDisplayName) {
+      if (
+        typeof body.displayName !==
+          "string" ||
+        !body.displayName.trim()
+      ) {
+        return NextResponse.json(
+          {
+            message:
+              "Display name is required.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      newDisplayName =
+        body.displayName.trim();
+
+      if (
+        newDisplayName.length > 100
+      ) {
+        return NextResponse.json(
+          {
+            message:
+              "Display name cannot exceed 100 characters.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BIO
+    |--------------------------------------------------------------------------
+    */
+
+    if (hasBio) {
+      newBio =
+        typeof body.bio === "string"
+          ? body.bio.trim() || null
+          : null;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | COUNTRY
+    |--------------------------------------------------------------------------
+    */
+
+    if (hasCountry) {
+      newCountry =
+        typeof body.country ===
+        "string"
+          ? body.country.trim() || null
+          : null;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | STATE
+    |--------------------------------------------------------------------------
+    */
+
+    if (hasState) {
+      newState =
+        typeof body.state ===
+        "string"
+          ? body.state.trim() || null
+          : null;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PROFILE IMAGE
+    |--------------------------------------------------------------------------
+    */
+
+    if (hasProfileImage) {
+      newProfileImage =
+        typeof body.profileImage ===
+        "string"
+          ? body.profileImage.trim() || null
+          : null;
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -155,16 +278,19 @@ export async function PATCH(request: Request) {
     */
 
     const displayNameChanged =
-      user.displayName !== newDisplayName;
+      user.displayName !==
+      newDisplayName;
 
     const bioChanged =
       (user.bio ?? null) !== newBio;
 
     const countryChanged =
-      (user.country ?? null) !== newCountry;
+      (user.country ?? null) !==
+      newCountry;
 
     const stateChanged =
-      (user.state ?? null) !== newState;
+      (user.state ?? null) !==
+      newState;
 
     const profileImageChanged =
       (user.profileImage ?? null) !==
@@ -172,20 +298,48 @@ export async function PATCH(request: Request) {
 
     /*
     |--------------------------------------------------------------------------
-    | SAVE PROFILE FIRST
+    | SAVE ONLY THE SUPPLIED FIELDS
     |--------------------------------------------------------------------------
     */
 
+    const updateData: {
+      displayName?: string;
+      bio?: string | null;
+      country?: string | null;
+      state?: string | null;
+      profileImage?: string | null;
+      updatedAt: Date;
+    } = {
+      updatedAt: new Date(),
+    };
+
+    if (hasDisplayName) {
+      updateData.displayName =
+        newDisplayName;
+    }
+
+    if (hasBio) {
+      updateData.bio = newBio;
+    }
+
+    if (hasCountry) {
+      updateData.country =
+        newCountry;
+    }
+
+    if (hasState) {
+      updateData.state =
+        newState;
+    }
+
+    if (hasProfileImage) {
+      updateData.profileImage =
+        newProfileImage;
+    }
+
     await db
       .update(users)
-      .set({
-        displayName: newDisplayName,
-        bio: newBio,
-        country: newCountry,
-        state: newState,
-        profileImage: newProfileImage,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(users.id, user.id));
 
     /*
@@ -207,38 +361,63 @@ export async function PATCH(request: Request) {
       message: string;
     }[] = [];
 
-    if (displayNameChanged) {
+    if (
+      hasDisplayName &&
+      displayNameChanged
+    ) {
       activities.push({
-        type: "profile_display_name_updated",
-        message: "You updated your display name.",
+        type:
+          "profile_display_name_updated",
+        message:
+          "You updated your display name.",
       });
     }
 
-    if (bioChanged) {
+    if (
+      hasBio &&
+      bioChanged
+    ) {
       activities.push({
-        type: "profile_bio_updated",
-        message: "You updated your bio.",
+        type:
+          "profile_bio_updated",
+        message:
+          "You updated your bio.",
       });
     }
 
-    if (countryChanged) {
+    if (
+      hasCountry &&
+      countryChanged
+    ) {
       activities.push({
-        type: "profile_country_updated",
-        message: "You updated your country.",
+        type:
+          "profile_country_updated",
+        message:
+          "You updated your country.",
       });
     }
 
-    if (stateChanged) {
+    if (
+      hasState &&
+      stateChanged
+    ) {
       activities.push({
-        type: "profile_state_updated",
-        message: "You updated your state.",
+        type:
+          "profile_state_updated",
+        message:
+          "You updated your state.",
       });
     }
 
-    if (profileImageChanged) {
+    if (
+      hasProfileImage &&
+      profileImageChanged
+    ) {
       activities.push({
-        type: "profile_image_updated",
-        message: "You updated your profile picture.",
+        type:
+          "profile_image_updated",
+        message:
+          "You updated your profile picture.",
       });
     }
 
@@ -289,16 +468,21 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json(
       {
-        message: "Profile updated successfully.",
+        message:
+          "Profile updated successfully.",
 
         profile: {
           id: updatedUser.id,
-          displayName: updatedUser.displayName,
+          displayName:
+            updatedUser.displayName,
           email: updatedUser.email,
-          profileImage: updatedUser.profileImage,
+          profileImage:
+            updatedUser.profileImage,
           bio: updatedUser.bio,
-          country: updatedUser.country,
-          state: updatedUser.state,
+          country:
+            updatedUser.country,
+          state:
+            updatedUser.state,
         },
       },
       {
@@ -313,11 +497,12 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json(
       {
-        message: "Failed to update profile.",
+        message:
+          "Failed to update profile.",
       },
       {
         status: 500,
       }
     );
   }
-          }
+            }
