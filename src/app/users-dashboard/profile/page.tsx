@@ -199,64 +199,6 @@ export default function ProfilePage() {
     setUploadingImage(true);
 
     try {
-      const uploaded =
-        await uploadImage(
-          file,
-          "parenting-blog/profile-images"
-        );
-
-      setProfileImage(
-        uploaded.url
-      );
-
-      const response =
-        await fetch(
-          "/api/profile",
-          {
-            method: "PATCH",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body: JSON.stringify({
-              displayName:
-                displayName.trim(),
-
-              bio: bio.trim(),
-
-              country:
-                country.trim(),
-
-              state:
-                state.trim(),
-
-              profileImage:
-                uploaded.url,
-            }),
-          }
-        );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-  async function handleProfilePicture(
-    event: React.ChangeEvent<HTMLInputElement>
-  ) {
-    const file =
-      event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    setMessage("");
-    setErrorMessage("");
-    setUploadingImage(true);
-
-    try {
       /*
       |--------------------------------------------------------------------------
       | Upload image independently
@@ -355,7 +297,7 @@ export default function ProfilePage() {
           "";
       }
     }
-               }
+  }
 
   /*
   |--------------------------------------------------------------------------
@@ -606,8 +548,6 @@ export default function ProfilePage() {
                   👤
                 </div>
               )}
-
-              
             </div>
 
             {/* NAME */}
@@ -830,10 +770,10 @@ export default function ProfilePage() {
               )}
             </button>
           </div>
-                </div>
+        </div>
       </section>
 
-      {/* PROFILE INFORMATION NOTE */}
+        {/* PROFILE INFORMATION NOTE */}
 
       <section className="rounded-2xl border border-blue-100 bg-blue-50/70 px-5 py-5 sm:px-8">
         <div className="flex items-start gap-3">
@@ -856,7 +796,7 @@ export default function ProfilePage() {
         </div>
       </section>
 
-            {/* UNSAVED CHANGES INDICATOR */}
+      {/* UNSAVED CHANGES INDICATOR */}
 
       {hasChanges && (
         <div className="sticky bottom-4 z-20">
@@ -905,4 +845,4 @@ export default function ProfilePage() {
       <div className="h-2 sm:h-4" />
     </div>
   );
-      }
+}
