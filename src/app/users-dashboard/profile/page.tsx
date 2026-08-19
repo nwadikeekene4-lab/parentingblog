@@ -242,49 +242,92 @@ export default function ProfilePage() {
         await response.json();
 
       if (!response.ok) {
+  async function handleProfilePicture(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setMessage("");
+    setErrorMessage("");
+    setUploadingImage(true);
+
+    try {
+      /*
+      |--------------------------------------------------------------------------
+      | Upload image independently
+      |--------------------------------------------------------------------------
+      */
+
+      const uploaded =
+        await uploadImage(
+          file,
+          "parenting-blog/profile-images"
+        );
+
+      /*
+      |--------------------------------------------------------------------------
+      | Update ONLY the profile image.
+      | Do not send or modify display name,
+      | bio, country, or state.
+      |--------------------------------------------------------------------------
+      */
+
+      const response =
+        await fetch(
+          "/api/profile",
+          {
+            method: "PATCH",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              profileImage:
+                uploaded.url,
+            }),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
         throw new Error(
           data.message ??
             "Failed to save profile picture."
         );
       }
 
-      if (data.profile) {
-        const updatedProfile =
-          data.profile as Profile;
+      /*
+      |--------------------------------------------------------------------------
+      | Update only the image locally.
+      |--------------------------------------------------------------------------
+      */
 
-        setProfile(
-          updatedProfile
-        );
+      setProfileImage(
+        uploaded.url
+      );
 
-        setDisplayName(
-          updatedProfile.displayName ??
-            ""
-        );
-
-        setBio(
-          updatedProfile.bio ?? ""
-        );
-
-        setCountry(
-          updatedProfile.country ??
-            ""
-        );
-
-        setState(
-          updatedProfile.state ??
-            ""
-        );
-
-        setProfileImage(
-          updatedProfile.profileImage
-        );
-      }
+      setProfile((current) =>
+        current
+          ? {
+              ...current,
+              profileImage:
+                uploaded.url,
+            }
+          : current
+      );
 
       window.dispatchEvent(
         new Event("profileUpdated")
       );
-
-      setHasChanges(false);
 
       setMessage(
         "Profile picture updated successfully."
@@ -312,7 +355,7 @@ export default function ProfilePage() {
           "";
       }
     }
-  }
+               }
 
   /*
   |--------------------------------------------------------------------------
@@ -564,9 +607,7 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              <div className="absolute bottom-1 right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-sm text-white shadow-sm">
-                ✎
-              </div>
+              
             </div>
 
             {/* NAME */}
