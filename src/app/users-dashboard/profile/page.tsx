@@ -898,7 +898,7 @@ export default function ProfilePage() {
             </button>
                     </div>
         </div>
-      </section>
+      
 
       {/* BOTTOM SPACING */}
 
