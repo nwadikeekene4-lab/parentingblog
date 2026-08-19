@@ -896,14 +896,13 @@ export default function ProfilePage() {
                 "Save Changes"
               )}
             </button>
-          </div>
+                    </div>
         </div>
-      )}
+      </section>
 
       {/* BOTTOM SPACING */}
 
       <div className="h-2 sm:h-4" />
     </div>
   );
-              }
-  
+          }
