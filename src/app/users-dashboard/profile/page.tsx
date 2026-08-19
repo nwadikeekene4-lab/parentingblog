@@ -856,7 +856,7 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {/* UNSAVED CHANGES INDICATOR */}
+            {/* UNSAVED CHANGES INDICATOR */}
 
       {hasChanges && (
         <div className="sticky bottom-4 z-20">
@@ -896,13 +896,13 @@ export default function ProfilePage() {
                 "Save Changes"
               )}
             </button>
-                    </div>
+          </div>
         </div>
-      
+      )}
 
       {/* BOTTOM SPACING */}
 
       <div className="h-2 sm:h-4" />
     </div>
   );
-          
+      }
