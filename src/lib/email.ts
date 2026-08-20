@@ -1,61 +1,108 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(
+  process.env.RESEND_API_KEY
+);
+
+/*
+|--------------------------------------------------------------------------
+| ESCAPE HTML
+|--------------------------------------------------------------------------
+| Prevent user-controlled values from being interpreted as HTML
+| inside notification emails.
+|--------------------------------------------------------------------------
+*/
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/*
+|--------------------------------------------------------------------------
+| SEND VERIFICATION EMAIL
+|--------------------------------------------------------------------------
+*/
 
 export async function sendVerificationEmail(
   email: string,
   token: string
 ) {
   if (!process.env.NEXT_PUBLIC_APP_URL) {
-    throw new Error("NEXT_PUBLIC_APP_URL is not configured.");
+    throw new Error(
+      "NEXT_PUBLIC_APP_URL is not configured."
+    );
   }
 
   if (!process.env.RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY is not configured.");
+    throw new Error(
+      "RESEND_API_KEY is not configured."
+    );
   }
 
   const verificationUrl =
     `${process.env.NEXT_PUBLIC_APP_URL}/verify-email?token=${token}`;
 
-  const { data, error } = await resend.emails.send({
-    from: "Parenting Blog <onboarding@resend.dev>",
-    to: email,
-    subject: "Verify your email address",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto;">
-        <h2>Welcome to Parenting Blog 👋</h2>
+  const { data, error } =
+    await resend.emails.send({
+      from:
+        "Parenting Blog <onboarding@resend.dev>",
 
-        <p>Thank you for creating an account.</p>
+      to: email,
 
-        <p>Please verify your email address by clicking the button below.</p>
+      subject:
+        "Verify your email address",
 
-        <p>
-          <a
-            href="${verificationUrl}"
-            style="
-              display:inline-block;
-              background:#2563eb;
-              color:#ffffff;
-              padding:12px 20px;
-              text-decoration:none;
-              border-radius:6px;
-              font-weight:bold;
-            "
-          >
-            Verify Email
-          </a>
-        </p>
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto;">
+          <h2>Welcome to Parenting Blog 👋</h2>
 
-        <p>This verification link will expire for security reasons.</p>
+          <p>Thank you for creating an account.</p>
 
-        <p>If you didn't create this account, you can safely ignore this email.</p>
+          <p>
+            Please verify your email address by clicking
+            the button below.
+          </p>
 
-        <hr />
+          <p>
+            <a
+              href="${verificationUrl}"
+              style="
+                display:inline-block;
+                background:#2563eb;
+                color:#ffffff;
+                padding:12px 20px;
+                text-decoration:none;
+                border-radius:6px;
+                font-weight:bold;
+              "
+            >
+              Verify Email
+            </a>
+          </p>
 
-        <small>Parenting Blog Security Team</small>
-      </div>
-    `,
-  });
+          <p>
+            This verification link will expire for
+            security reasons.
+          </p>
+
+          <p>
+            If you didn't create this account,
+            you can safely ignore this email.
+          </p>
+
+          <hr />
+
+          <small>
+            Parenting Blog Security Team
+          </small>
+        </div>
+      `,
+    });
 
   if (error) {
     throw new Error(error.message);
@@ -63,6 +110,112 @@ export async function sendVerificationEmail(
 
   return data;
 }
+
+/*
+|--------------------------------------------------------------------------
+| SEND PASSWORD RESET EMAIL
+|--------------------------------------------------------------------------
+*/
+
+export async function sendPasswordResetEmail(
+  email: string,
+  token: string
+) {
+  if (!process.env.NEXT_PUBLIC_APP_URL) {
+    throw new Error(
+      "NEXT_PUBLIC_APP_URL is not configured."
+    );
+  }
+
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error(
+      "RESEND_API_KEY is not configured."
+    );
+  }
+
+  const resetUrl =
+    `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
+
+  const { data, error } =
+    await resend.emails.send({
+      from:
+        "Parenting Blog <onboarding@resend.dev>",
+
+      to: email,
+
+      subject:
+        "Reset your password",
+
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto;">
+          <h2>Password Reset Request</h2>
+
+          <p>
+            We received a request to reset your password.
+          </p>
+
+          <p>
+            Click the button below to choose a new password.
+          </p>
+
+          <p>
+            <a
+              href="${resetUrl}"
+              style="
+                display:inline-block;
+                background:#2563eb;
+                color:#ffffff;
+                padding:12px 20px;
+                text-decoration:none;
+                border-radius:6px;
+                font-weight:bold;
+              "
+            >
+              Reset Password
+            </a>
+          </p>
+
+          <p>
+            This link expires in 1 hour.
+          </p>
+
+          <p>
+            If you didn't request this password reset,
+            you can safely ignore this email.
+          </p>
+
+          <hr />
+
+          <small>
+            Parenting Blog Security Team
+          </small>
+        </div>
+      `,
+    });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+/*
+|--------------------------------------------------------------------------
+| SEND NOTIFICATION EMAIL
+|--------------------------------------------------------------------------
+| Used for website notifications such as:
+|
+| - Comments
+| - Replies
+| - Likes
+| - Bookmarks
+| - System notifications
+|
+| The caller must check emailNotifications before
+| calling this function.
+|--------------------------------------------------------------------------
+*/
 
 export async function sendNotificationEmail(
   email: string,
@@ -92,8 +245,24 @@ export async function sendNotificationEmail(
     notificationLink
       ? notificationLink.startsWith("http")
         ? notificationLink
-        : `${appUrl}${notificationLink.startsWith("/") ? "" : "/"}${notificationLink}`
+        : `${appUrl}${
+            notificationLink.startsWith("/")
+              ? ""
+              : "/"
+          }${notificationLink}`
       : appUrl;
+
+  /*
+  |--------------------------------------------------------------------------
+  | Escape user-controlled values
+  |--------------------------------------------------------------------------
+  */
+
+  const safeDisplayName =
+    escapeHtml(displayName);
+
+  const safeNotificationMessage =
+    escapeHtml(notificationMessage);
 
   const { data, error } =
     await resend.emails.send({
@@ -126,11 +295,11 @@ export async function sendNotificationEmail(
           </h2>
 
           <p>
-            Hello ${displayName},
+            Hello ${safeDisplayName},
           </p>
 
           <p>
-            ${notificationMessage}
+            ${safeNotificationMessage}
           </p>
 
           <p style="margin: 24px 0;">
@@ -180,4 +349,4 @@ export async function sendNotificationEmail(
   }
 
   return data;
-    }
+}
