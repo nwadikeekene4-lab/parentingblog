@@ -8,7 +8,9 @@ import {
   users,
   notifications,
 } from "@/db/schema";
+
 import { getCurrentUser } from "@/lib/session";
+import { sendNotificationEmail } from "@/lib/email";
 
 const MAX_COMMENT_LENGTH = 2000;
 const MAX_ANONYMOUS_NAME_LENGTH = 100;
@@ -517,14 +519,16 @@ export async function POST(
 
     /*
     |--------------------------------------------------------------------------
-    | Notifications
+    | NOTIFICATIONS
     |--------------------------------------------------------------------------
     |
-    | Anonymous visitors have no account,
-    | therefore they cannot receive notifications.
+    | Registered users receive an in-app notification.
     |
-    | Registered users still receive notifications.
+    | If the recipient has emailNotifications enabled,
+    | the same notification is also sent by email.
     |
+    | Anonymous visitors cannot receive notifications.
+    |--------------------------------------------------------------------------
     */
 
     if (user) {
@@ -533,11 +537,36 @@ export async function POST(
           ? parentComment.userId
           : story.authorId;
 
+      /*
+      |--------------------------------------------------------------------------
+      | Do not notify the user about their own action.
+      |--------------------------------------------------------------------------
+      */
+
       if (
         notificationUserId &&
         notificationUserId !==
           user.id
       ) {
+        const notificationType =
+          parentComment
+            ? "reply"
+            : "comment";
+
+        const notificationMessage =
+          parentComment
+            ? `${user.displayName} replied to your comment on "${story.title}".`
+            : `${user.displayName} commented on "${story.title}".`;
+
+        const notificationLink =
+          `/stories/${story.slug}`;
+
+        /*
+        |--------------------------------------------------------------------------
+        | 1. Create in-app notification
+        |--------------------------------------------------------------------------
+        */
+
         await db
           .insert(notifications)
           .values({
@@ -545,17 +574,13 @@ export async function POST(
               notificationUserId,
 
             type:
-              parentComment
-                ? "reply"
-                : "comment",
+              notificationType,
 
             message:
-              parentComment
-                ? `${user.displayName} replied to your comment on "${story.title}".`
-                : `${user.displayName} commented on "${story.title}".`,
+              notificationMessage,
 
             link:
-              `/stories/${story.slug}`,
+              notificationLink,
 
             storyId:
               story.id,
@@ -563,6 +588,55 @@ export async function POST(
             commentId:
               comment.id,
           });
+
+        /*
+        |--------------------------------------------------------------------------
+        | 2. Get recipient email settings
+        |--------------------------------------------------------------------------
+        */
+
+        const recipient =
+          await db.query.users.findFirst({
+            where: eq(
+              users.id,
+              notificationUserId
+            ),
+            columns: {
+              email: true,
+              displayName: true,
+              emailNotifications:
+                true,
+            },
+          });
+
+        /*
+        |--------------------------------------------------------------------------
+        | 3. Send email only when enabled
+        |--------------------------------------------------------------------------
+        |
+        | If sending the email fails, the comment/reply
+        | remains successful.
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+          recipient &&
+          recipient.emailNotifications
+        ) {
+          try {
+            await sendNotificationEmail(
+              recipient.email,
+              recipient.displayName,
+              notificationMessage,
+              notificationLink
+            );
+          } catch (emailError) {
+            console.error(
+              "Notification email error:",
+              emailError
+            );
+          }
+        }
       }
     }
 
@@ -628,4 +702,4 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+  }
