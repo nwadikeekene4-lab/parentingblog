@@ -11,9 +11,11 @@ import {
   storyImages,
   storyLikes,
   comments,
+  notifications,
 } from "@/db/schema";
 
 import { getCurrentUser } from "@/lib/session";
+import { sendNotificationEmail } from "@/lib/email";
 
 
 /*
@@ -25,15 +27,10 @@ import { getCurrentUser } from "@/lib/session";
 */
 
 export async function GET() {
-
   try {
-
-    const user =
-      await getCurrentUser();
-
+    const user = await getCurrentUser();
 
     if (!user) {
-
       return NextResponse.json(
         {
           message: "Unauthorized",
@@ -42,20 +39,16 @@ export async function GET() {
           status: 401,
         }
       );
-
     }
-
 
     const bookmarkedStories =
       await db
         .select({
-
           bookmarkId:
             storyBookmarks.id,
 
           bookmarkedAt:
             storyBookmarks.createdAt,
-
 
           id:
             stories.id,
@@ -90,7 +83,6 @@ export async function GET() {
           updatedAt:
             stories.updatedAt,
 
-
           authorId:
             users.id,
 
@@ -103,7 +95,6 @@ export async function GET() {
           authorBio:
             users.bio,
 
-
           categoryId:
             categories.id,
 
@@ -112,7 +103,6 @@ export async function GET() {
 
           categorySlug:
             categories.slug,
-
 
           likes:
             sql<number>`
@@ -124,7 +114,6 @@ export async function GET() {
                   = ${stories.id}
               )
             `,
-
 
           comments:
             sql<number>`
@@ -139,7 +128,6 @@ export async function GET() {
               )
             `,
 
-
           bookmarkCount:
             sql<number>`
               (
@@ -150,7 +138,6 @@ export async function GET() {
                   = ${stories.id}
               )
             `,
-
         })
 
         .from(storyBookmarks)
@@ -181,7 +168,6 @@ export async function GET() {
 
         .where(
           and(
-
             eq(
               storyBookmarks.userId,
               user.id
@@ -196,7 +182,6 @@ export async function GET() {
               stories.isDeleted,
               false
             )
-
           )
         )
 
@@ -206,11 +191,9 @@ export async function GET() {
           )
         );
 
-
     if (
       bookmarkedStories.length === 0
     ) {
-
       return NextResponse.json(
         {
           bookmarks: [],
@@ -219,21 +202,16 @@ export async function GET() {
           status: 200,
         }
       );
-
     }
-
 
     const storyIds =
       bookmarkedStories.map(
-        (story) =>
-          story.id
+        (story) => story.id
       );
-
 
     const additionalImages =
       await db
         .select({
-
           id:
             storyImages.id,
 
@@ -254,7 +232,6 @@ export async function GET() {
 
           createdAt:
             storyImages.createdAt,
-
         })
 
         .from(storyImages)
@@ -270,50 +247,40 @@ export async function GET() {
           storyImages.displayOrder
         );
 
-
     const imagesByStory =
       new Map<
         string,
         typeof additionalImages
       >();
 
-
     for (
       const image of additionalImages
     ) {
-
       const existingImages =
         imagesByStory.get(
           image.storyId
         ) ?? [];
 
-
       existingImages.push(
         image
       );
-
 
       imagesByStory.set(
         image.storyId,
         existingImages
       );
-
     }
-
 
     const formattedBookmarks =
       bookmarkedStories.map(
         (story) => ({
-
           bookmarkId:
             story.bookmarkId,
 
           bookmarkedAt:
             story.bookmarkedAt,
 
-
           story: {
-
             id:
               story.id,
 
@@ -364,9 +331,7 @@ export async function GET() {
             updatedAt:
               story.updatedAt,
 
-
             author: {
-
               id:
                 story.authorId,
 
@@ -378,12 +343,9 @@ export async function GET() {
 
               bio:
                 story.authorBio,
-
             },
 
-
             category: {
-
               id:
                 story.categoryId,
 
@@ -392,20 +354,15 @@ export async function GET() {
 
               slug:
                 story.categorySlug,
-
             },
-
 
             images:
               imagesByStory.get(
                 story.id
               ) ?? [],
-
           },
-
         })
       );
-
 
     return NextResponse.json(
       {
@@ -416,15 +373,11 @@ export async function GET() {
         status: 200,
       }
     );
-
-
   } catch (error) {
-
     console.error(
       "Fetch bookmarks error:",
       error
     );
-
 
     return NextResponse.json(
       {
@@ -435,9 +388,7 @@ export async function GET() {
         status: 500,
       }
     );
-
   }
-
 }
 
 
@@ -446,43 +397,43 @@ export async function GET() {
 | POST
 |--------------------------------------------------------------------------
 | Add a story to the current user's bookmarks.
+|
+| Also:
+| 1. Creates an in-site notification for the story author.
+| 2. Checks the author's emailNotifications setting.
+| 3. Sends an email when email notifications are enabled.
 |--------------------------------------------------------------------------
 */
 
 export async function POST(
   request: Request
 ) {
-
   try {
-
     const user =
       await getCurrentUser();
 
-
     if (!user) {
-
       return NextResponse.json(
         {
-          message: "Unauthorized",
+          message:
+            "Unauthorized",
         },
         {
           status: 401,
         }
       );
-
     }
-
 
     const body =
       await request.json();
 
-
     const storyId =
       body.storyId;
 
-
-    if (!storyId) {
-
+    if (
+      !storyId ||
+      typeof storyId !== "string"
+    ) {
       return NextResponse.json(
         {
           message:
@@ -492,9 +443,7 @@ export async function POST(
           status: 400,
         }
       );
-
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -504,9 +453,7 @@ export async function POST(
 
     const story =
       await db.query.stories.findFirst({
-
         where: and(
-
           eq(
             stories.id,
             storyId
@@ -521,14 +468,17 @@ export async function POST(
             stories.isDeleted,
             false
           )
-
         ),
 
+        columns: {
+          id: true,
+          title: true,
+          slug: true,
+          authorId: true,
+        },
       });
 
-
     if (!story) {
-
       return NextResponse.json(
         {
           message:
@@ -538,9 +488,7 @@ export async function POST(
           status: 404,
         }
       );
-
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -559,7 +507,6 @@ export async function POST(
 
         .where(
           and(
-
             eq(
               storyBookmarks.storyId,
               storyId
@@ -569,17 +516,14 @@ export async function POST(
               storyBookmarks.userId,
               user.id
             )
-
           )
         )
 
         .limit(1);
 
-
     if (
       existingBookmark.length > 0
     ) {
-
       return NextResponse.json(
         {
           message:
@@ -589,9 +533,7 @@ export async function POST(
           status: 200,
         }
       );
-
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -603,16 +545,12 @@ export async function POST(
       await db
         .insert(storyBookmarks)
         .values({
-
           storyId,
 
           userId:
             user.id,
-
         })
-
         .returning({
-
           id:
             storyBookmarks.id,
 
@@ -621,9 +559,125 @@ export async function POST(
 
           createdAt:
             storyBookmarks.createdAt,
-
         });
 
+    /*
+    |--------------------------------------------------------------------------
+    | Notify the story author.
+    |--------------------------------------------------------------------------
+    |
+    | Do not notify the author when they bookmark
+    | their own story.
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      story.authorId !==
+      user.id
+    ) {
+      /*
+      |--------------------------------------------------------------------------
+      | Get the author's email notification preference.
+      |--------------------------------------------------------------------------
+      */
+
+      const author =
+        await db.query.users.findFirst({
+          where: eq(
+            users.id,
+            story.authorId
+          ),
+
+          columns: {
+            id: true,
+            email: true,
+            displayName: true,
+            emailNotifications: true,
+          },
+        });
+
+      /*
+      |--------------------------------------------------------------------------
+      | Create the normal in-site notification.
+      |--------------------------------------------------------------------------
+      */
+
+      const notificationMessage =
+        `${user.displayName} bookmarked your story "${story.title}".`;
+
+      const notificationLink =
+        `/stories/${story.slug}`;
+
+      const [notification] =
+        await db
+          .insert(
+            notifications
+          )
+          .values({
+            userId:
+              story.authorId,
+
+            type:
+              "bookmark",
+
+            message:
+              notificationMessage,
+
+            link:
+              notificationLink,
+
+            storyId:
+              story.id,
+          })
+          .returning({
+            id:
+              notifications.id,
+          });
+
+      /*
+      |--------------------------------------------------------------------------
+      | Send email only when the author has enabled
+      | email notifications.
+      |--------------------------------------------------------------------------
+      */
+
+      if (
+        author &&
+        author.emailNotifications
+      ) {
+        try {
+          await sendNotificationEmail(
+            author.email,
+            author.displayName,
+            notificationMessage,
+            notificationLink
+          );
+        } catch (emailError) {
+          /*
+          |--------------------------------------------------------------------------
+          | Email failure must NOT break the bookmark.
+          |
+          | The bookmark and in-site notification have already
+          | succeeded, so we only log the email error.
+          |--------------------------------------------------------------------------
+          */
+
+          console.error(
+            "Bookmark notification email failed:",
+            emailError
+          );
+        }
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Prevent unused-variable warnings while keeping
+      | the created notification available for future use.
+      |--------------------------------------------------------------------------
+      */
+
+      void notification;
+    }
 
     return NextResponse.json(
       {
@@ -631,21 +685,16 @@ export async function POST(
           "Story bookmarked successfully.",
 
         bookmark,
-
       },
       {
         status: 201,
       }
     );
-
-
   } catch (error) {
-
     console.error(
       "Create bookmark error:",
       error
     );
-
 
     return NextResponse.json(
       {
@@ -656,9 +705,7 @@ export async function POST(
         status: 500,
       }
     );
-
   }
-
 }
 
 
@@ -673,37 +720,29 @@ export async function POST(
 export async function DELETE(
   request: Request
 ) {
-
   try {
-
     const user =
       await getCurrentUser();
 
-
     if (!user) {
-
       return NextResponse.json(
         {
-          message: "Unauthorized",
+          message:
+            "Unauthorized",
         },
         {
           status: 401,
         }
       );
-
     }
-
 
     const body =
       await request.json();
 
-
     const storyId =
       body.storyId;
 
-
     if (!storyId) {
-
       return NextResponse.json(
         {
           message:
@@ -713,9 +752,7 @@ export async function DELETE(
           status: 400,
         }
       );
-
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -725,11 +762,12 @@ export async function DELETE(
 
     const deletedBookmark =
       await db
-        .delete(storyBookmarks)
+        .delete(
+          storyBookmarks
+        )
 
         .where(
           and(
-
             eq(
               storyBookmarks.storyId,
               storyId
@@ -739,7 +777,6 @@ export async function DELETE(
               storyBookmarks.userId,
               user.id
             )
-
           )
         )
 
@@ -748,11 +785,9 @@ export async function DELETE(
             storyBookmarks.id,
         });
 
-
     if (
       deletedBookmark.length === 0
     ) {
-
       return NextResponse.json(
         {
           message:
@@ -762,9 +797,7 @@ export async function DELETE(
           status: 404,
         }
       );
-
     }
-
 
     return NextResponse.json(
       {
@@ -775,15 +808,11 @@ export async function DELETE(
         status: 200,
       }
     );
-
-
   } catch (error) {
-
     console.error(
       "Delete bookmark error:",
       error
     );
-
 
     return NextResponse.json(
       {
@@ -794,7 +823,5 @@ export async function DELETE(
         status: 500,
       }
     );
-
   }
-
           }
