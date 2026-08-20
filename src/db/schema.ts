@@ -112,6 +112,10 @@ export const users = pgTable("users", {
     .default(false)
     .notNull(),
 
+  emailNotifications: boolean("email_notifications")
+    .default(true)
+    .notNull(),
+
   isActive: boolean("is_active")
     .default(true)
     .notNull(),
@@ -124,7 +128,6 @@ export const users = pgTable("users", {
     .defaultNow()
     .notNull(),
 });
-
 export const sessions = pgTable("sessions", {
   id: uuid("id")
     .defaultRandom()
