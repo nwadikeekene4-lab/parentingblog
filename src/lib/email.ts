@@ -64,64 +64,120 @@ export async function sendVerificationEmail(
   return data;
 }
 
-export async function sendPasswordResetEmail(
+export async function sendNotificationEmail(
   email: string,
-  token: string
+  displayName: string,
+  notificationMessage: string,
+  notificationLink?: string | null
 ) {
   if (!process.env.NEXT_PUBLIC_APP_URL) {
-    throw new Error("NEXT_PUBLIC_APP_URL is not configured.");
+    throw new Error(
+      "NEXT_PUBLIC_APP_URL is not configured."
+    );
   }
 
   if (!process.env.RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY is not configured.");
+    throw new Error(
+      "RESEND_API_KEY is not configured."
+    );
   }
 
-  const resetUrl =
-    `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL.replace(
+      /\/$/,
+      ""
+    );
 
-  const { data, error } = await resend.emails.send({
-    from: "Parenting Blog <onboarding@resend.dev>",
-    to: email,
-    subject: "Reset your password",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto;">
-        <h2>Password Reset Request</h2>
+  const fullNotificationUrl =
+    notificationLink
+      ? notificationLink.startsWith("http")
+        ? notificationLink
+        : `${appUrl}${notificationLink.startsWith("/") ? "" : "/"}${notificationLink}`
+      : appUrl;
 
-        <p>We received a request to reset your password.</p>
+  const { data, error } =
+    await resend.emails.send({
+      from:
+        "Parenting Blog <onboarding@resend.dev>",
 
-        <p>Click the button below to choose a new password.</p>
+      to: email,
 
-        <p>
-          <a
-            href="${resetUrl}"
+      subject:
+        "New notification from Parenting Blog",
+
+      html: `
+        <div
+          style="
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #111827;
+          "
+        >
+
+          <h2
             style="
-              display:inline-block;
-              background:#2563eb;
-              color:#ffffff;
-              padding:12px 20px;
-              text-decoration:none;
-              border-radius:6px;
-              font-weight:bold;
+              margin-bottom: 16px;
+              color: #111827;
             "
           >
-            Reset Password
-          </a>
-        </p>
+            You have a new notification 🔔
+          </h2>
 
-        <p>This link expires in 1 hour.</p>
+          <p>
+            Hello ${displayName},
+          </p>
 
-        <p>If you didn't request a password reset, you can safely ignore this email.</p>
+          <p>
+            ${notificationMessage}
+          </p>
 
-        <hr />
+          <p style="margin: 24px 0;">
+            <a
+              href="${fullNotificationUrl}"
+              style="
+                display: inline-block;
+                background: #2563eb;
+                color: #ffffff;
+                padding: 12px 20px;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: bold;
+              "
+            >
+              View Notification
+            </a>
+          </p>
 
-        <small>Parenting Blog Security Team</small>
-      </div>
-    `,
-  });
+          <p
+            style="
+              color: #6b7280;
+              font-size: 13px;
+            "
+          >
+            You are receiving this email because
+            email notifications are enabled for your
+            Parenting Blog account.
+          </p>
+
+          <hr />
+
+          <small
+            style="
+              color: #6b7280;
+            "
+          >
+            Parenting Blog
+          </small>
+
+        </div>
+      `,
+    });
 
   if (error) {
     throw new Error(error.message);
   }
 
   return data;
-}
+    }
