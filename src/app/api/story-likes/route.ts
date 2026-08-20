@@ -6,9 +6,11 @@ import {
   notifications,
   stories,
   storyLikes,
+  users,
 } from "@/db/schema";
 
 import { getCurrentUser } from "@/lib/session";
+import { sendNotificationEmail } from "@/lib/email";
 
 
 // ============================================================
@@ -155,6 +157,7 @@ export async function POST(request: NextRequest) {
         authorId: stories.authorId,
         slug: stories.slug,
         status: stories.status,
+        title: stories.title,
       })
       .from(stories)
       .where(
@@ -227,20 +230,82 @@ export async function POST(request: NextRequest) {
       userId: user.id,
     });
 
-    // Notify the story author.
-    // The author should NOT receive a notification
+    // ========================================================
+    // NOTIFICATIONS
+    // ========================================================
+    //
+    // The story author receives:
+    // 1. An in-site notification.
+    // 2. An email only when emailNotifications is enabled.
+    //
+    // The author does NOT receive either notification
     // when liking their own story.
+    // ========================================================
+
     if (story.authorId !== user.id) {
+      const [author] = await db
+        .select({
+          email: users.email,
+          displayName: users.displayName,
+          emailNotifications:
+            users.emailNotifications,
+        })
+        .from(users)
+        .where(
+          eq(users.id, story.authorId)
+        )
+        .limit(1);
+
+      const notificationMessage =
+        `${user.displayName} liked your story "${story.title}".`;
+
+      const notificationLink =
+        `/stories/${story.slug}`;
+
+      // --------------------------------------------------------
+      // Create the in-site notification.
+      // --------------------------------------------------------
+
       await db
         .insert(notifications)
         .values({
           userId: story.authorId,
+
           type: "like",
+
           message:
-            "Someone liked your story.",
-          link: `/stories/${story.slug}`,
+            notificationMessage,
+
+          link:
+            notificationLink,
+
           storyId: story.id,
         });
+
+      // --------------------------------------------------------
+      // Send email only if the user enabled email notifications.
+      // --------------------------------------------------------
+
+      if (
+        author &&
+        author.emailNotifications
+      ) {
+        try {
+          await sendNotificationEmail(
+            author.email,
+            author.displayName,
+            notificationMessage,
+            notificationLink
+          );
+        } catch (emailError) {
+          // The like and in-site notification must not fail
+          // just because the email service failed.
+          console.error(
+            "Failed to send like notification email:",
+            emailError
+          );
+        }
+      }
     }
 
     // Get updated like count.
@@ -361,4 +426,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-        }
+  }
