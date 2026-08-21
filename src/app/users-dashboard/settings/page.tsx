@@ -101,22 +101,23 @@ export default function SettingsPage() {
   */
 
   const passwordStrengthScore = [
-    passwordLengthValid,
-    hasUppercase,
-    hasLowercase,
-    hasNumber,
-    hasSpecialCharacter,
-  ].filter(Boolean).length;
+  passwordLengthValid,
+  hasUppercase,
+  hasLowercase,
+  hasNumber,
+  hasSpecialCharacter,
+].filter(Boolean).length;
 
-  const passwordStrengthLabel =
-    newPassword.length === 0
-      ? ""
-      : passwordStrengthScore <= 2
-      ? "Weak"
-      : passwordStrengthScore <= 4
-      ? "Medium"
-      : "Strong";
-
+const passwordStrengthLabel =
+  newPassword.length === 0
+    ? ""
+    : passwordStrengthScore <= 1
+    ? "Weak"
+    : passwordStrengthScore <= 2
+    ? "Fair"
+    : passwordStrengthScore <= 4
+    ? "Good"
+    : "Strong";
   /*
   |--------------------------------------------------------------------------
   | LOAD SETTINGS
