@@ -1,78 +1,270 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { db } from "@/db";
-import { passwordResetTokens, users, sessions } from "@/db/schema";
+import {
+  passwordResetTokens,
+  users,
+  sessions,
+} from "@/db/schema";
+
 import { eq } from "drizzle-orm";
+
 import { hashPassword } from "@/lib/auth";
 
-export async function POST(request: NextRequest) {
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 128;
+
+function validatePasswordStrength(
+  password: string
+): string | null {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`;
+  }
+
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    return `Password cannot exceed ${MAX_PASSWORD_LENGTH} characters.`;
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return "Password must contain at least one uppercase letter.";
+  }
+
+  if (!/[a-z]/.test(password)) {
+    return "Password must contain at least one lowercase letter.";
+  }
+
+  if (!/[0-9]/.test(password)) {
+    return "Password must contain at least one number.";
+  }
+
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return "Password must contain at least one special character.";
+  }
+
+  return null;
+}
+
+export async function POST(
+  request: NextRequest
+) {
   try {
-    const { token, password } = await request.json();
+    /*
+    |--------------------------------------------------------------------------
+    | 1. Read request body
+    |--------------------------------------------------------------------------
+    */
+
+    let body: {
+      token?: unknown;
+      password?: unknown;
+    };
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          message: "Invalid request.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const token =
+      typeof body.token === "string"
+        ? body.token.trim()
+        : "";
+
+    const password =
+      typeof body.password === "string"
+        ? body.password
+        : "";
+
+    /*
+    |--------------------------------------------------------------------------
+    | 2. Validate required fields
+    |--------------------------------------------------------------------------
+    */
 
     if (!token || !password) {
       return NextResponse.json(
-        { message: "Invalid request." },
-        { status: 400 }
+        {
+          message:
+            "Reset token and password are required.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    if (password.length < 8) {
+    /*
+    |--------------------------------------------------------------------------
+    | 3. Validate password strength
+    |--------------------------------------------------------------------------
+    */
+
+    const passwordStrengthError =
+      validatePasswordStrength(password);
+
+    if (passwordStrengthError) {
       return NextResponse.json(
-        { message: "Password must be at least 8 characters." },
-        { status: 400 }
+        {
+          message: passwordStrengthError,
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    const resetToken = await db.query.passwordResetTokens.findFirst({
-      where: eq(passwordResetTokens.token, token),
-    });
+    /*
+    |--------------------------------------------------------------------------
+    | 4. Find reset token
+    |--------------------------------------------------------------------------
+    */
+
+    const resetToken =
+      await db.query.passwordResetTokens.findFirst({
+        where: eq(
+          passwordResetTokens.token,
+          token
+        ),
+      });
 
     if (!resetToken) {
       return NextResponse.json(
-        { message: "Invalid or expired reset link." },
-        { status: 400 }
+        {
+          message:
+            "Invalid or expired reset link.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    if (new Date() > resetToken.expiresAt) {
+    /*
+    |--------------------------------------------------------------------------
+    | 5. Check token expiration
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      new Date() >
+      resetToken.expiresAt
+    ) {
       await db
         .delete(passwordResetTokens)
-        .where(eq(passwordResetTokens.id, resetToken.id));
+        .where(
+          eq(
+            passwordResetTokens.id,
+            resetToken.id
+          )
+        );
 
       return NextResponse.json(
-        { message: "Invalid or expired reset link." },
-        { status: 400 }
+        {
+          message:
+            "Invalid or expired reset link.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    const hashedPassword = await hashPassword(password);
+    /*
+    |--------------------------------------------------------------------------
+    | 6. Hash new password
+    |--------------------------------------------------------------------------
+    */
 
-    await db
-      .update(users)
-      .set({
-        passwordHash: hashedPassword,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, resetToken.userId));
+    const hashedPassword =
+      await hashPassword(password);
 
-    // Log out all devices after password change
-    await db
-      .delete(sessions)
-      .where(eq(sessions.userId, resetToken.userId));
+    /*
+    |--------------------------------------------------------------------------
+    | 7. Update password and invalidate sessions
+    |--------------------------------------------------------------------------
+    */
 
-    // Delete used reset token
-    await db
-      .delete(passwordResetTokens)
-      .where(eq(passwordResetTokens.id, resetToken.id));
+    await db.transaction(async (tx) => {
+      /*
+      | Update user's password.
+      */
 
-    return NextResponse.json({
-      message: "Password reset successful. Please login again.",
+      await tx
+        .update(users)
+        .set({
+          passwordHash: hashedPassword,
+          updatedAt: new Date(),
+        })
+        .where(
+          eq(
+            users.id,
+            resetToken.userId
+          )
+        );
+
+      /*
+      | Log out all existing sessions.
+      */
+
+      await tx
+        .delete(sessions)
+        .where(
+          eq(
+            sessions.userId,
+            resetToken.userId
+          )
+        );
+
+      /*
+      | Delete the used reset token.
+      */
+
+      await tx
+        .delete(passwordResetTokens)
+        .where(
+          eq(
+            passwordResetTokens.id,
+            resetToken.id
+          )
+        );
     });
-  } catch (error) {
-    console.error("Reset password error:", error);
+
+    /*
+    |--------------------------------------------------------------------------
+    | 8. Success
+    |--------------------------------------------------------------------------
+    */
 
     return NextResponse.json(
-      { message: "Something went wrong." },
-      { status: 500 }
+      {
+        message:
+          "Password reset successful. Please login again.",
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (error) {
+    console.error(
+      "Reset password error:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        message:
+          "Something went wrong.",
+      },
+      {
+        status: 500,
+      }
     );
   }
-  }
+      }
