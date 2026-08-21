@@ -873,14 +873,17 @@ const passwordStrengthLabel =
 
                       <span
                         className={`text-xs font-semibold ${
-                          passwordStrengthLabel ===
-                          "Strong"
-                            ? "text-green-600"
-                            : passwordStrengthLabel ===
-                              "Medium"
-                            ? "text-yellow-600"
-                            : "text-red-600"
-                        }`}
+  passwordStrengthLabel ===
+    "Strong"
+    ? "text-green-600"
+    : passwordStrengthLabel ===
+      "Good"
+    ? "text-blue-600"
+    : passwordStrengthLabel ===
+      "Fair"
+    ? "text-yellow-600"
+    : "text-red-600"
+}`}
                       >
                         {passwordStrengthLabel}
                       </span>
