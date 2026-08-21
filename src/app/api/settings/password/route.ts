@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
@@ -16,6 +16,36 @@ import { getCurrentUser } from "@/lib/session";
 
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 128;
+
+function validatePasswordStrength(
+  password: string
+): string | null {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return `New password must be at least ${MIN_PASSWORD_LENGTH} characters long.`;
+  }
+
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    return `New password cannot exceed ${MAX_PASSWORD_LENGTH} characters.`;
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return "New password must contain at least one uppercase letter.";
+  }
+
+  if (!/[a-z]/.test(password)) {
+    return "New password must contain at least one lowercase letter.";
+  }
+
+  if (!/[0-9]/.test(password)) {
+    return "New password must contain at least one number.";
+  }
+
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return "New password must contain at least one special character.";
+  }
+
+  return null;
+}
 
 export async function PATCH(request: Request) {
   try {
@@ -102,33 +132,17 @@ export async function PATCH(request: Request) {
 
     /*
     |--------------------------------------------------------------------------
-    | 4. Validate new password length
+    | 4. Validate password strength
     |--------------------------------------------------------------------------
     */
 
-    if (
-      newPassword.length <
-      MIN_PASSWORD_LENGTH
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            `New password must be at least ${MIN_PASSWORD_LENGTH} characters long.`,
-        },
-        {
-          status: 400,
-        }
-      );
-    }
+    const passwordStrengthError =
+      validatePasswordStrength(newPassword);
 
-    if (
-      newPassword.length >
-      MAX_PASSWORD_LENGTH
-    ) {
+    if (passwordStrengthError) {
       return NextResponse.json(
         {
-          message:
-            `New password cannot exceed ${MAX_PASSWORD_LENGTH} characters.`,
+          message: passwordStrengthError,
         },
         {
           status: 400,
@@ -180,7 +194,7 @@ export async function PATCH(request: Request) {
 
     /*
     |--------------------------------------------------------------------------
-    | 7. Prevent reusing the current password
+    | 7. Prevent password reuse
     |--------------------------------------------------------------------------
     */
 
@@ -204,7 +218,7 @@ export async function PATCH(request: Request) {
 
     /*
     |--------------------------------------------------------------------------
-    | 8. Get the current session token
+    | 8. Verify current session
     |--------------------------------------------------------------------------
     */
 
@@ -227,7 +241,7 @@ export async function PATCH(request: Request) {
 
     /*
     |--------------------------------------------------------------------------
-    | 9. Create new password hash
+    | 9. Hash new password
     |--------------------------------------------------------------------------
     */
 
@@ -236,13 +250,8 @@ export async function PATCH(request: Request) {
 
     /*
     |--------------------------------------------------------------------------
-    | 10. Create a new session
+    | 10. Create fresh session
     |--------------------------------------------------------------------------
-    |
-    | All old sessions are removed.
-    | A fresh session is then created for the
-    | device currently changing the password.
-    |
     */
 
     const newSessionToken =
@@ -256,7 +265,7 @@ export async function PATCH(request: Request) {
 
     /*
     |--------------------------------------------------------------------------
-    | 11. Update password and replace sessions
+    | 11. Atomically update password and sessions
     |--------------------------------------------------------------------------
     */
 
@@ -276,21 +285,17 @@ export async function PATCH(request: Request) {
         );
 
       /*
-      | Delete every existing session belonging
-      | to this account.
+      | Invalidate every existing session.
       */
 
       await tx
         .delete(sessions)
         .where(
-          eq(
-            sessions.userId,
-            user.id
-          )
+          eq(sessions.userId, user.id)
         );
 
       /*
-      | Create the new session for this device.
+      | Create fresh session.
       */
 
       await tx
@@ -353,4 +358,4 @@ export async function PATCH(request: Request) {
       }
     );
   }
-  }
+}
