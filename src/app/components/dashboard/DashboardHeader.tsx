@@ -547,13 +547,17 @@ export default function DashboardHeader({
       ?.charAt(0)
       ?.toUpperCase() || "U";
 
+  /*
+  |--------------------------------------------------------------------------
+  | RENDER
+  |--------------------------------------------------------------------------
+  */
+
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-3 shadow-sm sm:px-4 md:px-6">
-
       {/* LEFT SIDE */}
 
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-
         <button
           type="button"
           onClick={onMenuClick}
@@ -566,18 +570,14 @@ export default function DashboardHeader({
         <h1 className="truncate text-base font-bold text-gray-900 sm:text-lg">
           Users Dashboard
         </h1>
-
       </div>
-
 
       {/* RIGHT SIDE */}
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
-
         {/* NOTIFICATIONS */}
 
         <div className="relative">
-
           <button
             type="button"
             onClick={
@@ -598,16 +598,13 @@ export default function DashboardHeader({
                   : unreadCount}
               </span>
             )}
-
           </button>
-
 
           {/* NOTIFICATION DROPDOWN */}
 
           {showNotifications && (
             <>
-
-              {/* MOBILE BACKDROP */}
+              {/* Mobile backdrop */}
 
               <button
                 type="button"
@@ -620,15 +617,11 @@ export default function DashboardHeader({
                 className="fixed inset-0 z-40 bg-black/10 sm:hidden"
               />
 
-
               <div className="fixed left-3 right-3 top-[4.5rem] z-50 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-[390px]">
-
                 {/* HEADER */}
 
                 <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-4 sm:px-5">
-
                   <div className="min-w-0">
-
                     <h2 className="text-base font-bold text-gray-900">
                       Notifications
                     </h2>
@@ -646,9 +639,7 @@ export default function DashboardHeader({
                         You're all caught up
                       </p>
                     )}
-
                   </div>
-
 
                   {unreadCount > 0 && (
                     <button
@@ -666,18 +657,13 @@ export default function DashboardHeader({
                         : "Mark all read"}
                     </button>
                   )}
-
                 </div>
-
 
                 {/* LIST */}
 
                 <div className="max-h-[min(62vh,420px)] overflow-y-auto overscroll-contain">
-
                   {loadingNotifications ? (
-
                     <div className="px-5 py-12 text-center">
-
                       <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-lg">
                         🔔
                       </div>
@@ -689,13 +675,10 @@ export default function DashboardHeader({
                       <p className="mt-1 text-xs text-gray-500">
                         Please wait a moment.
                       </p>
-
                     </div>
-
-                  ) : notifications.length === 0 ? (
-
+                  ) : notifications.length ===
+                    0 ? (
                     <div className="px-5 py-12 text-center">
-
                       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-2xl">
                         🔔
                       </div>
@@ -709,14 +692,13 @@ export default function DashboardHeader({
                         likes and other updates
                         will appear here.
                       </p>
-
                     </div>
-
                   ) : (
-
                     /*
                     |--------------------------------------------------------------------------
-                    | ONLY THE FIRST 3 NOTIFICATIONS
+                    | IMPORTANT:
+                    | Only the latest THREE notifications
+                    | are shown in the dropdown.
                     |--------------------------------------------------------------------------
                     */
 
@@ -726,7 +708,6 @@ export default function DashboardHeader({
                         (
                           notification
                         ) => (
-
                           <button
                             key={
                               notification.id
@@ -747,7 +728,6 @@ export default function DashboardHeader({
                                 : "bg-white"
                             }`}
                           >
-
                             {/* ICON */}
 
                             <div
@@ -762,13 +742,10 @@ export default function DashboardHeader({
                               )}
                             </div>
 
-
                             {/* CONTENT */}
 
                             <div className="min-w-0 flex-1">
-
                               <div className="flex items-start gap-2">
-
                                 <p className="min-w-0 flex-1 text-sm font-bold leading-5 text-gray-900">
                                   {getNotificationTitle(
                                     notification.type
@@ -780,9 +757,7 @@ export default function DashboardHeader({
                                     New
                                   </span>
                                 )}
-
                               </div>
-
 
                               <p className="mt-1.5 break-words text-xs leading-5 text-gray-600">
                                 {
@@ -790,15 +765,69 @@ export default function DashboardHeader({
                                 }
                               </p>
 
-
                               <p className="mt-1.5 text-[10px] font-medium text-gray-400">
                                 {formatNotificationTime(
                                   notification.createdAt
                                 )}
                               </p>
-
                             </div>
-
                           </button>
+                        )
+                      )
+                  )}
+                </div>
 
-          
+                {/* FOOTER */}
+
+                <div className="border-t border-gray-200 bg-gray-50 p-3 sm:p-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNotifications(
+                        false
+                      );
+
+                      router.push(
+                        "/users-dashboard/notifications"
+                      );
+                    }}
+                    className="flex min-h-10 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-bold text-blue-600 ring-1 ring-gray-200 transition hover:bg-blue-50 hover:text-blue-700 active:scale-[0.99]"
+                  >
+                    View all notifications
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* PROFILE */}
+
+        <button
+          type="button"
+          onClick={
+            handleProfileClick
+          }
+          className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-sm font-bold text-white shadow-sm ring-2 ring-white transition hover:bg-blue-700 active:scale-95"
+          aria-label="Open profile"
+        >
+          {profile?.profileImage ? (
+            <img
+              src={
+                profile.profileImage
+              }
+              alt={
+                profile.displayName ||
+                "Profile"
+              }
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            profileInitial
+          )}
+        </button>
+      </div>
+    </header>
+  );
+        }
+                  
