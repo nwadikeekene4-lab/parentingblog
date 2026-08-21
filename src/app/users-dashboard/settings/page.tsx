@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 
 export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] =
@@ -138,12 +135,10 @@ export default function SettingsPage() {
         {
           method: "PATCH",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            emailNotifications:
-              checked,
+            emailNotifications: checked,
           }),
         }
       );
@@ -159,8 +154,7 @@ export default function SettingsPage() {
       }
 
       setEmailNotifications(
-        data.settings
-          .emailNotifications
+        data.settings.emailNotifications
       );
     } catch (error) {
       console.error(
@@ -191,14 +185,18 @@ export default function SettingsPage() {
   */
 
   function openPasswordForm() {
-    setShowPasswordForm(true);
-
     setPasswordError("");
     setPasswordSuccess("");
 
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
+
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+
+    setShowPasswordForm(true);
   }
 
   /*
@@ -245,7 +243,9 @@ export default function SettingsPage() {
     setPasswordSuccess("");
 
     /*
+    |--------------------------------------------------------------------------
     | Client-side validation
+    |--------------------------------------------------------------------------
     */
 
     if (
@@ -295,8 +295,7 @@ export default function SettingsPage() {
         {
           method: "PATCH",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             currentPassword,
@@ -320,17 +319,20 @@ export default function SettingsPage() {
         "Password changed successfully."
       );
 
+      /*
+      |--------------------------------------------------------------------------
+      | Clear password fields
+      |--------------------------------------------------------------------------
+      */
+
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
 
-      setShowCurrentPassword(false);
-      setShowNewPassword(false);
-      setShowConfirmPassword(false);
-
       /*
-      | Give the user time to see the
-      | success message before closing.
+      |--------------------------------------------------------------------------
+      | Close after a short delay
+      |--------------------------------------------------------------------------
       */
 
       setTimeout(() => {
@@ -353,381 +355,422 @@ export default function SettingsPage() {
     }
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | RENDER
+  |--------------------------------------------------------------------------
+  */
+
   return (
-    <div className="space-y-8">
+    <>
+      <div className="space-y-8">
 
-      {/* Header */}
+        {/* Header */}
 
-      <section>
-        <h1 className="text-3xl font-bold text-gray-900">
-          Settings
-        </h1>
+        <section>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Settings
+          </h1>
 
-        <p className="mt-2 text-sm text-gray-600">
-          Manage your account preferences
-          and privacy.
-        </p>
-      </section>
+          <p className="mt-2 text-sm text-gray-600">
+            Manage your account preferences and privacy.
+          </p>
+        </section>
 
-      {/* Preferences */}
 
-      <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+        {/* Preferences */}
 
-        <h2 className="mb-6 text-xl font-semibold text-gray-900">
-          Preferences
-        </h2>
+        <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
 
-        {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+          <h2 className="mb-6 text-xl font-semibold text-gray-900">
+            Preferences
+          </h2>
 
-        <div className="space-y-6">
 
-          {/* Email Notifications */}
-
-          <div className="flex items-center justify-between gap-6">
-
-            <div className="min-w-0">
-              <h3 className="font-medium text-gray-900">
-                Email Notifications
-              </h3>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Receive email updates about
-                your stories and activity.
-              </p>
+          {error && (
+            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
             </div>
-
-            <label className="relative inline-flex shrink-0 cursor-pointer items-center">
-
-              <input
-                type="checkbox"
-                checked={
-                  emailNotifications
-                }
-                disabled={
-                  loadingSettings ||
-                  savingEmailNotifications
-                }
-                onChange={(event) =>
-                  handleEmailNotificationsChange(
-                    event.target.checked
-                  )
-                }
-                className="peer sr-only"
-              />
-
-              <div className="h-6 w-11 rounded-full bg-gray-300 transition peer-checked:bg-blue-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-50" />
-
-              <div className="absolute left-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-5" />
-
-            </label>
-
-          </div>
-
-          {savingEmailNotifications && (
-            <p className="text-xs text-gray-500">
-              Saving notification
-              preference...
-            </p>
           )}
 
-        </div>
-      </section>
 
-      {/* Security */}
+          <div className="space-y-6">
 
-      <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+            {/* Email Notifications */}
 
-        <h2 className="mb-6 text-xl font-semibold text-gray-900">
-          Security
-        </h2>
+            <div className="flex items-center justify-between gap-6">
 
-        <div className="space-y-6">
-
-          {/* Change Password */}
-
-          {!showPasswordForm && (
-            <div className="flex flex-col gap-4 rounded-xl border border-gray-200 p-5 sm:flex-row sm:items-center sm:justify-between">
-
-              <div>
+              <div className="min-w-0">
                 <h3 className="font-medium text-gray-900">
-                  Change Password
+                  Email Notifications
                 </h3>
 
-                <p className="mt-1 text-sm text-gray-500">
-                  Update your account password
-                  to keep your account secure.
+                <p className="text-sm text-gray-500">
+                  Receive email updates about your stories
+                  and activity.
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={openPasswordForm}
-                className="w-full rounded-xl border border-blue-600 px-6 py-3 font-medium text-blue-600 transition hover:bg-blue-50 sm:w-auto"
-              >
-                Change Password
-              </button>
+
+              <label className="relative inline-flex shrink-0 cursor-pointer items-center">
+
+                <input
+                  type="checkbox"
+                  checked={
+                    emailNotifications
+                  }
+                  disabled={
+                    loadingSettings ||
+                    savingEmailNotifications
+                  }
+                  onChange={(event) =>
+                    handleEmailNotificationsChange(
+                      event.target.checked
+                    )
+                  }
+                  className="peer sr-only"
+                />
+
+                <div className="h-6 w-11 rounded-full bg-gray-300 transition peer-checked:bg-blue-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-50" />
+
+                <div className="absolute left-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-5" />
+
+              </label>
 
             </div>
-          )}
 
-          {/* Password Form */}
 
-          {showPasswordForm && (
-            <div className="rounded-2xl border border-gray-200 p-5 sm:p-6">
-
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Change Password
-                </h3>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  Enter your current password
-                  and choose a new password.
-                </p>
-              </div>
-
-              {passwordError && (
-                <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {passwordError}
-                </div>
-              )}
-
-              {passwordSuccess && (
-                <div className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                  {passwordSuccess}
-                </div>
-              )}
-
-              <form
-                onSubmit={
-                  handleChangePassword
-                }
-                className="space-y-5"
-              >
-
-                {/* Current Password */}
-
-                <div>
-                  <label
-                    htmlFor="current-password"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
-                    Current Password
-                  </label>
-
-                  <div className="relative">
-                    <input
-                      id="current-password"
-                      type={
-                        showCurrentPassword
-                          ? "text"
-                          : "password"
-                      }
-                      value={
-                        currentPassword
-                      }
-                      onChange={(event) =>
-                        setCurrentPassword(
-                          event.target.value
-                        )
-                      }
-                      autoComplete="current-password"
-                      disabled={
-                        changingPassword
-                      }
-                      className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-20 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
-                      placeholder="Enter current password"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowCurrentPassword(
-                          (value) =>
-                            !value
-                        )
-                      }
-                      disabled={
-                        changingPassword
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-blue-600 hover:text-blue-700"
-                    >
-                      {showCurrentPassword
-                        ? "Hide"
-                        : "Show"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* New Password */}
-
-                <div>
-                  <label
-                    htmlFor="new-password"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
-                    New Password
-                  </label>
-
-                  <div className="relative">
-                    <input
-                      id="new-password"
-                      type={
-                        showNewPassword
-                          ? "text"
-                          : "password"
-                      }
-                      value={
-                        newPassword
-                      }
-                      onChange={(event) =>
-                        setNewPassword(
-                          event.target.value
-                        )
-                      }
-                      autoComplete="new-password"
-                      disabled={
-                        changingPassword
-                      }
-                      className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-20 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
-                      placeholder="Enter new password"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowNewPassword(
-                          (value) =>
-                            !value
-                        )
-                      }
-                      disabled={
-                        changingPassword
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-blue-600 hover:text-blue-700"
-                    >
-                      {showNewPassword
-                        ? "Hide"
-                        : "Show"}
-                    </button>
-                  </div>
-
-                  <p className="mt-2 text-xs text-gray-500">
-                    Password must be between
-                    8 and 128 characters.
-                  </p>
-                </div>
-
-                {/* Confirm Password */}
-
-                <div>
-                  <label
-                    htmlFor="confirm-password"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
-                    Confirm New Password
-                  </label>
-
-                  <div className="relative">
-                    <input
-                      id="confirm-password"
-                      type={
-                        showConfirmPassword
-                          ? "text"
-                          : "password"
-                      }
-                      value={
-                        confirmPassword
-                      }
-                      onChange={(event) =>
-                        setConfirmPassword(
-                          event.target.value
-                        )
-                      }
-                      autoComplete="new-password"
-                      disabled={
-                        changingPassword
-                      }
-                      className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-20 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
-                      placeholder="Confirm new password"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(
-                          (value) =>
-                            !value
-                        )
-                      }
-                      disabled={
-                        changingPassword
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-blue-600 hover:text-blue-700"
-                    >
-                      {showConfirmPassword
-                        ? "Hide"
-                        : "Show"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Buttons */}
-
-                <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-
-                  <button
-                    type="button"
-                    onClick={
-                      closePasswordForm
-                    }
-                    disabled={
-                      changingPassword
-                    }
-                    className="rounded-xl border border-gray-300 px-6 py-3 font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="submit"
-                    disabled={
-                      changingPassword
-                    }
-                    className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {changingPassword
-                      ? "Changing Password..."
-                      : "Update Password"}
-                  </button>
-
-                </div>
-
-              </form>
-
-            </div>
-          )}
-
-          {/* Delete Account */}
-
-          <div className="flex flex-col gap-4 rounded-xl border border-red-200 p-5 sm:flex-row sm:items-center sm:justify-between">
-
-            <div>
-              <h3 className="font-medium text-gray-900">
-                Delete Account
-              </h3>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Permanently delete your account
-                and associated data.
+            {savingEmailNotifications && (
+              <p className="text-xs text-gray-500">
+                Saving notification preference...
               </p>
-            </div>
+            )}
+
+          </div>
+
+        </section>
+
+
+        {/* Security */}
+
+        <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+
+          <h2 className="mb-6 text-xl font-semibold text-gray-900">
+            Security
+          </h2>
+
+
+          <div className="space-y-4">
+
+            {/* Change Password */}
 
             <button
               type="button"
-              disabled
-              className="w-full c
+              onClick={
+                openPasswordForm
+              }
+              className="w-full rounded-xl border border-blue-600 px-6 py-3 font-medium text-blue-600 transition hover:bg-blue-50 sm:w-auto"
+            >
+              Change Password
+            </button>
+
+
+            {/* Delete Account */}
+
+            <button
+              type="button"
+              className="ml-0 w-full rounded-xl border border-red-500 px-6 py-3 font-medium text-red-600 transition hover:bg-red-50 sm:ml-3 sm:w-auto"
+            >
+              Delete Account
+            </button>
+
+          </div>
+
+        </section>
+
+      </div>
+
+
+      {/* ================================================================== */}
+      {/* CHANGE PASSWORD MODAL */}
+      {/* ================================================================== */}
+
+      {showPasswordForm && (
+
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              closePasswordForm();
+            }
+          }}
+        >
+
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+
+            {/* Modal Header */}
+
+            <div className="mb-6 flex items-start justify-between gap-4">
+
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Change Password
+                </h2>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Update your account password securely.
+                </p>
+              </div>
+
+
+              <button
+                type="button"
+                onClick={
+                  closePasswordForm
+                }
+                disabled={
+                  changingPassword
+                }
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl text-gray-500 transition hover:bg-gray-100 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Close"
+              >
+                ×
+              </button>
+
+            </div>
+
+
+            {/* Error */}
+
+            {passwordError && (
+              <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-700">
+                {passwordError}
+              </div>
+            )}
+
+
+            {/* Success */}
+
+            {passwordSuccess && (
+              <div className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm leading-5 text-green-700">
+                {passwordSuccess}
+              </div>
+            )}
+
+
+            {/* Form */}
+
+            <form
+              onSubmit={
+                handleChangePassword
+              }
+              className="space-y-5"
+            >
+
+              {/* Current Password */}
+
+              <div>
+                <label
+                  htmlFor="current-password"
+                  className="mb-2 block text-sm font-medium text-gray-700"
+                >
+                  Current Password
+                </label>
+
+                <div className="relative">
+
+                  <input
+                    id="current-password"
+                    type={
+                      showCurrentPassword
+                        ? "text"
+                        : "password"
+                    }
+                    value={
+                      currentPassword
+                    }
+                    onChange={(event) =>
+                      setCurrentPassword(
+                        event.target.value
+                      )
+                    }
+                    autoComplete="current-password"
+                    disabled={
+                      changingPassword
+                    }
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-20 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
+                    placeholder="Enter current password"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowCurrentPassword(
+                        (value) => !value
+                      )
+                    }
+                    disabled={
+                      changingPassword
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-blue-600"
+                  >
+                    {showCurrentPassword
+                      ? "Hide"
+                      : "Show"}
+                  </button>
+
+                </div>
+              </div>
+
+
+              {/* New Password */}
+
+              <div>
+                <label
+                  htmlFor="new-password"
+                  className="mb-2 block text-sm font-medium text-gray-700"
+                >
+                  New Password
+                </label>
+
+                <div className="relative">
+
+                  <input
+                    id="new-password"
+                    type={
+                      showNewPassword
+                        ? "text"
+                        : "password"
+                    }
+                    value={
+                      newPassword
+                    }
+                    onChange={(event) =>
+                      setNewPassword(
+                        event.target.value
+                      )
+                    }
+                    autoComplete="new-password"
+                    disabled={
+                      changingPassword
+                    }
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-20 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
+                    placeholder="Enter new password"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowNewPassword(
+                        (value) => !value
+                      )
+                    }
+                    disabled={
+                      changingPassword
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-blue-600"
+                  >
+                    {showNewPassword
+                      ? "Hide"
+                      : "Show"}
+                  </button>
+
+                </div>
+
+                <p className="mt-2 text-xs text-gray-500">
+                  Must be between 8 and 128 characters.
+                </p>
+              </div>
+
+
+              {/* Confirm Password */}
+
+              <div>
+                <label
+                  htmlFor="confirm-password"
+                  className="mb-2 block text-sm font-medium text-gray-700"
+                >
+                  Confirm New Password
+                </label>
+
+                <div className="relative">
+
+                  <input
+                    id="confirm-password"
+                    type={
+                      showConfirmPassword
+                        ? "text"
+                        : "password"
+                    }
+                    value={
+                      confirmPassword
+                    }
+                    onChange={(event) =>
+                      setConfirmPassword(
+                        event.target.value
+                      )
+                    }
+                    autoComplete="new-password"
+                    disabled={
+                      changingPassword
+                    }
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-20 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
+                    placeholder="Confirm new password"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowConfirmPassword(
+                        (value) => !value
+                      )
+                    }
+                    disabled={
+                      changingPassword
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-blue-600"
+                  >
+                    {showConfirmPassword
+                      ? "Hide"
+                      : "Show"}
+                  </button>
+
+                </div>
+              </div>
+
+
+              {/* Buttons */}
+
+              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+
+                <button
+                  type="button"
+                  onClick={
+                    closePasswordForm
+                  }
+                  disabled={
+                    changingPassword
+                  }
+                  className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {changingPassword
+                    ? "Changing Password..."
+                    : "Change Password"}
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+
+        </div>
+
+      )}
+
+    </>
+  );
+              }
