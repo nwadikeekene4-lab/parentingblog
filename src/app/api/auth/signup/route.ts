@@ -2,20 +2,41 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { users, emailVerificationTokens } from "@/db/schema";
+import {
+  users,
+  emailVerificationTokens,
+} from "@/db/schema";
+
 import { hashPassword } from "@/lib/auth";
-import { normalizeEmail, isValidEmail } from "@/lib/validation";
+
+import {
+  normalizeEmail,
+  isValidEmail,
+} from "@/lib/validation";
+
+import {
+  validatePasswordStrength,
+} from "@/lib/passwordValidation";
+
 import {
   generateVerificationToken,
   getTokenExpiry,
 } from "@/lib/token";
-import { sendVerificationEmail } from "@/lib/email";
 
-export async function POST(request: Request) {
-  let createdUserId: string | undefined;
+import {
+  sendVerificationEmail,
+} from "@/lib/email";
+
+export async function POST(
+  request: Request
+) {
+  let createdUserId:
+    | string
+    | undefined;
 
   try {
-    const body = await request.json();
+    const body =
+      await request.json();
 
     let {
       displayName,
@@ -23,10 +44,21 @@ export async function POST(request: Request) {
       password,
     } = body;
 
-    if (!displayName || !email || !password) {
+    /*
+    |--------------------------------------------------------------------------
+    | 1. Required fields
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      !displayName ||
+      !email ||
+      !password
+    ) {
       return NextResponse.json(
         {
-          message: "All fields are required.",
+          message:
+            "All fields are required.",
         },
         {
           status: 400,
@@ -34,10 +66,27 @@ export async function POST(request: Request) {
       );
     }
 
-    displayName = displayName.trim();
-    email = normalizeEmail(email);
+    /*
+    |--------------------------------------------------------------------------
+    | 2. Normalize input
+    |--------------------------------------------------------------------------
+    */
 
-    if (displayName.length < 2) {
+    displayName =
+      displayName.trim();
+
+    email =
+      normalizeEmail(email);
+
+    /*
+    |--------------------------------------------------------------------------
+    | 3. Validate display name
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      displayName.length < 2
+    ) {
       return NextResponse.json(
         {
           message:
@@ -49,25 +98,19 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isValidEmail(email)) {
-      return NextResponse.json(
-        {
-          message: "Invalid email address.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
+    /*
+    |--------------------------------------------------------------------------
+    | 4. Validate email
+    |--------------------------------------------------------------------------
+    */
 
-    const strongPassword =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
-
-    if (!strongPassword.test(password)) {
+    if (
+      !isValidEmail(email)
+    ) {
       return NextResponse.json(
         {
           message:
-            "Password must contain at least 8 characters, one uppercase letter, one lowercase letter and one number.",
+            "Invalid email address.",
         },
         {
           status: 400,
@@ -75,16 +118,61 @@ export async function POST(request: Request) {
       );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | 5. Validate password strength
+    |--------------------------------------------------------------------------
+    |
+    | IMPORTANT:
+    | This is now handled by the shared password validator.
+    |
+    | The same validator will also be used for:
+    |
+    | - Change Password
+    | - Forgot Password / Reset Password
+    |
+    */
+
+    const passwordError =
+      validatePasswordStrength(
+        password
+      );
+
+    if (passwordError) {
+      return NextResponse.json(
+        {
+          message:
+            passwordError,
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 6. Check whether email already exists
+    |--------------------------------------------------------------------------
+    */
+
     const existingUser =
       await db.query.users.findFirst({
-        where: (users, { eq }) =>
-          eq(users.email, email),
+        where: (
+          users,
+          { eq }
+        ) =>
+          eq(
+            users.email,
+            email
+          ),
       });
 
     if (existingUser) {
       return NextResponse.json(
         {
-          message: "Email already registered.",
+          message:
+            "Email already registered.",
         },
         {
           status: 409,
@@ -92,59 +180,103 @@ export async function POST(request: Request) {
       );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | 7. Hash password
+    |--------------------------------------------------------------------------
+    */
+
     const passwordHash =
-      await hashPassword(password);
+      await hashPassword(
+        password
+      );
+
+    /*
+    |--------------------------------------------------------------------------
+    | 8. Generate email verification token
+    |--------------------------------------------------------------------------
+    */
 
     const verificationToken =
       generateVerificationToken();
 
-    const createdUser = await db.transaction(
-      async (tx) => {
+    /*
+    |--------------------------------------------------------------------------
+    | 9. Create user + verification token
+    |--------------------------------------------------------------------------
+    */
 
-        const insertedUsers =
+    const createdUser =
+      await db.transaction(
+        async (tx) => {
+          const insertedUsers =
+            await tx
+              .insert(users)
+              .values({
+                displayName,
+                email,
+                passwordHash,
+              })
+              .returning({
+                id:
+                  users.id,
+
+                email:
+                  users.email,
+              });
+
+          createdUserId =
+            insertedUsers[0].id;
+
           await tx
-            .insert(users)
+            .insert(
+              emailVerificationTokens
+            )
             .values({
-              displayName,
-              email,
-              passwordHash,
-            })
-            .returning({
-              id: users.id,
-              email: users.email,
+              userId:
+                insertedUsers[0].id,
+
+              token:
+                verificationToken,
+
+              expiresAt:
+                getTokenExpiry(),
             });
 
-        createdUserId =
-          insertedUsers[0].id;
+          return insertedUsers[0];
+        }
+      );
 
-        await tx
-          .insert(emailVerificationTokens)
-          .values({
-            userId: insertedUsers[0].id,
-            token: verificationToken,
-            expiresAt: getTokenExpiry(),
-          });
-
-        return insertedUsers[0];
-      }
-    );
+    /*
+    |--------------------------------------------------------------------------
+    | 10. Send verification email
+    |--------------------------------------------------------------------------
+    */
 
     try {
       await sendVerificationEmail(
         createdUser.email,
         verificationToken
       );
-    } catch (emailError) {
-
+    } catch (
+      emailError
+    ) {
       console.error(
         "Email sending failed:",
         emailError
       );
 
-      if (createdUserId) {
+      /*
+      |--------------------------------------------------------------------------
+      | Roll back manually if email sending fails.
+      |--------------------------------------------------------------------------
+      */
 
+      if (createdUserId) {
         await db
-          .delete(emailVerificationTokens)
+          .delete(
+            emailVerificationTokens
+          )
           .where(
             eq(
               emailVerificationTokens.userId,
@@ -173,6 +305,12 @@ export async function POST(request: Request) {
       );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | 11. Success
+    |--------------------------------------------------------------------------
+    */
+
     return NextResponse.json(
       {
         message:
@@ -182,9 +320,7 @@ export async function POST(request: Request) {
         status: 201,
       }
     );
-
   } catch (error) {
-
     console.error(
       "Signup error:",
       error
@@ -200,4 +336,4 @@ export async function POST(request: Request) {
       }
     );
   }
-      }
+  }
