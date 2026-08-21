@@ -16,7 +16,7 @@ export default function SettingsPage() {
 
   /*
   |--------------------------------------------------------------------------
-  | CHANGE PASSWORD STATE
+  | CHANGE PASSWORD
   |--------------------------------------------------------------------------
   */
 
@@ -52,6 +52,27 @@ export default function SettingsPage() {
 
   /*
   |--------------------------------------------------------------------------
+  | LIVE PASSWORD VALIDATION
+  |--------------------------------------------------------------------------
+  */
+
+  const newPasswordTooShort =
+    newPassword.length > 0 &&
+    newPassword.length < 8;
+
+  const newPasswordTooLong =
+    newPassword.length > 128;
+
+  const passwordsDoNotMatch =
+    confirmPassword.length > 0 &&
+    newPassword !== confirmPassword;
+
+  const passwordsMatch =
+    confirmPassword.length > 0 &&
+    newPassword === confirmPassword;
+
+  /*
+  |--------------------------------------------------------------------------
   | LOAD SETTINGS
   |--------------------------------------------------------------------------
   */
@@ -64,16 +85,21 @@ export default function SettingsPage() {
         setLoadingSettings(true);
         setError("");
 
-        const response = await fetch("/api/settings", {
-          method: "GET",
-          cache: "no-store",
-        });
+        const response = await fetch(
+          "/api/settings",
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
 
-        const data = await response.json();
+        const data =
+          await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.message || "Failed to load settings."
+            data.message ||
+              "Failed to load settings."
           );
         }
 
@@ -180,17 +206,17 @@ export default function SettingsPage() {
 
   /*
   |--------------------------------------------------------------------------
-  | OPEN CHANGE PASSWORD FORM
+  | OPEN PASSWORD FORM
   |--------------------------------------------------------------------------
   */
 
   function openPasswordForm() {
-    setPasswordError("");
-    setPasswordSuccess("");
-
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
+
+    setPasswordError("");
+    setPasswordSuccess("");
 
     setShowCurrentPassword(false);
     setShowNewPassword(false);
@@ -201,7 +227,7 @@ export default function SettingsPage() {
 
   /*
   |--------------------------------------------------------------------------
-  | CLOSE CHANGE PASSWORD FORM
+  | CLOSE PASSWORD FORM
   |--------------------------------------------------------------------------
   */
 
@@ -212,12 +238,12 @@ export default function SettingsPage() {
 
     setShowPasswordForm(false);
 
-    setPasswordError("");
-    setPasswordSuccess("");
-
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
+
+    setPasswordError("");
+    setPasswordSuccess("");
 
     setShowCurrentPassword(false);
     setShowNewPassword(false);
@@ -244,25 +270,43 @@ export default function SettingsPage() {
 
     /*
     |--------------------------------------------------------------------------
-    | Client-side validation
+    | Required fields
     |--------------------------------------------------------------------------
     */
 
-    if (
-      !currentPassword ||
-      !newPassword ||
-      !confirmPassword
-    ) {
+    if (!currentPassword) {
       setPasswordError(
-        "Please fill in all password fields."
+        "Please enter your current password."
       );
 
       return;
     }
 
+    if (!newPassword) {
+      setPasswordError(
+        "Please enter a new password."
+      );
+
+      return;
+    }
+
+    if (!confirmPassword) {
+      setPasswordError(
+        "Please retype your new password."
+      );
+
+      return;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | New password length
+    |--------------------------------------------------------------------------
+    */
+
     if (newPassword.length < 8) {
       setPasswordError(
-        "New password must be at least 8 characters long."
+        "Your new password must be at least 8 characters long."
       );
 
       return;
@@ -270,22 +314,31 @@ export default function SettingsPage() {
 
     if (newPassword.length > 128) {
       setPasswordError(
-        "New password cannot exceed 128 characters."
+        "Your new password cannot exceed 128 characters."
       );
 
       return;
     }
 
-    if (
-      newPassword !==
-      confirmPassword
-    ) {
+    /*
+    |--------------------------------------------------------------------------
+    | Password confirmation
+    |--------------------------------------------------------------------------
+    */
+
+    if (newPassword !== confirmPassword) {
       setPasswordError(
-        "New password and confirmation password do not match."
+        "The new passwords do not match."
       );
 
       return;
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Submit to secure server API
+    |--------------------------------------------------------------------------
+    */
 
     setChangingPassword(true);
 
@@ -308,6 +361,12 @@ export default function SettingsPage() {
       const data =
         await response.json();
 
+      /*
+      |--------------------------------------------------------------------------
+      | Incorrect old password
+      |--------------------------------------------------------------------------
+      */
+
       if (!response.ok) {
         throw new Error(
           data.message ||
@@ -315,13 +374,21 @@ export default function SettingsPage() {
         );
       }
 
+      /*
+      |--------------------------------------------------------------------------
+      | SUCCESS
+      |--------------------------------------------------------------------------
+      */
+
+      setPasswordError("");
+
       setPasswordSuccess(
         "Password changed successfully."
       );
 
       /*
       |--------------------------------------------------------------------------
-      | Clear password fields
+      | Clear password fields after success
       |--------------------------------------------------------------------------
       */
 
@@ -329,21 +396,13 @@ export default function SettingsPage() {
       setNewPassword("");
       setConfirmPassword("");
 
-      /*
-      |--------------------------------------------------------------------------
-      | Close after a short delay
-      |--------------------------------------------------------------------------
-      */
-
-      setTimeout(() => {
-        setShowPasswordForm(false);
-        setPasswordSuccess("");
-      }, 1500);
     } catch (error) {
       console.error(
         "Change password error:",
         error
       );
+
+      setPasswordSuccess("");
 
       setPasswordError(
         error instanceof Error
@@ -365,7 +424,7 @@ export default function SettingsPage() {
     <>
       <div className="space-y-8">
 
-        {/* Header */}
+        {/* HEADER */}
 
         <section>
           <h1 className="text-3xl font-bold text-gray-900">
@@ -378,7 +437,7 @@ export default function SettingsPage() {
         </section>
 
 
-        {/* Preferences */}
+        {/* PREFERENCES */}
 
         <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
 
@@ -386,17 +445,13 @@ export default function SettingsPage() {
             Preferences
           </h2>
 
-
           {error && (
             <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           )}
 
-
           <div className="space-y-6">
-
-            {/* Email Notifications */}
 
             <div className="flex items-center justify-between gap-6">
 
@@ -410,7 +465,6 @@ export default function SettingsPage() {
                   and activity.
                 </p>
               </div>
-
 
               <label className="relative inline-flex shrink-0 cursor-pointer items-center">
 
@@ -439,7 +493,6 @@ export default function SettingsPage() {
 
             </div>
 
-
             {savingEmailNotifications && (
               <p className="text-xs text-gray-500">
                 Saving notification preference...
@@ -451,7 +504,7 @@ export default function SettingsPage() {
         </section>
 
 
-        {/* Security */}
+        {/* SECURITY */}
 
         <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
 
@@ -459,10 +512,7 @@ export default function SettingsPage() {
             Security
           </h2>
 
-
           <div className="space-y-4">
-
-            {/* Change Password */}
 
             <button
               type="button"
@@ -474,12 +524,9 @@ export default function SettingsPage() {
               Change Password
             </button>
 
-
-            {/* Delete Account */}
-
             <button
               type="button"
-              className="ml-0 w-full rounded-xl border border-red-500 px-6 py-3 font-medium text-red-600 transition hover:bg-red-50 sm:ml-3 sm:w-auto"
+              className="w-full rounded-xl border border-red-500 px-6 py-3 font-medium text-red-600 transition hover:bg-red-50 sm:ml-3 sm:w-auto"
             >
               Delete Account
             </button>
@@ -511,7 +558,7 @@ export default function SettingsPage() {
 
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
 
-            {/* Modal Header */}
+            {/* MODAL HEADER */}
 
             <div className="mb-6 flex items-start justify-between gap-4">
 
@@ -521,10 +568,9 @@ export default function SettingsPage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-gray-500">
-                  Update your account password securely.
+                  Update your password securely.
                 </p>
               </div>
-
 
               <button
                 type="button"
@@ -534,7 +580,7 @@ export default function SettingsPage() {
                 disabled={
                   changingPassword
                 }
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl text-gray-500 transition hover:bg-gray-100 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-2xl text-gray-500 transition hover:bg-gray-100 disabled:opacity-50"
                 aria-label="Close"
               >
                 ×
@@ -543,7 +589,7 @@ export default function SettingsPage() {
             </div>
 
 
-            {/* Error */}
+            {/* ERROR */}
 
             {passwordError && (
               <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-700">
@@ -552,16 +598,14 @@ export default function SettingsPage() {
             )}
 
 
-            {/* Success */}
+            {/* SUCCESS */}
 
             {passwordSuccess && (
-              <div className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm leading-5 text-green-700">
-                {passwordSuccess}
+              <div className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium leading-5 text-green-700">
+                ✓ {passwordSuccess}
               </div>
             )}
 
-
-            {/* Form */}
 
             <form
               onSubmit={
@@ -570,9 +614,10 @@ export default function SettingsPage() {
               className="space-y-5"
             >
 
-              {/* Current Password */}
+              {/* CURRENT PASSWORD */}
 
               <div>
+
                 <label
                   htmlFor="current-password"
                   className="mb-2 block text-sm font-medium text-gray-700"
@@ -592,14 +637,18 @@ export default function SettingsPage() {
                     value={
                       currentPassword
                     }
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setCurrentPassword(
                         event.target.value
-                      )
-                    }
+                      );
+
+                      setPasswordError("");
+                      setPasswordSuccess("");
+                    }}
                     autoComplete="current-password"
                     disabled={
-                      changingPassword
+                      changingPassword ||
+                      !!passwordSuccess
                     }
                     className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-20 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
                     placeholder="Enter current password"
@@ -613,7 +662,8 @@ export default function SettingsPage() {
                       )
                     }
                     disabled={
-                      changingPassword
+                      changingPassword ||
+                      !!passwordSuccess
                     }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-blue-600"
                   >
@@ -623,12 +673,14 @@ export default function SettingsPage() {
                   </button>
 
                 </div>
+
               </div>
 
 
-              {/* New Password */}
+              {/* NEW PASSWORD */}
 
               <div>
+
                 <label
                   htmlFor="new-password"
                   className="mb-2 block text-sm font-medium text-gray-700"
@@ -648,16 +700,27 @@ export default function SettingsPage() {
                     value={
                       newPassword
                     }
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setNewPassword(
                         event.target.value
-                      )
-                    }
+                      );
+
+                      setPasswordError("");
+                      setPasswordSuccess("");
+                    }}
                     autoComplete="new-password"
                     disabled={
-                      changingPassword
+                      changingPassword ||
+                      !!passwordSuccess
                     }
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-20 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
+                    className={`w-full rounded-xl border px-4 py-3 pr-20 text-sm outline-none transition focus:ring-2 disabled:bg-gray-100 ${
+                      newPasswordTooShort ||
+                      newPasswordTooLong
+                        ? "border-red-400 focus:border-red-500 focus:ring-red-100"
+                        : newPassword.length >= 8
+                        ? "border-green-400 focus:border-green-500 focus:ring-green-100"
+                        : "border-gray-300 focus:border-blue-500 focus:ring-blue-100"
+                    }`}
                     placeholder="Enter new password"
                   />
 
@@ -669,7 +732,8 @@ export default function SettingsPage() {
                       )
                     }
                     disabled={
-                      changingPassword
+                      changingPassword ||
+                      !!passwordSuccess
                     }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-blue-600"
                   >
@@ -679,21 +743,39 @@ export default function SettingsPage() {
                   </button>
 
                 </div>
+{/* LIVE PASSWORD LENGTH MESSAGE */}
 
-                <p className="mt-2 text-xs text-gray-500">
-                  Must be between 8 and 128 characters.
-                </p>
+                {newPasswordTooShort && (
+                  <p className="mt-2 text-xs font-medium text-red-600">
+                    Password must be at least 8 characters.
+                  </p>
+                )}
+
+                {newPasswordTooLong && (
+                  <p className="mt-2 text-xs font-medium text-red-600">
+                    Password cannot exceed 128 characters.
+                  </p>
+                )}
+
+                {newPassword.length >= 8 &&
+                  newPassword.length <= 128 && (
+                    <p className="mt-2 text-xs font-medium text-green-600">
+                      ✓ Password length is valid.
+                    </p>
+                  )}
+
               </div>
 
 
-              {/* Confirm Password */}
+              {/* CONFIRM PASSWORD */}
 
               <div>
+
                 <label
                   htmlFor="confirm-password"
                   className="mb-2 block text-sm font-medium text-gray-700"
                 >
-                  Confirm New Password
+                  Retype New Password
                 </label>
 
                 <div className="relative">
@@ -708,17 +790,27 @@ export default function SettingsPage() {
                     value={
                       confirmPassword
                     }
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setConfirmPassword(
                         event.target.value
-                      )
-                    }
+                      );
+
+                      setPasswordError("");
+                      setPasswordSuccess("");
+                    }}
                     autoComplete="new-password"
                     disabled={
-                      changingPassword
+                      changingPassword ||
+                      !!passwordSuccess
                     }
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-20 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
-                    placeholder="Confirm new password"
+                    className={`w-full rounded-xl border px-4 py-3 pr-20 text-sm outline-none transition focus:ring-2 disabled:bg-gray-100 ${
+                      passwordsDoNotMatch
+                        ? "border-red-400 focus:border-red-500 focus:ring-red-100"
+                        : passwordsMatch
+                        ? "border-green-400 focus:border-green-500 focus:ring-green-100"
+                        : "border-gray-300 focus:border-blue-500 focus:ring-blue-100"
+                    }`}
+                    placeholder="Retype new password"
                   />
 
                   <button
@@ -729,7 +821,8 @@ export default function SettingsPage() {
                       )
                     }
                     disabled={
-                      changingPassword
+                      changingPassword ||
+                      !!passwordSuccess
                     }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-blue-600"
                   >
@@ -739,10 +832,26 @@ export default function SettingsPage() {
                   </button>
 
                 </div>
+
+
+                {/* LIVE MATCH MESSAGE */}
+
+                {passwordsDoNotMatch && (
+                  <p className="mt-2 text-xs font-medium text-red-600">
+                    Passwords do not match.
+                  </p>
+                )}
+
+                {passwordsMatch && (
+                  <p className="mt-2 text-xs font-medium text-green-600">
+                    ✓ Passwords match.
+                  </p>
+                )}
+
               </div>
 
 
-              {/* Buttons */}
+              {/* ACTION BUTTONS */}
 
               <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
 
@@ -754,11 +863,28 @@ export default function SettingsPage() {
                   disabled={
                     changingPassword
                   }
-                  className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl border border-gray-300 px-5 py-3 font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Close
+                </button>
+
+
+                <button
+                  type="submit"
+                  disabled={
+                    changingPassword ||
+                    !!passwordSuccess ||
+                    !currentPassword ||
+                    newPassword.length < 8 ||
+                    newPassword.length > 128 ||
+                    newPassword !==
+                      confirmPassword
+                  }
+                  className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {changingPassword
-                    ? "Changing Password..."
-                    : "Change Password"}
+                    ? "Updating Password..."
+                    : "Update Password"}
                 </button>
 
               </div>
@@ -773,4 +899,6 @@ export default function SettingsPage() {
 
     </>
   );
-              }
+                        }
+
+                
