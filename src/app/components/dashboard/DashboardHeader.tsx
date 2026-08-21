@@ -152,6 +152,9 @@ export default function DashboardHeader({
   const [markingAsRead, setMarkingAsRead] =
     useState(false);
 
+  const [openingNotificationId, setOpeningNotificationId] =
+    useState<string | null>(null);
+
   /*
   |--------------------------------------------------------------------------
   | LOAD HEADER DATA
@@ -309,14 +312,145 @@ export default function DashboardHeader({
 
   /*
   |--------------------------------------------------------------------------
+  | MARK ONE NOTIFICATION AS READ
+  |--------------------------------------------------------------------------
+  */
+
+  async function markNotificationAsRead(
+    notificationId: string
+  ) {
+    try {
+      const response = await fetch(
+        "/api/notifications",
+        {
+          method: "PATCH",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            notificationId,
+          }),
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ??
+            "Failed to mark notification as read."
+        );
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Update local notification state immediately.
+      |--------------------------------------------------------------------------
+      */
+
+      setNotifications(
+        (currentNotifications) =>
+          currentNotifications.map(
+            (notification) =>
+              notification.id ===
+              notificationId
+                ? {
+                    ...notification,
+                    isRead: true,
+                  }
+                : notification
+          )
+      );
+
+      /*
+      |--------------------------------------------------------------------------
+      | Decrease unread count locally.
+      |--------------------------------------------------------------------------
+      */
+
+      setUnreadCount(
+        (currentCount) =>
+          Math.max(
+            0,
+            currentCount - 1
+          )
+      );
+
+      window.dispatchEvent(
+        new Event(
+          "notificationUpdated"
+        )
+      );
+
+      return true;
+    } catch (error) {
+      console.error(
+        "Failed to mark notification as read:",
+        error
+      );
+
+      return false;
+    }
+  }
+
+  /*
+  |--------------------------------------------------------------------------
   | CLICK NOTIFICATION
   |--------------------------------------------------------------------------
   */
 
-  function handleNotificationItemClick(
+  async function handleNotificationItemClick(
     notification: Notification
   ) {
+    /*
+    |--------------------------------------------------------------------------
+    | Prevent duplicate clicks while processing.
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      openingNotificationId
+    ) {
+      return;
+    }
+
+    setOpeningNotificationId(
+      notification.id
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mark unread notification as read first.
+    |--------------------------------------------------------------------------
+    */
+
+    if (!notification.isRead) {
+      await markNotificationAsRead(
+        notification.id
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Close dropdown.
+    |--------------------------------------------------------------------------
+    */
+
     setShowNotifications(false);
+
+    setOpeningNotificationId(
+      null
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Navigate to notification destination.
+    |--------------------------------------------------------------------------
+    */
 
     if (notification.link) {
       router.push(
@@ -346,6 +480,15 @@ export default function DashboardHeader({
         "/api/notifications",
         {
           method: "PATCH",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            markAll: true,
+          }),
         }
       );
 
@@ -561,7 +704,11 @@ export default function DashboardHeader({
                                 notification
                               )
                             }
-                            className={`group flex w-full gap-3 border-b border-gray-100 px-4 py-4 text-left transition last:border-b-0 hover:bg-gray-50 active:bg-gray-100 sm:px-5 ${
+                            disabled={
+                              openingNotificationId ===
+                              notification.id
+                            }
+                            className={`group flex w-full gap-3 border-b border-gray-100 px-4 py-4 text-left transition last:border-b-0 hover:bg-gray-50 active:bg-gray-100 disabled:cursor-wait sm:px-5 ${
                               !notification.isRead
                                 ? "bg-blue-50/70"
                                 : "bg-white"
@@ -622,50 +769,4 @@ export default function DashboardHeader({
                   <button
                     type="button"
                     onClick={() => {
-                      setShowNotifications(
-                        false
-                      );
-
-                      router.push(
-                        "/users-dashboard/notifications"
-                      );
-                    }}
-                    className="flex min-h-10 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-bold text-blue-600 ring-1 ring-gray-200 transition hover:bg-blue-50 hover:text-blue-700 active:scale-[0.99]"
-                  >
-                    View all notifications
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* PROFILE */}
-
-        <button
-          type="button"
-          onClick={
-            handleProfileClick
-          }
-          className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-sm font-bold text-white shadow-sm ring-2 ring-white transition hover:bg-blue-700 active:scale-95"
-          aria-label="Open profile"
-        >
-          {profile?.profileImage ? (
-            <img
-              src={
-                profile.profileImage
-              }
-              alt={
-                profile.displayName ||
-                "Profile"
-              }
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            profileInitial
-          )}
-        </button>
-      </div>
-    </header>
-  );
-  }
+               
