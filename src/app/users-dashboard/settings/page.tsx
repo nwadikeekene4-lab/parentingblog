@@ -63,6 +63,29 @@ export default function SettingsPage() {
   const newPasswordTooLong =
     newPassword.length > 128;
 
+  const hasUppercase =
+    /[A-Z]/.test(newPassword);
+
+  const hasLowercase =
+    /[a-z]/.test(newPassword);
+
+  const hasNumber =
+    /[0-9]/.test(newPassword);
+
+  const hasSpecialCharacter =
+    /[^A-Za-z0-9]/.test(newPassword);
+
+  const passwordLengthValid =
+    newPassword.length >= 8 &&
+    newPassword.length <= 128;
+
+  const passwordStrengthValid =
+    passwordLengthValid &&
+    hasUppercase &&
+    hasLowercase &&
+    hasNumber &&
+    hasSpecialCharacter;
+
   const passwordsDoNotMatch =
     confirmPassword.length > 0 &&
     newPassword !== confirmPassword;
@@ -70,6 +93,29 @@ export default function SettingsPage() {
   const passwordsMatch =
     confirmPassword.length > 0 &&
     newPassword === confirmPassword;
+
+  /*
+  |--------------------------------------------------------------------------
+  | PASSWORD STRENGTH
+  |--------------------------------------------------------------------------
+  */
+
+  const passwordStrengthScore = [
+    passwordLengthValid,
+    hasUppercase,
+    hasLowercase,
+    hasNumber,
+    hasSpecialCharacter,
+  ].filter(Boolean).length;
+
+  const passwordStrengthLabel =
+    newPassword.length === 0
+      ? ""
+      : passwordStrengthScore <= 2
+      ? "Weak"
+      : passwordStrengthScore <= 4
+      ? "Medium"
+      : "Strong";
 
   /*
   |--------------------------------------------------------------------------
@@ -300,7 +346,7 @@ export default function SettingsPage() {
 
     /*
     |--------------------------------------------------------------------------
-    | New password length
+    | Password length
     |--------------------------------------------------------------------------
     */
 
@@ -315,6 +361,44 @@ export default function SettingsPage() {
     if (newPassword.length > 128) {
       setPasswordError(
         "Your new password cannot exceed 128 characters."
+      );
+
+      return;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Password strength
+    |--------------------------------------------------------------------------
+    */
+
+    if (!hasUppercase) {
+      setPasswordError(
+        "Your new password must contain at least one uppercase letter."
+      );
+
+      return;
+    }
+
+    if (!hasLowercase) {
+      setPasswordError(
+        "Your new password must contain at least one lowercase letter."
+      );
+
+      return;
+    }
+
+    if (!hasNumber) {
+      setPasswordError(
+        "Your new password must contain at least one number."
+      );
+
+      return;
+    }
+
+    if (!hasSpecialCharacter) {
+      setPasswordError(
+        "Your new password must contain at least one special character."
       );
 
       return;
@@ -361,12 +445,6 @@ export default function SettingsPage() {
       const data =
         await response.json();
 
-      /*
-      |--------------------------------------------------------------------------
-      | Incorrect old password
-      |--------------------------------------------------------------------------
-      */
-
       if (!response.ok) {
         throw new Error(
           data.message ||
@@ -412,6 +490,42 @@ export default function SettingsPage() {
     } finally {
       setChangingPassword(false);
     }
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | PASSWORD REQUIREMENT ROW
+  |--------------------------------------------------------------------------
+  */
+
+  function PasswordRequirement({
+    valid,
+    children,
+  }: {
+    valid: boolean;
+    children: React.ReactNode;
+  }) {
+    return (
+      <div
+        className={`flex items-center gap-2 text-xs ${
+          valid
+            ? "text-green-600"
+            : "text-gray-500"
+        }`}
+      >
+        <span
+          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+            valid
+              ? "bg-green-100 text-green-600"
+              : "bg-gray-100 text-gray-400"
+          }`}
+        >
+          {valid ? "✓" : "•"}
+        </span>
+
+        <span>{children}</span>
+      </div>
+    );
   }
 
   /*
@@ -677,7 +791,7 @@ export default function SettingsPage() {
               </div>
 
 
-              {/* NEW PASSWORD */}
+   {/* NEW PASSWORD */}
 
               <div>
 
@@ -717,7 +831,7 @@ export default function SettingsPage() {
                       newPasswordTooShort ||
                       newPasswordTooLong
                         ? "border-red-400 focus:border-red-500 focus:ring-red-100"
-                        : newPassword.length >= 8
+                        : passwordStrengthValid
                         ? "border-green-400 focus:border-green-500 focus:ring-green-100"
                         : "border-gray-300 focus:border-blue-500 focus:ring-blue-100"
                     }`}
@@ -743,26 +857,115 @@ export default function SettingsPage() {
                   </button>
 
                 </div>
-{/* LIVE PASSWORD LENGTH MESSAGE */}
 
-                {newPasswordTooShort && (
-                  <p className="mt-2 text-xs font-medium text-red-600">
-                    Password must be at least 8 characters.
-                  </p>
+
+                {/* PASSWORD STRENGTH */}
+
+                {newPassword.length > 0 && (
+                  <div className="mt-3">
+
+                    <div className="mb-2 flex items-center justify-between">
+
+                      <span className="text-xs font-medium text-gray-600">
+                        Password strength
+                      </span>
+
+                      <span
+                        className={`text-xs font-semibold ${
+                          passwordStrengthLabel ===
+                          "Strong"
+                            ? "text-green-600"
+                            : passwordStrengthLabel ===
+                              "Medium"
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {passwordStrengthLabel}
+                      </span>
+
+                    </div>
+
+
+                    {/* STRENGTH BAR */}
+
+                    <div className="flex gap-1">
+
+                      {[1, 2, 3, 4, 5].map(
+                        (level) => (
+                          <div
+                            key={level}
+                            className={`h-1.5 flex-1 rounded-full ${
+                              level <=
+                              passwordStrengthScore
+                                ? passwordStrengthScore <=
+                                  2
+                                  ? "bg-red-500"
+                                  : passwordStrengthScore <=
+                                    4
+                                  ? "bg-yellow-500"
+                                  : "bg-green-500"
+                                : "bg-gray-200"
+                            }`}
+                          />
+                        )
+                      )}
+
+                    </div>
+
+                  </div>
                 )}
 
-                {newPasswordTooLong && (
-                  <p className="mt-2 text-xs font-medium text-red-600">
-                    Password cannot exceed 128 characters.
-                  </p>
-                )}
 
-                {newPassword.length >= 8 &&
-                  newPassword.length <= 128 && (
-                    <p className="mt-2 text-xs font-medium text-green-600">
-                      ✓ Password length is valid.
-                    </p>
-                  )}
+                {/* PASSWORD REQUIREMENTS */}
+
+                <div className="mt-3 space-y-2">
+
+                  <p className="text-xs font-medium text-gray-600">
+                    Password must contain:
+                  </p>
+
+                  <PasswordRequirement
+                    valid={
+                      passwordLengthValid
+                    }
+                  >
+                    8–128 characters
+                  </PasswordRequirement>
+
+                  <PasswordRequirement
+                    valid={
+                      hasUppercase
+                    }
+                  >
+                    At least one uppercase letter (A–Z)
+                  </PasswordRequirement>
+
+                  <PasswordRequirement
+                    valid={
+                      hasLowercase
+                    }
+                  >
+                    At least one lowercase letter (a–z)
+                  </PasswordRequirement>
+
+                  <PasswordRequirement
+                    valid={
+                      hasNumber
+                    }
+                  >
+                    At least one number (0–9)
+                  </PasswordRequirement>
+
+                  <PasswordRequirement
+                    valid={
+                      hasSpecialCharacter
+                    }
+                  >
+                    At least one special character
+                  </PasswordRequirement>
+
+                </div>
 
               </div>
 
@@ -875,8 +1078,7 @@ export default function SettingsPage() {
                     changingPassword ||
                     !!passwordSuccess ||
                     !currentPassword ||
-                    newPassword.length < 8 ||
-                    newPassword.length > 128 ||
+                    !passwordStrengthValid ||
                     newPassword !==
                       confirmPassword
                   }
@@ -899,6 +1101,4 @@ export default function SettingsPage() {
 
     </>
   );
-                        }
-
-                
+                  }
