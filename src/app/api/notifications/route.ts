@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { eq, desc } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+} from "drizzle-orm";
 
 import { db } from "@/db";
 
@@ -16,19 +21,15 @@ import {
 |--------------------------------------------------------------------------
 | GET NOTIFICATIONS
 |--------------------------------------------------------------------------
-| Fetch all notifications belonging to the currently logged-in user.
+| Fetch all notifications belonging to the
+| currently logged-in user.
 |
-| Each notification includes:
-| - link       → where the notification should navigate
-| - storyId    → related story
-| - commentId  → related comment/reply
+| Also returns the unread notification count.
 |--------------------------------------------------------------------------
 */
 
 export async function GET() {
-
   try {
-
     /*
     |--------------------------------------------------------------------------
     | 1. Get current user
@@ -40,7 +41,6 @@ export async function GET() {
 
 
     if (!user) {
-
       return NextResponse.json(
         {
           message:
@@ -50,20 +50,18 @@ export async function GET() {
           status: 401,
         }
       );
-
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | 2. Fetch user's notifications
+    | 2. Fetch notifications
     |--------------------------------------------------------------------------
     */
 
     const userNotifications =
       await db
         .select({
-
           id:
             notifications.id,
 
@@ -87,7 +85,6 @@ export async function GET() {
 
           createdAt:
             notifications.createdAt,
-
         })
 
         .from(
@@ -110,22 +107,53 @@ export async function GET() {
 
     /*
     |--------------------------------------------------------------------------
-    | 3. Count unread notifications
+    | 3. Count unread notifications in the database
+    |--------------------------------------------------------------------------
+    |
+    | This is more efficient than fetching everything and
+    | counting unread notifications in JavaScript.
     |--------------------------------------------------------------------------
     */
 
+    const [
+      unreadResult,
+    ] =
+      await db
+        .select({
+          count:
+            count(
+              notifications.id
+            ),
+        })
+
+        .from(
+          notifications
+        )
+
+        .where(
+          and(
+            eq(
+              notifications.userId,
+              user.id
+            ),
+
+            eq(
+              notifications.isRead,
+              false
+            )
+          )
+        );
+
+
     const unreadCount =
-      userNotifications.filter(
-        (
-          notification
-        ) =>
-          !notification.isRead
-      ).length;
+      Number(
+        unreadResult?.count ?? 0
+      );
 
 
     /*
     |--------------------------------------------------------------------------
-    | 4. Return notifications
+    | 4. Return data
     |--------------------------------------------------------------------------
     */
 
@@ -161,18 +189,35 @@ export async function GET() {
     );
 
   }
-
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| PATCH — MARK ALL AS READ
+| PATCH — MARK NOTIFICATION(S) AS READ
+|--------------------------------------------------------------------------
+|
+| Supports two modes.
+|
+| 1. Mark ONE notification:
+|
+|    PATCH
+|    {
+|      "notificationId": "..."
+|    }
+|
+| 2. Mark ALL notifications:
+|
+|    PATCH
+|    {
+|      "markAll": true
+|    }
 |--------------------------------------------------------------------------
 */
 
-export async function PATCH() {
-
+export async function PATCH(
+  request: Request
+) {
   try {
 
     /*
@@ -186,7 +231,6 @@ export async function PATCH() {
 
 
     if (!user) {
-
       return NextResponse.json(
         {
           message:
@@ -196,47 +240,263 @@ export async function PATCH() {
           status: 401,
         }
       );
-
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | 2. Mark only this user's notifications as read
+    | 2. Read request body
     |--------------------------------------------------------------------------
     */
 
-    await db
-      .update(
-        notifications
-      )
+    let body:
+      | {
+          notificationId?: unknown;
+          markAll?: unknown;
+        }
+      | null = null;
 
-      .set({
-        isRead:
-          true,
-      })
 
-      .where(
-        eq(
-          notifications.userId,
-          user.id
-        )
-      );
+    try {
+      body =
+        await request.json();
+    } catch {
+      body = null;
+    }
 
 
     /*
     |--------------------------------------------------------------------------
-    | 3. Success
+    | 3. Mark one notification
+    |--------------------------------------------------------------------------
+    */
+
+    const notificationId =
+      typeof body?.notificationId ===
+      "string"
+        ? body.notificationId.trim()
+        : "";
+
+
+    if (notificationId) {
+
+      const updatedNotification =
+        await db
+          .update(
+            notifications
+          )
+
+          .set({
+            isRead:
+              true,
+          })
+
+          .where(
+            and(
+
+              eq(
+                notifications.id,
+                notificationId
+              ),
+
+              /*
+              | Security:
+              | The notification must belong
+              | to the currently logged-in user.
+              */
+
+              eq(
+                notifications.userId,
+                user.id
+              ),
+
+              /*
+              | Avoid unnecessary database
+              | updates for already-read rows.
+              */
+
+              eq(
+                notifications.isRead,
+                false
+              )
+
+            )
+          )
+
+          .returning({
+            id:
+              notifications.id,
+
+            isRead:
+              notifications.isRead,
+          });
+
+
+      /*
+      |--------------------------------------------------------------------------
+      | Notification wasn't found or wasn't owned by this user.
+      |--------------------------------------------------------------------------
+      */
+
+      if (
+        updatedNotification.length ===
+        0
+      ) {
+
+        /*
+        | Check whether the notification
+        | actually belongs to the user.
+        |
+        | This lets us distinguish an already-read
+        | notification from an unauthorized ID
+        | without exposing another user's data.
+        */
+
+        const existingNotification =
+          await db
+            .select({
+              id:
+                notifications.id,
+
+              isRead:
+                notifications.isRead,
+            })
+
+            .from(
+              notifications
+            )
+
+            .where(
+              and(
+
+                eq(
+                  notifications.id,
+                  notificationId
+                ),
+
+                eq(
+                  notifications.userId,
+                  user.id
+                )
+
+              )
+            )
+
+            .limit(1);
+
+
+        if (
+          existingNotification.length ===
+          0
+        ) {
+
+          return NextResponse.json(
+            {
+              message:
+                "Notification not found.",
+            },
+            {
+              status: 404,
+            }
+          );
+
+        }
+
+
+        return NextResponse.json(
+          {
+            message:
+              "Notification is already read.",
+
+            notification:
+              existingNotification[0],
+          },
+          {
+            status: 200,
+          }
+        );
+
+      }
+
+
+      return NextResponse.json(
+        {
+          message:
+            "Notification marked as read.",
+
+          notification:
+            updatedNotification[0],
+        },
+        {
+          status: 200,
+        }
+      );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 4. Mark all notifications as read
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      body?.markAll === true ||
+      body === null
+    ) {
+
+      await db
+        .update(
+          notifications
+        )
+
+        .set({
+          isRead:
+            true,
+        })
+
+        .where(
+          and(
+
+            eq(
+              notifications.userId,
+              user.id
+            ),
+
+            eq(
+              notifications.isRead,
+              false
+            )
+
+          )
+        );
+
+
+      return NextResponse.json(
+        {
+          message:
+            "All notifications marked as read.",
+        },
+        {
+          status: 200,
+        }
+      );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | 5. Invalid PATCH request
     |--------------------------------------------------------------------------
     */
 
     return NextResponse.json(
       {
         message:
-          "All notifications marked as read.",
+          "Provide notificationId or markAll: true.",
       },
       {
-        status: 200,
+        status: 400,
       }
     );
 
@@ -244,7 +504,7 @@ export async function PATCH() {
   } catch (error) {
 
     console.error(
-      "Mark notifications as read error:",
+      "Mark notification as read error:",
       error
     );
 
@@ -252,7 +512,7 @@ export async function PATCH() {
     return NextResponse.json(
       {
         message:
-          "Failed to mark notifications as read.",
+          "Failed to mark notification as read.",
       },
       {
         status: 500,
@@ -260,7 +520,6 @@ export async function PATCH() {
     );
 
   }
-
 }
 
 
@@ -271,7 +530,6 @@ export async function PATCH() {
 */
 
 export async function DELETE() {
-
   try {
 
     /*
@@ -285,7 +543,6 @@ export async function DELETE() {
 
 
     if (!user) {
-
       return NextResponse.json(
         {
           message:
@@ -295,13 +552,12 @@ export async function DELETE() {
           status: 401,
         }
       );
-
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | 2. Delete only this user's notifications
+    | 2. Delete ONLY this user's notifications
     |--------------------------------------------------------------------------
     */
 
@@ -354,5 +610,4 @@ export async function DELETE() {
     );
 
   }
-
-            }
+}
