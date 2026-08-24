@@ -168,8 +168,7 @@ export default function SettingsPage() {
           }
         );
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
@@ -244,8 +243,7 @@ export default function SettingsPage() {
         }
       );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -263,9 +261,7 @@ export default function SettingsPage() {
         error
       );
 
-      setEmailNotifications(
-        previousValue
-      );
+      setEmailNotifications(previousValue);
 
       setError(
         error instanceof Error
@@ -273,9 +269,7 @@ export default function SettingsPage() {
           : "Failed to update email notification settings."
       );
     } finally {
-      setSavingEmailNotifications(
-        false
-      );
+      setSavingEmailNotifications(false);
     }
   }
 
@@ -408,13 +402,23 @@ export default function SettingsPage() {
     |--------------------------------------------------------------------------
     | Submit deletion request
     |--------------------------------------------------------------------------
+    |
+    | IMPORTANT:
+    | The DELETE API is located at:
+    |
+    | src/app/api/settings/delete-account/route.ts
+    |
+    | Therefore the frontend endpoint must be:
+    |
+    | /api/settings/delete-account
+    |--------------------------------------------------------------------------
     */
 
     setDeletingAccount(true);
 
     try {
       const response = await fetch(
-        "/api/settings/account",
+        "/api/settings/delete-account",
         {
           method: "DELETE",
           headers: {
@@ -427,8 +431,15 @@ export default function SettingsPage() {
         }
       );
 
-      const data =
-        await response.json();
+      let data: {
+        message?: string;
+      } = {};
+
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
 
       if (!response.ok) {
         throw new Error(
@@ -442,12 +453,18 @@ export default function SettingsPage() {
       | Account successfully deleted
       |--------------------------------------------------------------------------
       |
-      | The server has already removed the session cookie.
+      | The DELETE API has already removed the session
+      | cookie on the server.
+      |
       | Redirect the user away from the authenticated area.
       |--------------------------------------------------------------------------
       */
 
       setShowDeleteAccountForm(false);
+
+      setDeletePassword("");
+      setDeleteConfirmation("");
+      setDeleteAccountError("");
 
       router.push("/");
 
@@ -584,8 +601,7 @@ export default function SettingsPage() {
         }
       );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -603,7 +619,6 @@ export default function SettingsPage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-
     } catch (error) {
       console.error(
         "Change password error:",
@@ -680,7 +695,6 @@ export default function SettingsPage() {
           </p>
         </section>
 
-
         {/* PREFERENCES */}
 
         <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
@@ -747,7 +761,6 @@ export default function SettingsPage() {
 
         </section>
 
-
         {/* SECURITY */}
 
         <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
@@ -784,7 +797,6 @@ export default function SettingsPage() {
         </section>
 
       </div>
-
 
       {/* ================================================================== */}
       {/* CHANGE PASSWORD MODAL */}
@@ -914,7 +926,6 @@ export default function SettingsPage() {
                 </div>
 
               </div>
-
 
               {/* NEW PASSWORD */}
 
@@ -1088,7 +1099,6 @@ export default function SettingsPage() {
 
               </div>
 
-
               {/* CONFIRM PASSWORD */}
 
               <div>
@@ -1169,7 +1179,6 @@ export default function SettingsPage() {
 
               </div>
 
-
               {/* ACTION BUTTONS */}
 
               <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
@@ -1213,7 +1222,6 @@ export default function SettingsPage() {
         </div>
 
       )}
-
 
       {/* ================================================================== */}
       {/* DELETE ACCOUNT MODAL */}
@@ -1268,7 +1276,6 @@ export default function SettingsPage() {
 
             </div>
 
-
             {/* WARNING */}
 
             <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
@@ -1284,7 +1291,6 @@ export default function SettingsPage() {
 
             </div>
 
-
             {/* ERROR */}
 
             {deleteAccountError && (
@@ -1292,7 +1298,6 @@ export default function SettingsPage() {
                 {deleteAccountError}
               </div>
             )}
-
 
             <form
               onSubmit={
@@ -1360,7 +1365,6 @@ export default function SettingsPage() {
 
               </div>
 
-
               {/* DELETE CONFIRMATION */}
 
               <div>
@@ -1419,7 +1423,6 @@ export default function SettingsPage() {
                 )}
 
               </div>
-
 
               {/* ACTION BUTTONS */}
 
