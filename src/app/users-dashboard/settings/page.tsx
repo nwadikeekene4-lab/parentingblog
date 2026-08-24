@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
+  const router = useRouter();
+
   const [emailNotifications, setEmailNotifications] =
     useState(true);
 
@@ -49,6 +51,30 @@ export default function SettingsPage() {
     useState("");
 
   const [passwordSuccess, setPasswordSuccess] =
+    useState("");
+
+  /*
+  |--------------------------------------------------------------------------
+  | DELETE ACCOUNT
+  |--------------------------------------------------------------------------
+  */
+
+  const [showDeleteAccountForm, setShowDeleteAccountForm] =
+    useState(false);
+
+  const [deletePassword, setDeletePassword] =
+    useState("");
+
+  const [deleteConfirmation, setDeleteConfirmation] =
+    useState("");
+
+  const [showDeletePassword, setShowDeletePassword] =
+    useState(false);
+
+  const [deletingAccount, setDeletingAccount] =
+    useState(false);
+
+  const [deleteAccountError, setDeleteAccountError] =
     useState("");
 
   /*
@@ -102,23 +128,24 @@ export default function SettingsPage() {
   */
 
   const passwordStrengthScore = [
-  passwordLengthValid,
-  hasUppercase,
-  hasLowercase,
-  hasNumber,
-  hasSpecialCharacter,
-].filter(Boolean).length;
+    passwordLengthValid,
+    hasUppercase,
+    hasLowercase,
+    hasNumber,
+    hasSpecialCharacter,
+  ].filter(Boolean).length;
 
-const passwordStrengthLabel =
-  newPassword.length === 0
-    ? ""
-    : passwordStrengthScore <= 1
-    ? "Weak"
-    : passwordStrengthScore <= 2
-    ? "Fair"
-    : passwordStrengthScore <= 4
-    ? "Good"
-    : "Strong";
+  const passwordStrengthLabel =
+    newPassword.length === 0
+      ? ""
+      : passwordStrengthScore <= 1
+      ? "Weak"
+      : passwordStrengthScore <= 2
+      ? "Fair"
+      : passwordStrengthScore <= 4
+      ? "Good"
+      : "Strong";
+
   /*
   |--------------------------------------------------------------------------
   | LOAD SETTINGS
@@ -300,6 +327,149 @@ const passwordStrengthLabel =
 
   /*
   |--------------------------------------------------------------------------
+  | OPEN DELETE ACCOUNT FORM
+  |--------------------------------------------------------------------------
+  */
+
+  function openDeleteAccountForm() {
+    setDeletePassword("");
+    setDeleteConfirmation("");
+    setDeleteAccountError("");
+    setShowDeletePassword(false);
+
+    setShowDeleteAccountForm(true);
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | CLOSE DELETE ACCOUNT FORM
+  |--------------------------------------------------------------------------
+  */
+
+  function closeDeleteAccountForm() {
+    if (deletingAccount) {
+      return;
+    }
+
+    setShowDeleteAccountForm(false);
+
+    setDeletePassword("");
+    setDeleteConfirmation("");
+    setDeleteAccountError("");
+    setShowDeletePassword(false);
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | DELETE ACCOUNT
+  |--------------------------------------------------------------------------
+  */
+
+  async function handleDeleteAccount(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    if (deletingAccount) {
+      return;
+    }
+
+    setDeleteAccountError("");
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate current password
+    |--------------------------------------------------------------------------
+    */
+
+    if (!deletePassword) {
+      setDeleteAccountError(
+        "Please enter your current password."
+      );
+
+      return;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate DELETE confirmation
+    |--------------------------------------------------------------------------
+    */
+
+    if (deleteConfirmation !== "DELETE") {
+      setDeleteAccountError(
+        'Please type "DELETE" to confirm account deletion.'
+      );
+
+      return;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Submit deletion request
+    |--------------------------------------------------------------------------
+    */
+
+    setDeletingAccount(true);
+
+    try {
+      const response = await fetch(
+        "/api/settings/account",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            currentPassword: deletePassword,
+            confirmation: deleteConfirmation,
+          }),
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            "Failed to delete your account."
+        );
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Account successfully deleted
+      |--------------------------------------------------------------------------
+      |
+      | The server has already removed the session cookie.
+      | Redirect the user away from the authenticated area.
+      |--------------------------------------------------------------------------
+      */
+
+      setShowDeleteAccountForm(false);
+
+      router.push("/");
+
+      router.refresh();
+    } catch (error) {
+      console.error(
+        "Delete account error:",
+        error
+      );
+
+      setDeleteAccountError(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete your account. Please try again."
+      );
+
+      setDeletingAccount(false);
+    }
+  }
+
+  /*
+  |--------------------------------------------------------------------------
   | CHANGE PASSWORD
   |--------------------------------------------------------------------------
   */
@@ -315,12 +485,6 @@ const passwordStrengthLabel =
 
     setPasswordError("");
     setPasswordSuccess("");
-
-    /*
-    |--------------------------------------------------------------------------
-    | Required fields
-    |--------------------------------------------------------------------------
-    */
 
     if (!currentPassword) {
       setPasswordError(
@@ -346,12 +510,6 @@ const passwordStrengthLabel =
       return;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Password length
-    |--------------------------------------------------------------------------
-    */
-
     if (newPassword.length < 8) {
       setPasswordError(
         "Your new password must be at least 8 characters long."
@@ -367,12 +525,6 @@ const passwordStrengthLabel =
 
       return;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Password strength
-    |--------------------------------------------------------------------------
-    */
 
     if (!hasUppercase) {
       setPasswordError(
@@ -406,12 +558,6 @@ const passwordStrengthLabel =
       return;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Password confirmation
-    |--------------------------------------------------------------------------
-    */
-
     if (newPassword !== confirmPassword) {
       setPasswordError(
         "The new passwords do not match."
@@ -419,12 +565,6 @@ const passwordStrengthLabel =
 
       return;
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Submit to secure server API
-    |--------------------------------------------------------------------------
-    */
 
     setChangingPassword(true);
 
@@ -454,23 +594,11 @@ const passwordStrengthLabel =
         );
       }
 
-      /*
-      |--------------------------------------------------------------------------
-      | SUCCESS
-      |--------------------------------------------------------------------------
-      */
-
       setPasswordError("");
 
       setPasswordSuccess(
         "Password changed successfully."
       );
-
-      /*
-      |--------------------------------------------------------------------------
-      | Clear password fields after success
-      |--------------------------------------------------------------------------
-      */
 
       setCurrentPassword("");
       setNewPassword("");
@@ -642,7 +770,11 @@ const passwordStrengthLabel =
 
             <button
               type="button"
-              className="w-full rounded-xl border border-red-500 px-6 py-3 font-medium text-red-600 transition hover:bg-red-50 sm:ml-3 sm:w-auto"
+              onClick={
+                openDeleteAccountForm
+              }
+              disabled={deletingAccount}
+              className="w-full rounded-xl border border-red-500 px-6 py-3 font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:ml-3 sm:w-auto"
             >
               Delete Account
             </button>
@@ -674,8 +806,6 @@ const passwordStrengthLabel =
 
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
 
-            {/* MODAL HEADER */}
-
             <div className="mb-6 flex items-start justify-between gap-4">
 
               <div>
@@ -704,24 +834,17 @@ const passwordStrengthLabel =
 
             </div>
 
-
-            {/* ERROR */}
-
             {passwordError && (
               <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-700">
                 {passwordError}
               </div>
             )}
 
-
-            {/* SUCCESS */}
-
             {passwordSuccess && (
               <div className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium leading-5 text-green-700">
                 ✓ {passwordSuccess}
               </div>
             )}
-
 
             <form
               onSubmit={
@@ -793,7 +916,7 @@ const passwordStrengthLabel =
               </div>
 
 
-   {/* NEW PASSWORD */}
+              {/* NEW PASSWORD */}
 
               <div>
 
@@ -860,9 +983,6 @@ const passwordStrengthLabel =
 
                 </div>
 
-
-                {/* PASSWORD STRENGTH */}
-
                 {newPassword.length > 0 && (
                   <div className="mt-3">
 
@@ -874,25 +994,22 @@ const passwordStrengthLabel =
 
                       <span
                         className={`text-xs font-semibold ${
-  passwordStrengthLabel ===
-    "Strong"
-    ? "text-green-600"
-    : passwordStrengthLabel ===
-      "Good"
-    ? "text-blue-600"
-    : passwordStrengthLabel ===
-      "Fair"
-    ? "text-yellow-600"
-    : "text-red-600"
-}`}
+                          passwordStrengthLabel ===
+                            "Strong"
+                            ? "text-green-600"
+                            : passwordStrengthLabel ===
+                              "Good"
+                            ? "text-blue-600"
+                            : passwordStrengthLabel ===
+                              "Fair"
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                        }`}
                       >
                         {passwordStrengthLabel}
                       </span>
 
                     </div>
-
-
-                    {/* STRENGTH BAR */}
 
                     <div className="flex gap-1">
 
@@ -920,9 +1037,6 @@ const passwordStrengthLabel =
 
                   </div>
                 )}
-
-
-                {/* PASSWORD REQUIREMENTS */}
 
                 <div className="mt-3 space-y-2">
 
@@ -1041,9 +1155,6 @@ const passwordStrengthLabel =
 
                 </div>
 
-
-                {/* LIVE MATCH MESSAGE */}
-
                 {passwordsDoNotMatch && (
                   <p className="mt-2 text-xs font-medium text-red-600">
                     Passwords do not match.
@@ -1076,7 +1187,6 @@ const passwordStrengthLabel =
                   Close
                 </button>
 
-
                 <button
                   type="submit"
                   disabled={
@@ -1104,6 +1214,255 @@ const passwordStrengthLabel =
 
       )}
 
+
+      {/* ================================================================== */}
+      {/* DELETE ACCOUNT MODAL */}
+      {/* ================================================================== */}
+
+      {showDeleteAccountForm && (
+
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              closeDeleteAccountForm();
+            }
+          }}
+        >
+
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+
+            {/* MODAL HEADER */}
+
+            <div className="mb-6 flex items-start justify-between gap-4">
+
+              <div>
+
+                <h2 className="text-xl font-bold text-gray-900">
+                  Delete Account
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  This action is permanent. Your account
+                  and associated account data will be deleted.
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={
+                  closeDeleteAccountForm
+                }
+                disabled={
+                  deletingAccount
+                }
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-2xl text-gray-500 transition hover:bg-gray-100 disabled:opacity-50"
+                aria-label="Close"
+              >
+                ×
+              </button>
+
+            </div>
+
+
+            {/* WARNING */}
+
+            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+
+              <p className="text-sm font-semibold text-red-700">
+                Warning: This cannot be undone.
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-red-600">
+                Make sure you really want to permanently
+                delete your account before continuing.
+              </p>
+
+            </div>
+
+
+            {/* ERROR */}
+
+            {deleteAccountError && (
+              <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-700">
+                {deleteAccountError}
+              </div>
+            )}
+
+
+            <form
+              onSubmit={
+                handleDeleteAccount
+              }
+              className="space-y-5"
+            >
+
+              {/* CURRENT PASSWORD */}
+
+              <div>
+
+                <label
+                  htmlFor="delete-account-password"
+                  className="mb-2 block text-sm font-medium text-gray-700"
+                >
+                  Current Password
+                </label>
+
+                <div className="relative">
+
+                  <input
+                    id="delete-account-password"
+                    type={
+                      showDeletePassword
+                        ? "text"
+                        : "password"
+                    }
+                    value={
+                      deletePassword
+                    }
+                    onChange={(event) => {
+                      setDeletePassword(
+                        event.target.value
+                      );
+
+                      setDeleteAccountError("");
+                    }}
+                    autoComplete="current-password"
+                    disabled={
+                      deletingAccount
+                    }
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 pr-20 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-gray-100"
+                    placeholder="Enter your current password"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowDeletePassword(
+                        (value) => !value
+                      )
+                    }
+                    disabled={
+                      deletingAccount
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-blue-600"
+                  >
+                    {showDeletePassword
+                      ? "Hide"
+                      : "Show"}
+                  </button>
+
+                </div>
+
+              </div>
+
+
+              {/* DELETE CONFIRMATION */}
+
+              <div>
+
+                <label
+                  htmlFor="delete-account-confirmation"
+                  className="mb-2 block text-sm font-medium text-gray-700"
+                >
+                  Type <span className="font-bold">DELETE</span> to confirm
+                </label>
+
+                <input
+                  id="delete-account-confirmation"
+                  type="text"
+                  value={
+                    deleteConfirmation
+                  }
+                  onChange={(event) => {
+                    setDeleteConfirmation(
+                      event.target.value
+                    );
+
+                    setDeleteAccountError("");
+                  }}
+                  disabled={
+                    deletingAccount
+                  }
+                  autoComplete="off"
+                  spellCheck={false}
+                  className={`w-full rounded-xl border px-4 py-3 text-sm uppercase outline-none transition focus:ring-2 disabled:bg-gray-100 ${
+                    deleteConfirmation.length > 0 &&
+                    deleteConfirmation !==
+                      "DELETE"
+                      ? "border-red-400 focus:border-red-500 focus:ring-red-100"
+                      : deleteConfirmation ===
+                        "DELETE"
+                      ? "border-green-400 focus:border-green-500 focus:ring-green-100"
+                      : "border-gray-300 focus:border-blue-500 focus:ring-blue-100"
+                  }`}
+                  placeholder="DELETE"
+                />
+
+                {deleteConfirmation.length > 0 &&
+                  deleteConfirmation !==
+                    "DELETE" && (
+                    <p className="mt-2 text-xs font-medium text-red-600">
+                      Please type DELETE exactly as shown.
+                    </p>
+                  )}
+
+                {deleteConfirmation ===
+                  "DELETE" && (
+                  <p className="mt-2 text-xs font-medium text-green-600">
+                    ✓ Confirmation accepted.
+                  </p>
+                )}
+
+              </div>
+
+
+              {/* ACTION BUTTONS */}
+
+              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+
+                <button
+                  type="button"
+                  onClick={
+                    closeDeleteAccountForm
+                  }
+                  disabled={
+                    deletingAccount
+                  }
+                  className="rounded-xl border border-gray-300 px-5 py-3 font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={
+                    deletingAccount ||
+                    !deletePassword ||
+                    deleteConfirmation !==
+                      "DELETE"
+                  }
+                  className="rounded-xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {deletingAccount
+                    ? "Deleting Account..."
+                    : "Permanently Delete Account"}
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+
+        </div>
+
+      )}
+
     </>
   );
-                  }
+}
