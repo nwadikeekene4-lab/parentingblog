@@ -1,5 +1,7 @@
+"src/app/api/auth/me/route.ts"
+
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/getCurrentUser";
+import { getCurrentUser } from "@/lib/session";
 
 export async function GET() {
   try {
@@ -32,4 +34,4 @@ export async function GET() {
       { status: 200 }
     );
   }
-      }
+            }
