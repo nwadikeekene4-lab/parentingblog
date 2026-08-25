@@ -1,3 +1,5 @@
+Updated Hero.tsx
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -6,6 +8,33 @@ import RotatingText from './RotatingText';
 
 export default function Hero() {
   const router = useRouter();
+
+  async function handleShareStory() {
+    try {
+      const response = await fetch('/api/auth/me', {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      const data = await response.json();
+
+      if (data.authenticated) {
+        router.push('/users-dashboard/write-story');
+      } else {
+        router.push('/auth');
+      }
+    } catch (error) {
+      console.error(
+        'Authentication check failed:',
+        error
+      );
+
+      // If the authentication check fails,
+      // safely send the visitor to the auth page.
+      router.push('/auth');
+    }
+  }
 
   return (
     <section
@@ -18,10 +47,8 @@ export default function Hero() {
         items-center
       "
     >
-
       {/* Background Image */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-
         <motion.img
           src="/Images/stories/homebg.jpg"
           alt="Family background"
@@ -34,7 +61,7 @@ export default function Hero() {
             object-center
           "
           style={{
-            objectPosition: "center center",
+            objectPosition: 'center center',
           }}
           animate={{
             scale: [1, 1.01, 1],
@@ -42,12 +69,10 @@ export default function Hero() {
           transition={{
             duration: 40,
             repeat: Infinity,
-            ease: "easeInOut",
+            ease: 'easeInOut',
           }}
         />
-
       </div>
-
 
       {/* Background Overlay */}
       <div
@@ -58,7 +83,6 @@ export default function Hero() {
           bg-black/45
         "
       />
-
 
       {/* Content */}
       <div
@@ -76,7 +100,6 @@ export default function Hero() {
           xl:py-32
         "
       >
-
         {/* Hero Text */}
         <motion.div
           initial={{
@@ -96,7 +119,6 @@ export default function Hero() {
             text-center
           "
         >
-
           <h1
             className="
               text-4xl
@@ -110,7 +132,6 @@ export default function Hero() {
               text-white
             "
           >
-
             Welcome to
 
             <span
@@ -122,14 +143,11 @@ export default function Hero() {
             >
               Parenting Together
             </span>
-
           </h1>
-
 
           <div className="mt-6">
             <RotatingText />
           </div>
-
 
           <p
             className="
@@ -149,9 +167,7 @@ export default function Hero() {
             and become part of a supportive community built
             to help every family grow together.
           </p>
-
         </motion.div>
-
 
         {/* Action Cards */}
         <div
@@ -165,8 +181,6 @@ export default function Hero() {
             mx-auto
           "
         >
-
-
           {/* Stories Card */}
           <motion.div
             whileHover={{
@@ -192,11 +206,9 @@ export default function Hero() {
               transition
             "
           >
-
             <div className="text-4xl">
               📖
             </div>
-
 
             <h2
               className="
@@ -210,7 +222,6 @@ export default function Hero() {
               Explore Parenting Stories
             </h2>
 
-
             <p
               className="
                 mt-3
@@ -223,7 +234,6 @@ export default function Hero() {
               Discover experiences, lessons and advice from parents around the world.
             </p>
 
-
             <span
               className="
                 mt-5
@@ -234,10 +244,9 @@ export default function Hero() {
             >
               Browse stories →
             </span>
-
-
           </motion.div>
-                    {/* Share Card */}
+
+          {/* Share Card */}
           <motion.div
             whileHover={{
               y: -6,
@@ -245,9 +254,7 @@ export default function Hero() {
             whileTap={{
               scale: 0.97,
             }}
-            onClick={() => {
-              router.push('/auth');
-            }}
+            onClick={handleShareStory}
             className="
               cursor-pointer
               rounded-3xl
@@ -260,11 +267,9 @@ export default function Hero() {
               transition
             "
           >
-
             <div className="text-4xl">
               ✍️
             </div>
-
 
             <h2
               className="
@@ -278,7 +283,6 @@ export default function Hero() {
               Share Your Story
             </h2>
 
-
             <p
               className="
                 mt-3
@@ -291,7 +295,6 @@ export default function Hero() {
               Tell your parenting journey and inspire another family.
             </p>
 
-
             <span
               className="
                 mt-5
@@ -302,17 +305,9 @@ export default function Hero() {
             >
               Create a story →
             </span>
-
-
           </motion.div>
-
-
         </div>
-
-
       </div>
-
-
     </section>
   );
-}
+          }
