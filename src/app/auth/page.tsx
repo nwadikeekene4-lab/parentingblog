@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 
-import LoginForm from "./components/LoginForm";
+
 import SignupForm from "./components/SignupForm";
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  
 
   return (
     <main
@@ -77,45 +77,11 @@ export default function AuthPage() {
         </div>
 
 
-        {/* Tabs */}
-
-        <div className="flex border-b">
-
-          <button
-            onClick={() => setMode("login")}
-            className={`flex-1 py-4 font-semibold transition ${
-              mode === "login"
-                ? "border-b-4 border-blue-600 text-blue-600"
-                : "text-gray-500"
-            }`}
-          >
-            Login
-          </button>
-
-
-          <button
-            onClick={() => setMode("signup")}
-            className={`flex-1 py-4 font-semibold transition ${
-              mode === "signup"
-                ? "border-b-4 border-blue-600 text-blue-600"
-                : "text-gray-500"
-            }`}
-          >
-            Create Account
-          </button>
-
-        </div>
 
 
         <div className="p-8">
-
-          {mode === "login" ? (
-            <LoginForm />
-          ) : (
-            <SignupForm />
-          )}
-
-        </div>
+  <SignupForm />
+</div>
 
 
       </section>
