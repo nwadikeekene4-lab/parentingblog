@@ -16,52 +16,81 @@ export default function UsersDashboardLayout({
   return (
     <div
       className="
+        relative
         min-h-screen
+        w-full
+        overflow-x-hidden
         bg-cover
         bg-center
         bg-fixed
-        relative
       "
       style={{
         backgroundImage:
           "url('/Images/loginimage.png')",
       }}
     >
-
       {/* Background overlay */}
       <div
         className="
-          absolute
+          pointer-events-none
+          fixed
           inset-0
+          z-0
           bg-white/60
           backdrop-blur-sm
         "
+        aria-hidden="true"
       />
 
-
-      <div className="relative z-10 min-h-screen">
-
+      {/* Dashboard layer */}
+      <div className="relative z-10 flex min-h-screen w-full">
+        {/* Desktop Sidebar */}
         <DashboardSidebar />
 
+        {/* Mobile Sidebar */}
         <DashboardMobileSidebar
           isOpen={mobileSidebarOpen}
           onClose={() => setMobileSidebarOpen(false)}
         />
 
-        <div className="lg:ml-72">
-
+        {/* Main dashboard area */}
+        <div
+          className="
+            flex
+            min-w-0
+            flex-1
+            flex-col
+            lg:ml-72
+          "
+        >
+          {/* Header */}
           <DashboardHeader
             onMenuClick={() => setMobileSidebarOpen(true)}
           />
 
-          <main className="p-4 md:p-6 lg:p-8">
-            {children}
+          {/* Page content */}
+          <main
+            className="
+              min-w-0
+              flex-1
+              px-3
+              py-4
+              sm:px-4
+              sm:py-5
+              md:px-6
+              md:py-6
+              lg:px-8
+              lg:py-8
+              xl:px-10
+              2xl:px-12
+            "
+          >
+            <div className="mx-auto w-full max-w-[1600px]">
+              {children}
+            </div>
           </main>
-
         </div>
-
       </div>
-
     </div>
   );
-      }
+}
