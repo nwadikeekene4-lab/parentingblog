@@ -6,16 +6,16 @@ const stats = [
   {
     title: "Pending Review",
     value: "0",
-    description: "Stories awaiting approval",
+    description: "Awaiting approval",
     icon: "⏳",
     href: "/admin/pending-review",
     iconBg: "bg-amber-50",
     iconText: "text-amber-600",
   },
   {
-    title: "Published Stories",
+    title: "Published",
     value: "0",
-    description: "Published non-featured stories",
+    description: "Published stories",
     icon: "📚",
     href: "/admin/published",
     iconBg: "bg-blue-50",
@@ -24,25 +24,25 @@ const stats = [
   {
     title: "My Stories",
     value: "0",
-    description: "Your published stories",
+    description: "Your stories",
     icon: "✍️",
     href: "/admin/my-stories",
     iconBg: "bg-purple-50",
     iconText: "text-purple-600",
   },
   {
-    title: "Featured Stories",
+    title: "Featured",
     value: "0",
-    description: "Stories currently featured",
+    description: "Featured stories",
     icon: "⭐",
     href: "/admin/featured",
     iconBg: "bg-yellow-50",
     iconText: "text-yellow-600",
   },
   {
-    title: "Registered Users",
+    title: "Users",
     value: "0",
-    description: "Registered accounts",
+    description: "Registered users",
     icon: "👤",
     href: "/admin/users",
     iconBg: "bg-emerald-50",
@@ -51,7 +51,7 @@ const stats = [
   {
     title: "Visitors",
     value: "0",
-    description: "Stories page visitors",
+    description: "Stories visitors",
     icon: "👁️",
     href: "/admin/visitors",
     iconBg: "bg-cyan-50",
@@ -61,9 +61,9 @@ const stats = [
 
 export default function AdminOverviewPage() {
   return (
-    <div className="w-full space-y-6 sm:space-y-8">
+    <div className="w-full space-y-5 sm:space-y-6">
 
-      {/* Welcome section */}
+      {/* Welcome */}
       <section
         className="
           relative
@@ -73,23 +73,25 @@ export default function AdminOverviewPage() {
           from-blue-600
           via-blue-700
           to-indigo-800
-          p-6
+          px-5
+          py-6
           text-white
           shadow-lg
           sm:rounded-3xl
-          sm:p-8
-          lg:p-10
+          sm:px-7
+          sm:py-7
+          lg:px-8
         "
       >
-        {/* Decorative elements */}
+        {/* Decorative circles */}
         <div
           className="
             pointer-events-none
             absolute
-            -right-20
+            -right-16
             -top-20
-            h-56
-            w-56
+            h-48
+            w-48
             rounded-full
             bg-white/10
             blur-2xl
@@ -100,29 +102,28 @@ export default function AdminOverviewPage() {
           className="
             pointer-events-none
             absolute
-            -bottom-24
-            right-20
-            h-48
-            w-48
+            -bottom-20
+            right-24
+            h-40
+            w-40
             rounded-full
-            bg-indigo-400/20
+            bg-indigo-300/20
             blur-3xl
           "
         />
 
-        <div className="relative max-w-3xl">
-          <p className="text-sm font-medium text-blue-100">
-            Welcome back
+        <div className="relative">
+          <p className="text-xs font-medium uppercase tracking-wide text-blue-100 sm:text-sm">
+            Administration
           </p>
 
           <h1
             className="
-              mt-2
+              mt-1
               text-2xl
               font-bold
               tracking-tight
               sm:text-3xl
-              lg:text-4xl
             "
           >
             Admin Dashboard
@@ -130,42 +131,54 @@ export default function AdminOverviewPage() {
 
           <p
             className="
-              mt-3
+              mt-2
               max-w-2xl
               text-sm
               leading-6
               text-blue-100
-              sm:text-base
-              sm:leading-7
             "
           >
-            Manage stories, featured content, users,
-            moderation and website activity from one place.
+            Manage your stories, featured content, users
+            and website activity from one place.
           </p>
         </div>
       </section>
 
 
-      {/* Statistics */}
+      {/* Overview */}
       <section>
-        <div className="mb-4">
-          <h2 className="text-lg font-bold text-slate-900 sm:text-xl">
-            Overview
-          </h2>
+        <div className="mb-3 flex items-end justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">
+              Overview
+            </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
-            A quick look at your website activity.
-          </p>
+            <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
+              Quick statistics
+            </p>
+          </div>
+
+          {/* Mobile scroll hint */}
+          <span className="text-xs text-slate-400 sm:hidden">
+            Swipe →
+          </span>
         </div>
 
 
+        {/* Horizontal statistics rail */}
         <div
           className="
-            grid
-            grid-cols-1
-            gap-4
-            sm:grid-cols-2
-            xl:grid-cols-3
+            -mx-4
+            flex
+            gap-3
+            overflow-x-auto
+            px-4
+            pb-2
+            scrollbar-none
+            sm:-mx-6
+            sm:px-6
+            lg:-mx-8
+            lg:px-8
           "
         >
           {stats.map((stat) => (
@@ -174,36 +187,39 @@ export default function AdminOverviewPage() {
               href={stat.href}
               className="
                 group
+                w-[220px]
+                min-w-[220px]
                 rounded-2xl
                 border
                 border-slate-200
                 bg-white
-                p-5
+                p-4
                 shadow-sm
                 transition-all
                 duration-200
                 hover:-translate-y-1
-                hover:shadow-lg
+                hover:shadow-md
+                active:scale-[0.98]
                 focus:outline-none
                 focus:ring-2
                 focus:ring-blue-500
-                focus:ring-offset-2
-                sm:p-6
+                sm:w-[230px]
+                sm:min-w-[230px]
+                sm:p-5
+                lg:w-[240px]
+                lg:min-w-[240px]
               "
             >
-              <div className="flex items-start justify-between gap-4">
-
-                {/* Icon */}
+              <div className="flex items-center justify-between">
                 <div
                   className={`
                     flex
-                    h-12
-                    w-12
-                    shrink-0
+                    h-10
+                    w-10
                     items-center
                     justify-center
                     rounded-xl
-                    text-xl
+                    text-lg
                     ${stat.iconBg}
                     ${stat.iconText}
                   `}
@@ -211,41 +227,29 @@ export default function AdminOverviewPage() {
                   {stat.icon}
                 </div>
 
-                {/* Arrow */}
                 <span
                   className="
-                    text-lg
+                    text-sm
                     text-slate-300
-                    transition-transform
-                    duration-200
+                    transition
                     group-hover:translate-x-1
                     group-hover:text-blue-500
                   "
-                  aria-hidden="true"
                 >
                   →
                 </span>
               </div>
 
-
-              <div className="mt-5">
-                <p className="text-sm font-medium text-slate-500">
+              <div className="mt-4">
+                <p className="text-xs font-medium text-slate-500">
                   {stat.title}
                 </p>
 
-                <p
-                  className="
-                    mt-1
-                    text-3xl
-                    font-bold
-                    tracking-tight
-                    text-slate-900
-                  "
-                >
+                <p className="mt-0.5 text-2xl font-bold text-slate-900">
                   {stat.value}
                 </p>
 
-                <p className="mt-2 text-xs text-slate-400 sm:text-sm">
+                <p className="mt-1 text-xs text-slate-400">
                   {stat.description}
                 </p>
               </div>
@@ -255,37 +259,45 @@ export default function AdminOverviewPage() {
       </section>
 
 
-      {/* Quick actions */}
+      {/* Quick Actions */}
       <section
         className="
           rounded-2xl
           border
           border-slate-200
           bg-white
-          p-5
+          p-4
           shadow-sm
           sm:rounded-3xl
-          sm:p-6
-          lg:p-8
+          sm:p-5
+          lg:p-6
         "
       >
-        <div className="mb-5">
-          <h2 className="text-lg font-bold text-slate-900 sm:text-xl">
-            Quick Actions
-          </h2>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">
+              Quick Actions
+            </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Frequently used administration tools.
-          </p>
+            <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
+              Frequently used tools
+            </p>
+          </div>
         </div>
 
 
+        {/* Quick action rail on small screens */}
         <div
           className="
-            grid
-            grid-cols-1
-            gap-3
+            -mx-1
+            flex
+            gap-2
+            overflow-x-auto
+            px-1
+            pb-1
+            sm:grid
             sm:grid-cols-2
+            sm:overflow-visible
             lg:grid-cols-4
           "
         >
@@ -294,7 +306,7 @@ export default function AdminOverviewPage() {
             href="/admin/pending-review"
             className="
               flex
-              min-h-12
+              min-w-[150px]
               items-center
               justify-center
               rounded-xl
@@ -308,10 +320,7 @@ export default function AdminOverviewPage() {
               transition
               hover:bg-blue-700
               active:scale-[0.98]
-              focus:outline-none
-              focus:ring-2
-              focus:ring-blue-500
-              focus:ring-offset-2
+              sm:min-w-0
             "
           >
             Review Stories
@@ -322,7 +331,7 @@ export default function AdminOverviewPage() {
             href="/admin/my-stories"
             className="
               flex
-              min-h-12
+              min-w-[150px]
               items-center
               justify-center
               rounded-xl
@@ -339,10 +348,7 @@ export default function AdminOverviewPage() {
               hover:bg-blue-50
               hover:text-blue-600
               active:scale-[0.98]
-              focus:outline-none
-              focus:ring-2
-              focus:ring-blue-500
-              focus:ring-offset-2
+              sm:min-w-0
             "
           >
             Write a Story
@@ -353,7 +359,7 @@ export default function AdminOverviewPage() {
             href="/admin/featured"
             className="
               flex
-              min-h-12
+              min-w-[150px]
               items-center
               justify-center
               rounded-xl
@@ -370,13 +376,10 @@ export default function AdminOverviewPage() {
               hover:bg-yellow-50
               hover:text-yellow-700
               active:scale-[0.98]
-              focus:outline-none
-              focus:ring-2
-              focus:ring-yellow-500
-              focus:ring-offset-2
+              sm:min-w-0
             "
           >
-            Manage Featured
+            Featured Stories
           </Link>
 
 
@@ -384,7 +387,7 @@ export default function AdminOverviewPage() {
             href="/admin/users"
             className="
               flex
-              min-h-12
+              min-w-[150px]
               items-center
               justify-center
               rounded-xl
@@ -401,10 +404,7 @@ export default function AdminOverviewPage() {
               hover:bg-emerald-50
               hover:text-emerald-700
               active:scale-[0.98]
-              focus:outline-none
-              focus:ring-2
-              focus:ring-emerald-500
-              focus:ring-offset-2
+              sm:min-w-0
             "
           >
             Manage Users
@@ -413,6 +413,33 @@ export default function AdminOverviewPage() {
         </div>
       </section>
 
+
+      {/* Admin tip */}
+      <div
+        className="
+          flex
+          items-start
+          gap-3
+          rounded-2xl
+          border
+          border-blue-100
+          bg-blue-50/70
+          px-4
+          py-3
+          text-sm
+          text-blue-800
+        "
+      >
+        <span className="mt-0.5 text-base">
+          💡
+        </span>
+
+        <p className="leading-5">
+          Use the sidebar to manage stories, featured
+          content, users, comments and visitor activity.
+        </p>
+      </div>
+
     </div>
   );
-      }
+    }
