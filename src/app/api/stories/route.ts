@@ -588,6 +588,9 @@ export async function POST(
               ? "pending_review"
               : "draft",
 
+          submissionType:
+            "new_submission",
+
           publishedAt:
             status === "published"
               ? new Date()
