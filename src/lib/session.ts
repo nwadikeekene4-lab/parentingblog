@@ -43,7 +43,9 @@ export async function getCurrentUser() {
     return null;
   }
 
-  console.log("Current logged in user:", user);
-
-  return user;
-}
+  console.log(
+  "CURRENT USER ROLE:",
+  user.role,
+  "USER:",
+  user
+);
