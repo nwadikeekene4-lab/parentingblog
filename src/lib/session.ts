@@ -7,16 +7,21 @@ import { sessions, users } from "@/db/schema";
 export async function getCurrentUser() {
   const cookieStore = await cookies();
 
-  const sessionToken = cookieStore.get("session")?.value;
+  const sessionToken =
+    cookieStore.get("session")?.value;
 
   if (!sessionToken) {
     return null;
   }
 
-  const session = await db.query.sessions.findFirst({
-    where: (sessions, { eq }) =>
-      eq(sessions.token, sessionToken),
-  });
+  const session =
+    await db.query.sessions.findFirst({
+      where: (sessions, { eq }) =>
+        eq(
+          sessions.token,
+          sessionToken
+        ),
+    });
 
   if (!session) {
     return null;
@@ -25,15 +30,24 @@ export async function getCurrentUser() {
   if (session.expiresAt < new Date()) {
     await db
       .delete(sessions)
-      .where(eq(sessions.id, session.id));
+      .where(
+        eq(
+          sessions.id,
+          session.id
+        )
+      );
 
     return null;
   }
 
-  const user = await db.query.users.findFirst({
-    where: (users, { eq }) =>
-      eq(users.id, session.userId),
-  });
+  const user =
+    await db.query.users.findFirst({
+      where: (users, { eq }) =>
+        eq(
+          users.id,
+          session.userId
+        ),
+    });
 
   if (!user) {
     return null;
@@ -44,9 +58,9 @@ export async function getCurrentUser() {
   }
 
   console.log(
-  "CURRENT USER ROLE:",
-  user.role,
-  "USER:",
-  user
-);
+    "CURRENT USER ROLE:",
+    user.role
+  );
+
+  return user;
 }
