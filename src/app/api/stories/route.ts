@@ -25,7 +25,6 @@ function createSlug(title: string) {
     .replace(/-+/g, "-");
 }
 
-
 /*
 |--------------------------------------------------------------------------
 | GET
@@ -44,15 +43,10 @@ function createSlug(title: string) {
 */
 
 export async function GET() {
-
   try {
-
-    const user =
-      await getCurrentUser();
-
+    const user = await getCurrentUser();
 
     if (!user) {
-
       return NextResponse.json(
         {
           message: "Unauthorized",
@@ -61,9 +55,7 @@ export async function GET() {
           status: 401,
         }
       );
-
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -71,109 +63,86 @@ export async function GET() {
     |--------------------------------------------------------------------------
     */
 
-    const publishedStories =
-      await db
-        .select({
+    const publishedStories = await db
+      .select({
+        id: stories.id,
 
-          id:
-            stories.id,
+        title: stories.title,
 
-          title:
-            stories.title,
+        slug: stories.slug,
 
-          slug:
-            stories.slug,
+        coverImage: stories.coverImage,
 
-          coverImage:
-            stories.coverImage,
+        publishedAt: stories.publishedAt,
 
-          publishedAt:
-            stories.publishedAt,
+        createdAt: stories.createdAt,
 
-          createdAt:
-            stories.createdAt,
+        updatedAt: stories.updatedAt,
 
-          updatedAt:
-            stories.updatedAt,
+        category: categories.name,
 
-          category:
-            categories.name,
+        featured: stories.featured,
 
-          featured:
-            stories.featured,
+        views: stories.views,
 
-          views:
-            stories.views,
+        likes: sql<number>`
+          (
+            SELECT COUNT(*)
+            FROM ${storyLikes}
+            WHERE ${storyLikes.storyId} = ${stories.id}
+          )
+        `,
 
-          likes:
-            sql<number>`
-              (
-                SELECT COUNT(*)
-                FROM ${storyLikes}
-                WHERE ${storyLikes.storyId} = ${stories.id}
-              )
-            `,
+        comments: sql<number>`
+          (
+            SELECT COUNT(*)
+            FROM ${comments}
+            WHERE
+              ${comments.storyId} = ${stories.id}
+              AND ${comments.isDeleted} = false
+              AND ${comments.isApproved} = true
+          )
+        `,
 
-          comments:
-            sql<number>`
-              (
-                SELECT COUNT(*)
-                FROM ${comments}
-                WHERE
-                  ${comments.storyId} = ${stories.id}
-                  AND ${comments.isDeleted} = false
-                  AND ${comments.isApproved} = true
-              )
-            `,
-
-          bookmarks:
-            sql<number>`
-              (
-                SELECT COUNT(*)
-                FROM ${storyBookmarks}
-                WHERE ${storyBookmarks.storyId} = ${stories.id}
-              )
-            `,
-
-        })
-
-        .from(stories)
-
-        .innerJoin(
-          categories,
+        bookmarks: sql<number>`
+          (
+            SELECT COUNT(*)
+            FROM ${storyBookmarks}
+            WHERE ${storyBookmarks.storyId} = ${stories.id}
+          )
+        `,
+      })
+      .from(stories)
+      .innerJoin(
+        categories,
+        eq(
+          stories.categoryId,
+          categories.id
+        )
+      )
+      .where(
+        and(
           eq(
-            stories.categoryId,
-            categories.id
+            stories.authorId,
+            user.id
+          ),
+
+          eq(
+            stories.status,
+            "published"
+          ),
+
+          eq(
+            stories.isDeleted,
+            false
           )
         )
-
-        .where(
-          and(
-
-            eq(
-              stories.authorId,
-              user.id
-            ),
-
-            eq(
-              stories.status,
-              "published"
-            ),
-
-            eq(
-              stories.isDeleted,
-              false
-            )
-
-          )
+      )
+      .orderBy(
+        desc(
+          stories.publishedAt
         )
-
-        .orderBy(
-          desc(
-            stories.publishedAt
-          )
-        );
-
+      );
 
     /*
     |--------------------------------------------------------------------------
@@ -181,10 +150,7 @@ export async function GET() {
     |--------------------------------------------------------------------------
     */
 
-    if (
-      publishedStories.length === 0
-    ) {
-
+    if (publishedStories.length === 0) {
       return NextResponse.json(
         {
           stories: [],
@@ -193,9 +159,7 @@ export async function GET() {
           status: 200,
         }
       );
-
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -203,11 +167,9 @@ export async function GET() {
     |--------------------------------------------------------------------------
     */
 
-    const storyIds =
-      publishedStories.map(
-        (story) => story.id
-      );
-
+    const storyIds = publishedStories.map(
+      (story) => story.id
+    );
 
     /*
     |--------------------------------------------------------------------------
@@ -220,43 +182,30 @@ export async function GET() {
     |--------------------------------------------------------------------------
     */
 
-    const additionalImages =
-      await db
-        .select({
+    const additionalImages = await db
+      .select({
+        id: storyImages.id,
 
-          id:
-            storyImages.id,
+        storyId: storyImages.storyId,
 
-          storyId:
-            storyImages.storyId,
+        imageUrl: storyImages.imageUrl,
 
-          imageUrl:
-            storyImages.imageUrl,
+        publicId: storyImages.publicId,
 
-          publicId:
-            storyImages.publicId,
+        caption: storyImages.caption,
 
-          caption:
-            storyImages.caption,
-
-          displayOrder:
-            storyImages.displayOrder,
-
-        })
-
-        .from(storyImages)
-
-        .where(
-          inArray(
-            storyImages.storyId,
-            storyIds
-          )
+        displayOrder: storyImages.displayOrder,
+      })
+      .from(storyImages)
+      .where(
+        inArray(
+          storyImages.storyId,
+          storyIds
         )
-
-        .orderBy(
-          storyImages.displayOrder
-        );
-
+      )
+      .orderBy(
+        storyImages.displayOrder
+      );
 
     /*
     |--------------------------------------------------------------------------
@@ -270,27 +219,19 @@ export async function GET() {
         typeof additionalImages
       >();
 
-
-    for (
-      const image of additionalImages
-    ) {
-
+    for (const image of additionalImages) {
       const existing =
         imagesByStory.get(
           image.storyId
         ) ?? [];
 
-
       existing.push(image);
-
 
       imagesByStory.set(
         image.storyId,
         existing
       );
-
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -301,15 +242,11 @@ export async function GET() {
     const formattedStories =
       publishedStories.map(
         (story) => ({
+          id: story.id,
 
-          id:
-            story.id,
+          title: story.title,
 
-          title:
-            story.title,
-
-          slug:
-            story.slug,
+          slug: story.slug,
 
           coverImage:
             story.coverImage,
@@ -353,10 +290,8 @@ export async function GET() {
             imagesByStory.get(
               story.id
             ) ?? [],
-
         })
       );
-
 
     /*
     |--------------------------------------------------------------------------
@@ -373,15 +308,11 @@ export async function GET() {
         status: 200,
       }
     );
-
-
   } catch (error) {
-
     console.error(
       "Fetch published stories error:",
       error
     );
-
 
     return NextResponse.json(
       {
@@ -392,11 +323,8 @@ export async function GET() {
         status: 500,
       }
     );
-
   }
-
 }
-
 
 /*
 |--------------------------------------------------------------------------
@@ -409,30 +337,24 @@ export async function GET() {
 export async function POST(
   request: Request
 ) {
-
   try {
-
     const user =
       await getCurrentUser();
 
-
     if (!user) {
-
       return NextResponse.json(
         {
-          message: "Unauthorized",
+          message:
+            "Unauthorized",
         },
         {
           status: 401,
         }
       );
-
     }
-
 
     const body =
       await request.json();
-
 
     const {
       title,
@@ -445,6 +367,11 @@ export async function POST(
         uploadedImages = [],
     } = body;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Validate required fields
+    |--------------------------------------------------------------------------
+    */
 
     if (
       !title ||
@@ -452,7 +379,6 @@ export async function POST(
       !category ||
       !status
     ) {
-
       return NextResponse.json(
         {
           message:
@@ -462,15 +388,18 @@ export async function POST(
           status: 400,
         }
       );
-
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Validate requested status
+    |--------------------------------------------------------------------------
+    */
 
     if (
       status !== "draft" &&
       status !== "published"
     ) {
-
       return NextResponse.json(
         {
           message:
@@ -480,13 +409,16 @@ export async function POST(
           status: 400,
         }
       );
-
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Find category
+    |--------------------------------------------------------------------------
+    */
 
     const existingCategory =
       await db.query.categories.findFirst({
-
         where: (
           categories,
           { eq }
@@ -495,12 +427,9 @@ export async function POST(
             categories.name,
             category
           ),
-
       });
 
-
     if (!existingCategory) {
-
       return NextResponse.json(
         {
           message:
@@ -510,21 +439,22 @@ export async function POST(
           status: 404,
         }
       );
-
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Generate unique slug
+    |--------------------------------------------------------------------------
+    */
 
     let slug =
       createSlug(title);
 
     let counter = 1;
 
-
     while (true) {
-
       const existingStory =
         await db.query.stories.findFirst({
-
           where: (
             stories,
             { eq }
@@ -533,34 +463,84 @@ export async function POST(
               stories.slug,
               slug
             ),
-
         });
 
-
       if (!existingStory) {
-
         break;
-
       }
-
 
       slug =
         `${createSlug(title)}-${counter}`;
 
       counter++;
-
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Generate excerpt
+    |--------------------------------------------------------------------------
+    */
 
     const excerpt =
       generateExcerpt(content);
 
+    /*
+    |--------------------------------------------------------------------------
+    | Determine actual database status
+    |--------------------------------------------------------------------------
+    |
+    | User requests:
+    |
+    | draft     -> draft
+    | published -> pending_review
+    |
+    | A normal registered user cannot publish directly.
+    |--------------------------------------------------------------------------
+    */
+
+    const databaseStatus =
+      status === "published"
+        ? "pending_review"
+        : "draft";
+
+    /*
+    |--------------------------------------------------------------------------
+    | Determine submission type
+    |--------------------------------------------------------------------------
+    |
+    | This is a brand-new story, so it is always:
+    |
+    | new_submission
+    |--------------------------------------------------------------------------
+    */
+
+    const submissionType =
+      "new_submission" as const;
+
+    /*
+    |--------------------------------------------------------------------------
+    | IMPORTANT:
+    |
+    | publishedAt must ONLY be set when the story is actually published.
+    |
+    | A newly submitted story is still pending review, therefore:
+    |
+    | publishedAt = null
+    |--------------------------------------------------------------------------
+    */
+
+    const publishedAt = null;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create story
+    |--------------------------------------------------------------------------
+    */
 
     const [story] =
       await db
         .insert(stories)
         .values({
-
           title:
             title.trim(),
 
@@ -584,41 +564,38 @@ export async function POST(
             existingCategory.id,
 
           status:
-            status === "published"
-              ? "pending_review"
-              : "draft",
+            databaseStatus,
 
-          submissionType:
-            "new_submission",
+          submissionType,
 
-          publishedAt:
-            status === "published"
-              ? new Date()
-              : null,
+          featured:
+            false,
+
+          publishedAt,
 
         })
         .returning();
 
+    /*
+    |--------------------------------------------------------------------------
+    | Save additional story images
+    |--------------------------------------------------------------------------
+    */
 
     if (
       uploadedImages.length > 0
     ) {
-
       await db
         .insert(storyImages)
         .values(
-
           uploadedImages.map(
             (
               image: {
                 url: string;
                 publicId: string;
               },
-
               index: number
-
             ) => ({
-
               storyId:
                 story.id,
 
@@ -630,83 +607,73 @@ export async function POST(
 
               displayOrder:
                 index,
-
             })
-
           )
-
         );
-
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Record story activity
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      status === "published"
+    ) {
+      await createActivity({
+        userId:
+          user.id,
+
+        type:
+          "story_submitted",
+
+        message:
+          `You submitted "${story.title}" for review.`,
+
+        storyId:
+          story.id,
+      });
+    } else {
+      await createActivity({
+        userId:
+          user.id,
+
+        type:
+          "story_draft_saved",
+
+        message:
+          `You saved "${story.title}" as a draft.`,
+
+        storyId:
+          story.id,
+      });
+    }
 
     /*
-|--------------------------------------------------------------------------
-| Record story activity
-|--------------------------------------------------------------------------
-*/
+    |--------------------------------------------------------------------------
+    | Return response
+    |--------------------------------------------------------------------------
+    */
 
-if (status === "published") {
+    return NextResponse.json(
+      {
+        message:
+          status === "published"
+            ? "Story submitted for review successfully."
+            : "Draft saved successfully.",
 
-  await createActivity({
-    userId: user.id,
-
-    type:
-      "story_submitted",
-
-    message:
-      `You submitted "${story.title}" for review.`,
-
-    storyId:
-      story.id,
-  });
-
-} else {
-
-  await createActivity({
-    userId: user.id,
-
-    type:
-      "story_draft_saved",
-
-    message:
-      `You saved "${story.title}" as a draft.`,
-
-    storyId:
-      story.id,
-  });
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Return response
-|--------------------------------------------------------------------------
-*/
-
-return NextResponse.json(
-  {
-    message:
-      status === "published"
-        ? "Story submitted for review successfully."
-        : "Draft saved successfully.",
-
-    story,
-  },
-  {
-    status: 201,
-  }
-);
-
-
+        story,
+      },
+      {
+        status: 201,
+      }
+    );
   } catch (error) {
-
     console.error(
       "Create story error:",
       error
     );
-
 
     return NextResponse.json(
       {
@@ -717,7 +684,5 @@ return NextResponse.json(
         status: 500,
       }
     );
-
   }
-
-          }
+             }
