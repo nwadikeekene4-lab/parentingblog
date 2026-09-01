@@ -10,6 +10,110 @@ import {
 import { useStoryForm } from "./StoryFormContext";
 import { uploadImage } from "@/lib/uploadImage";
 
+// Sanitize error messages to prevent information leakage
+function sanitizeErrorMessage(
+  error: unknown,
+  defaultMessage: string,
+  isDevelopment: boolean = false
+): string {
+  // In production, show generic messages
+  if (!isDevelopment) {
+    // Only expose specific user-friendly messages
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase();
+      
+      // Whitelist of safe error messages to expose
+      if (
+        message.includes("unauthorized") ||
+        message.includes("not authenticated")
+      ) {
+        return "You must be logged in to save stories.";
+      }
+      
+      if (
+        message.includes("category not found") ||
+        message.includes("invalid category")
+      ) {
+        return "The selected category is not available. Please refresh and try again.";
+      }
+      
+      if (
+        message.includes("title") ||
+        message.includes("content") ||
+        message.includes("required")
+      ) {
+        return "Please fill in all required fields correctly.";
+      }
+
+      if (
+        message.includes("network") ||
+        message.includes("fetch")
+      ) {
+        return "Connection error. Please check your internet and try again.";
+      }
+    }
+    
+    // Default safe message for production
+    return defaultMessage;
+  }
+
+  // In development, expose more details for debugging
+  if (error instanceof Error) {
+    return error.message;
+  }
+  
+  return defaultMessage;
+}
+
+// Validate HTTP response safety
+function isValidHttpResponse(
+  response: Response
+): boolean {
+  // Only allow specific status codes
+  const allowedStatuses = [
+    200, 201, 204, 400, 401, 403, 404, 409,
+    422, 429, 500, 503,
+  ];
+  
+  return allowedStatuses.includes(response.status);
+}
+
+// Sanitize API response data
+function sanitizeResponseData(
+  data: unknown
+): {
+  message: string;
+  success: boolean;
+} {
+  if (!data || typeof data !== "object") {
+    return {
+      message: "Invalid response from server.",
+      success: false,
+    };
+  }
+
+  const record = data as Record<string, unknown>;
+  
+  // Only extract safe fields
+  const message = record.message;
+  
+  if (
+    typeof message === "string" &&
+    message.length > 0 &&
+    message.length < 500
+  ) {
+    return {
+      message: message,
+      success: !!record.story,
+    };
+  }
+
+  return {
+    message: "Operation completed.",
+    success: !!record.story,
+  };
+}
+
 export default function StoryActions() {
   const router = useRouter();
 
@@ -45,6 +149,10 @@ export default function StoryActions() {
 
   const [errorMessage, setErrorMessage] =
     useState("");
+
+  // Check if running in development
+  const isDev =
+    process.env.NODE_ENV === "development";
 
   async function submitStory(
     status: "draft" | "published"
@@ -241,59 +349,114 @@ export default function StoryActions() {
           : "Saving your story..."
       );
 
-      const response =
-        await fetch(
-          draftId
-            ? `/api/drafts/${draftId}`
-            : "/api/stories",
-          {
-            method: draftId
-              ? "PATCH"
-              : "POST",
+      /*
+      |--------------------------------------------------------------------------
+      | Validate endpoint URL for SSRF prevention
+      |--------------------------------------------------------------------------
+      */
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+      const endpoint = draftId
+        ? `/api/drafts/${draftId}`
+        : "/api/stories";
 
-            body: JSON.stringify({
-              title: title.trim(),
-
-              content:
-                content.trim(),
-
-              category:
-                category.trim(),
-
-              status,
-
-              coverImageUrl:
-                uploadedCover?.url ??
-                null,
-
-              coverImagePublicId:
-                uploadedCover?.publicId ??
-                null,
-
-              storyImages:
-                uploadedStoryImages.map(
-                  (image) => ({
-                    url: image.url,
-                    publicId:
-                      image.publicId,
-                  })
-                ),
-            }),
-          }
+      // Validate endpoint is relative and safe
+      if (!endpoint.startsWith("/")) {
+        throw new Error(
+          "Invalid endpoint URL"
         );
+      }
 
-      const data =
-        await response.json();
+      if (
+        endpoint.includes("://") ||
+        endpoint.includes("..")
+      ) {
+        throw new Error(
+          "Invalid endpoint URL"
+        );
+      }
+
+      const response =
+        await fetch(endpoint, {
+          method: draftId
+            ? "PATCH"
+            : "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            title: title.trim(),
+
+            content:
+              content.trim(),
+
+            category:
+              category.trim(),
+
+            status,
+
+            coverImageUrl:
+              uploadedCover?.url ??
+              null,
+
+            coverImagePublicId:
+              uploadedCover?.publicId ??
+              null,
+
+            storyImages:
+              uploadedStoryImages.map(
+                (image) => ({
+                  url: image.url,
+                  publicId:
+                    image.publicId,
+                })
+              ),
+          }),
+        });
+
+      /*
+      |--------------------------------------------------------------------------
+      | Validate response object
+      |--------------------------------------------------------------------------
+      */
+
+      if (!isValidHttpResponse(response)) {
+        throw new Error(
+          "Unexpected server response"
+        );
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Parse response safely
+      |--------------------------------------------------------------------------
+      */
+
+      let data: unknown;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(
+          "Invalid server response format"
+        );
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Check response status and sanitize message
+      |--------------------------------------------------------------------------
+      */
 
       if (!response.ok) {
+        const sanitized = sanitizeResponseData(
+          data
+        );
+        
         throw new Error(
-          data.message ??
-            `Failed to save story (${response.status})`
+          sanitized.message ||
+            `Server error: ${response.status}`
         );
       }
 
@@ -323,16 +486,29 @@ export default function StoryActions() {
         );
 
         try {
-          window.location.href =
+          const redirectUrl =
             "/users-dashboard/pending-review?submitted=true";
+
+          // Validate redirect URL
+          if (!redirectUrl.startsWith("/")) {
+            throw new Error(
+              "Invalid redirect URL"
+            );
+          }
+
+          window.location.href = redirectUrl;
         } catch (navigationError) {
           console.error(
             "Navigation error:",
             navigationError
           );
+          
           setErrorMessage(
-            "Story published but redirect failed. Please navigate manually."
+            "Story published! Please navigate to pending review manually."
           );
+          
+          setProgress(0);
+          setStatusMessage("");
         }
 
         return;
@@ -363,16 +539,29 @@ export default function StoryActions() {
       */
 
       try {
-        window.location.href =
+        const redirectUrl =
           "/users-dashboard/drafts";
+
+        // Validate redirect URL
+        if (!redirectUrl.startsWith("/")) {
+          throw new Error(
+            "Invalid redirect URL"
+          );
+        }
+
+        window.location.href = redirectUrl;
       } catch (navigationError) {
         console.error(
           "Navigation error:",
           navigationError
         );
+        
         setErrorMessage(
-          "Draft saved but redirect failed. Please navigate manually."
+          "Draft saved! Please navigate to drafts manually."
         );
+        
+        setProgress(0);
+        setStatusMessage("");
       }
 
     } catch (error) {
@@ -381,11 +570,20 @@ export default function StoryActions() {
         error
       );
 
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong."
-      );
+      /*
+      |--------------------------------------------------------------------------
+      | Sanitize error message for display
+      |--------------------------------------------------------------------------
+      */
+
+      const displayError =
+        sanitizeErrorMessage(
+          error,
+          "Unable to save your story. Please try again.",
+          isDev
+        );
+
+      setErrorMessage(displayError);
 
       /*
       | Important: Do NOT redirect on error
