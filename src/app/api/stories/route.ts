@@ -30,15 +30,6 @@ function createSlug(title: string) {
 | GET
 |--------------------------------------------------------------------------
 | Fetch the currently logged-in user's published stories.
-|
-| Includes:
-| - Cover image
-| - All additional story images
-| - Views
-| - Likes
-| - Comments
-| - Bookmarks
-| - Featured status
 |--------------------------------------------------------------------------
 */
 
@@ -59,7 +50,7 @@ export async function GET() {
 
     /*
     |--------------------------------------------------------------------------
-    | 1. Fetch the user's published stories
+    | Fetch published stories
     |--------------------------------------------------------------------------
     */
 
@@ -126,12 +117,10 @@ export async function GET() {
             stories.authorId,
             user.id
           ),
-
           eq(
             stories.status,
             "published"
           ),
-
           eq(
             stories.isDeleted,
             false
@@ -146,7 +135,7 @@ export async function GET() {
 
     /*
     |--------------------------------------------------------------------------
-    | 2. If there are no published stories
+    | No published stories
     |--------------------------------------------------------------------------
     */
 
@@ -163,7 +152,7 @@ export async function GET() {
 
     /*
     |--------------------------------------------------------------------------
-    | 3. Get all story IDs
+    | Get story IDs
     |--------------------------------------------------------------------------
     */
 
@@ -173,12 +162,7 @@ export async function GET() {
 
     /*
     |--------------------------------------------------------------------------
-    | 4. Fetch ALL additional images
-    |--------------------------------------------------------------------------
-    |
-    | These images are stored separately in story_images.
-    | We fetch them in one query instead of querying the database
-    | once for every story.
+    | Fetch all additional images in one query
     |--------------------------------------------------------------------------
     */
 
@@ -209,7 +193,7 @@ export async function GET() {
 
     /*
     |--------------------------------------------------------------------------
-    | 5. Group images by story
+    | Group images by story
     |--------------------------------------------------------------------------
     */
 
@@ -235,7 +219,7 @@ export async function GET() {
 
     /*
     |--------------------------------------------------------------------------
-    | 6. Build the final response
+    | Build response
     |--------------------------------------------------------------------------
     */
 
@@ -293,12 +277,6 @@ export async function GET() {
         })
       );
 
-    /*
-    |--------------------------------------------------------------------------
-    | 7. Return response
-    |--------------------------------------------------------------------------
-    */
-
     return NextResponse.json(
       {
         stories:
@@ -331,6 +309,13 @@ export async function GET() {
 | POST
 |--------------------------------------------------------------------------
 | Create a new story or draft.
+|
+| User request:
+|
+| draft     -> draft
+| published -> pending_review
+|
+| A normal user cannot directly publish a story.
 |--------------------------------------------------------------------------
 */
 
@@ -338,6 +323,12 @@ export async function POST(
   request: Request
 ) {
   try {
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication
+    |--------------------------------------------------------------------------
+    */
+
     const user =
       await getCurrentUser();
 
@@ -345,7 +336,7 @@ export async function POST(
       return NextResponse.json(
         {
           message:
-            "Unauthorized",
+            "Unauthorized.",
         },
         {
           status: 401,
@@ -353,36 +344,21 @@ export async function POST(
       );
     }
 
-    const body =
-      await request.json();
-
-    const {
-      title,
-      content,
-      category,
-      status,
-      coverImageUrl,
-      coverImagePublicId,
-      storyImages:
-        uploadedImages = [],
-    } = body;
-
     /*
     |--------------------------------------------------------------------------
-    | Validate required fields
+    | Parse request
     |--------------------------------------------------------------------------
     */
 
-    if (
-      !title ||
-      !content ||
-      !category ||
-      !status
-    ) {
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
         {
           message:
-            "Title, content, category and status are required.",
+            "Invalid request.",
         },
         {
           status: 400,
@@ -390,16 +366,159 @@ export async function POST(
       );
     }
 
+    if (
+      !body ||
+      typeof body !== "object"
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "Invalid request.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const data =
+      body as Record<
+        string,
+        unknown
+      >;
+
     /*
     |--------------------------------------------------------------------------
-    | Validate requested status
+    | Read fields
     |--------------------------------------------------------------------------
     */
 
-    if (
-      status !== "draft" &&
-      status !== "published"
-    ) {
+    const title =
+      typeof data.title === "string"
+        ? data.title.trim()
+        : "";
+
+    const content =
+      typeof data.content === "string"
+        ? data.content.trim()
+        : "";
+
+    const category =
+      typeof data.category === "string"
+        ? data.category.trim()
+        : "";
+
+    const status =
+      data.status === "draft" ||
+      data.status === "published"
+        ? data.status
+        : null;
+
+    const coverImageUrl =
+      typeof data.coverImageUrl === "string" &&
+      data.coverImageUrl.trim().length > 0
+        ? data.coverImageUrl.trim()
+        : null;
+
+    const coverImagePublicId =
+      typeof data.coverImagePublicId === "string" &&
+      data.coverImagePublicId.trim().length > 0
+        ? data.coverImagePublicId.trim()
+        : null;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate story images
+    |--------------------------------------------------------------------------
+    */
+
+    const uploadedImages = Array.isArray(
+      data.storyImages
+    )
+      ? data.storyImages
+          .filter(
+            (
+              image
+            ): image is {
+              url: string;
+              publicId: string;
+            } =>
+              Boolean(
+                image &&
+                  typeof image ===
+                    "object" &&
+                  typeof (
+                    image as Record<
+                      string,
+                      unknown
+                    >
+                  ).url === "string" &&
+                  typeof (
+                    image as Record<
+                      string,
+                      unknown
+                    >
+                  ).publicId ===
+                    "string"
+              )
+          )
+          .slice(0, 20)
+          .map((image) => ({
+            url: image.url.trim(),
+            publicId:
+              image.publicId.trim(),
+          }))
+          .filter(
+            (image) =>
+              image.url.length > 0 &&
+              image.publicId.length > 0
+          )
+      )
+      : [];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate required fields
+    |--------------------------------------------------------------------------
+    */
+
+    if (!title) {
+      return NextResponse.json(
+        {
+          message:
+            "Please enter a story title.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (!content) {
+      return NextResponse.json(
+        {
+          message:
+            "Please write your story.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (!category) {
+      return NextResponse.json(
+        {
+          message:
+            "Please select a category.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (!status) {
       return NextResponse.json(
         {
           message:
@@ -413,19 +532,25 @@ export async function POST(
 
     /*
     |--------------------------------------------------------------------------
-    | Find category
+    | Find active category
     |--------------------------------------------------------------------------
     */
 
     const existingCategory =
       await db.query.categories.findFirst({
         where: (
-          categories,
-          { eq }
+          categoryRecord,
+          { and, eq }
         ) =>
-          eq(
-            categories.name,
-            category
+          and(
+            eq(
+              categoryRecord.name,
+              category
+            ),
+            eq(
+              categoryRecord.isActive,
+              true
+            )
           ),
       });
 
@@ -433,7 +558,7 @@ export async function POST(
       return NextResponse.json(
         {
           message:
-            "Category not found.",
+            "The selected category is not available.",
         },
         {
           status: 404,
@@ -447,8 +572,11 @@ export async function POST(
     |--------------------------------------------------------------------------
     */
 
-    let slug =
+    const baseSlug =
       createSlug(title);
+
+    let slug =
+      baseSlug || `story-${Date.now()}`;
 
     let counter = 1;
 
@@ -456,11 +584,11 @@ export async function POST(
       const existingStory =
         await db.query.stories.findFirst({
           where: (
-            stories,
+            story,
             { eq }
           ) =>
             eq(
-              stories.slug,
+              story.slug,
               slug
             ),
         });
@@ -470,7 +598,7 @@ export async function POST(
       }
 
       slug =
-        `${createSlug(title)}-${counter}`;
+        `${baseSlug || "story"}-${counter}`;
 
       counter++;
     }
@@ -482,19 +610,17 @@ export async function POST(
     */
 
     const excerpt =
-      generateExcerpt(content);
+      generateExcerpt(
+        content
+      );
 
     /*
     |--------------------------------------------------------------------------
-    | Determine actual database status
+    | Determine database status
     |--------------------------------------------------------------------------
-    |
-    | User requests:
     |
     | draft     -> draft
     | published -> pending_review
-    |
-    | A normal registered user cannot publish directly.
     |--------------------------------------------------------------------------
     */
 
@@ -505,12 +631,7 @@ export async function POST(
 
     /*
     |--------------------------------------------------------------------------
-    | Determine submission type
-    |--------------------------------------------------------------------------
-    |
-    | This is a brand-new story, so it is always:
-    |
-    | new_submission
+    | New story submission type
     |--------------------------------------------------------------------------
     */
 
@@ -519,13 +640,7 @@ export async function POST(
 
     /*
     |--------------------------------------------------------------------------
-    | IMPORTANT:
-    |
-    | publishedAt must ONLY be set when the story is actually published.
-    |
-    | A newly submitted story is still pending review, therefore:
-    |
-    | publishedAt = null
+    | A pending story is not published yet.
     |--------------------------------------------------------------------------
     */
 
@@ -541,21 +656,19 @@ export async function POST(
       await db
         .insert(stories)
         .values({
-          title:
-            title.trim(),
+          title,
 
           slug,
 
           excerpt,
 
-          content:
-            content.trim(),
+          content,
 
           coverImage:
-            coverImageUrl ?? null,
+            coverImageUrl,
 
           coverImagePublicId:
-            coverImagePublicId ?? null,
+            coverImagePublicId,
 
           authorId:
             user.id,
@@ -572,13 +685,12 @@ export async function POST(
             false,
 
           publishedAt,
-
         })
         .returning();
 
     /*
     |--------------------------------------------------------------------------
-    | Save additional story images
+    | Save additional images
     |--------------------------------------------------------------------------
     */
 
@@ -590,11 +702,8 @@ export async function POST(
         .values(
           uploadedImages.map(
             (
-              image: {
-                url: string;
-                publicId: string;
-              },
-              index: number
+              image,
+              index
             ) => ({
               storyId:
                 story.id,
@@ -614,56 +723,83 @@ export async function POST(
 
     /*
     |--------------------------------------------------------------------------
-    | Record story activity
+    | Activity logging
+    |--------------------------------------------------------------------------
+    |
+    | IMPORTANT:
+    |
+    | Activity logging is secondary.
+    |
+    | If activity creation fails, the story has already
+    | been successfully saved. We therefore DO NOT return
+    | HTTP 500 because of an activity failure.
     |--------------------------------------------------------------------------
     */
 
-    if (
-      status === "published"
-    ) {
-      await createActivity({
-        userId:
-          user.id,
+    try {
+      if (
+        status === "published"
+      ) {
+        await createActivity({
+          userId:
+            user.id,
 
-        type:
-          "story_submitted",
+          type:
+            "story_submitted",
 
-        message:
-          `You submitted "${story.title}" for review.`,
+          message:
+            `You submitted "${story.title}" for review.`,
 
-        storyId:
-          story.id,
-      });
-    } else {
-      await createActivity({
-        userId:
-          user.id,
+          storyId:
+            story.id,
+        });
+      } else {
+        await createActivity({
+          userId:
+            user.id,
 
-        type:
-          "story_draft_saved",
+          type:
+            "story_draft_saved",
 
-        message:
-          `You saved "${story.title}" as a draft.`,
+          message:
+            `You saved "${story.title}" as a draft.`,
 
-        storyId:
-          story.id,
-      });
+          storyId:
+            story.id,
+        });
+      }
+    } catch (activityError) {
+      /*
+      |--------------------------------------------------------------------------
+      | DO NOT fail the story operation.
+      |--------------------------------------------------------------------------
+      */
+
+      console.error(
+        "Story activity logging failed:",
+        activityError
+      );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Return response
+    | SUCCESS
     |--------------------------------------------------------------------------
     */
 
     return NextResponse.json(
       {
+        success: true,
+
         message:
           status === "published"
             ? "Story submitted for review successfully."
             : "Draft saved successfully.",
 
         story,
+
+        status:
+          databaseStatus,
       },
       {
         status: 201,
@@ -678,11 +814,11 @@ export async function POST(
     return NextResponse.json(
       {
         message:
-          "Internal server error.",
+          "Unable to save your story. Please try again.",
       },
       {
         status: 500,
       }
     );
   }
-             }
+}
