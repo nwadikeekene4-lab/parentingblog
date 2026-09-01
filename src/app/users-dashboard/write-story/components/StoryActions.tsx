@@ -94,15 +94,15 @@ export default function StoryActions() {
 
     setErrorMessage("");
 
-    /*
-    |--------------------------------------------------------------------------
-    | Client-side validation
-    |--------------------------------------------------------------------------
-    */
-
     const cleanTitle = title.trim();
     const cleanContent = content.trim();
     const cleanCategory = category.trim();
+
+    /*
+     * ---------------------------------------------------------
+     * Validate required fields
+     * ---------------------------------------------------------
+     */
 
     if (!cleanTitle) {
       setErrorMessage("Please enter a story title.");
@@ -126,6 +126,12 @@ export default function StoryActions() {
       return;
     }
 
+    /*
+     * ---------------------------------------------------------
+     * Start appropriate operation
+     * ---------------------------------------------------------
+     */
+
     if (requestedStatus === "draft") {
       setSavingDraft(true);
       setStatusMessage("Saving your draft...");
@@ -138,14 +144,10 @@ export default function StoryActions() {
 
     try {
       /*
-      |--------------------------------------------------------------------------
-      | Upload cover image
-      |--------------------------------------------------------------------------
-      |
-      | Existing uploaded images already have a URL.
-      | Never try to upload their placeholder File again.
-      |--------------------------------------------------------------------------
-      */
+       * -------------------------------------------------------
+       * Upload / reuse cover image
+       * -------------------------------------------------------
+       */
 
       let uploadedCover: UploadedResult | null = null;
 
@@ -165,19 +167,17 @@ export default function StoryActions() {
         }
       }
 
-      setProgress(
-        requestedStatus === "published" ? 30 : 30
-      );
+      setProgress(30);
 
       /*
-      |--------------------------------------------------------------------------
-      | Upload story images concurrently
-      |--------------------------------------------------------------------------
-      */
+       * -------------------------------------------------------
+       * Upload / reuse story images
+       * -------------------------------------------------------
+       */
 
       const uploadedStoryImages: UploadedResult[] =
         await Promise.all(
-          storyImages.map(async (image, index) => {
+          storyImages.map(async (image) => {
             if (image.url) {
               return {
                 url: image.url,
@@ -185,32 +185,20 @@ export default function StoryActions() {
               };
             }
 
-            const uploaded = await uploadImage(
+            return uploadImage(
               image.file,
               "parenting-blog/story-images"
             );
-
-            if (requestedStatus === "published") {
-              const imageProgress =
-                30 +
-                Math.round(
-                  ((index + 1) /
-                    Math.max(storyImages.length, 1)) *
-                    35
-                );
-
-              setProgress(imageProgress);
-
-              setStatusMessage(
-                `Uploading story images (${index + 1}/${storyImages.length})...`
-              );
-            }
-
-            return uploaded;
           })
         );
 
       setProgress(70);
+
+      /*
+       * -------------------------------------------------------
+       * Prepare API request
+       * -------------------------------------------------------
+       */
 
       setStatusMessage(
         requestedStatus === "draft"
@@ -218,24 +206,20 @@ export default function StoryActions() {
           : "Submitting your story for review..."
       );
 
-      /*
-      |--------------------------------------------------------------------------
-      | Determine API endpoint
-      |--------------------------------------------------------------------------
-      */
-
       const endpoint = draftId
         ? `/api/drafts/${encodeURIComponent(draftId)}`
         : "/api/stories";
 
+      const method = draftId ? "PATCH" : "POST";
+
       /*
-      |--------------------------------------------------------------------------
-      | Save to database
-      |--------------------------------------------------------------------------
-      */
+       * -------------------------------------------------------
+       * Save story
+       * -------------------------------------------------------
+       */
 
       const response = await fetch(endpoint, {
-        method: draftId ? "PATCH" : "POST",
+        method,
 
         headers: {
           "Content-Type": "application/json",
@@ -247,11 +231,8 @@ export default function StoryActions() {
 
         body: JSON.stringify({
           title: cleanTitle,
-
           content: cleanContent,
-
           category: cleanCategory,
-
           status: requestedStatus,
 
           coverImageUrl:
@@ -260,76 +241,83 @@ export default function StoryActions() {
           coverImagePublicId:
             uploadedCover?.publicId || null,
 
-          storyImages:
-            uploadedStoryImages
-              .filter(
-                (image) => image.url
-              )
-              .map((image) => ({
-                url: image.url,
-                publicId:
-                  image.publicId || "",
-              })),
+          storyImages: uploadedStoryImages
+            .filter((image) => image.url)
+            .map((image) => ({
+              url: image.url,
+              publicId: image.publicId || "",
+            })),
         }),
       });
 
+      /*
+       * -------------------------------------------------------
+       * Read server response safely
+       * -------------------------------------------------------
+       */
+
       let data: {
         message?: string;
-        story?: unknown;
       } = {};
 
-      try {
-        data = await response.json();
-      } catch {
-        if (!response.ok) {
-          throw new Error(
-            "The server returned an invalid response."
-          );
+      const responseText = await response.text();
+
+      if (responseText) {
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          if (!response.ok) {
+            throw new Error(
+              "The server returned an invalid response."
+            );
+          }
         }
       }
+
+      /*
+       * -------------------------------------------------------
+       * IMPORTANT:
+       *
+       * Only response.ok determines whether the actual save
+       * request succeeded.
+       * -------------------------------------------------------
+       */
 
       if (!response.ok) {
         throw new Error(
           typeof data.message === "string"
             ? data.message
-            : "Unable to save your story."
+            : requestedStatus === "draft"
+              ? "Unable to save your draft."
+              : "Unable to submit your story."
         );
       }
 
       /*
-      |--------------------------------------------------------------------------
-      | SUCCESS
-      |--------------------------------------------------------------------------
-      */
+       * -------------------------------------------------------
+       * SUCCESS
+       * -------------------------------------------------------
+       */
 
       setProgress(100);
 
-      if (requestedStatus === "published") {
-        setStatusMessage(
-          "Story submitted successfully!"
-        );
-      } else {
-        setStatusMessage(
-          "Draft saved successfully!"
-        );
-      }
+      setStatusMessage(
+        requestedStatus === "draft"
+          ? "Draft saved successfully!"
+          : "Story submitted successfully!"
+      );
 
       /*
-      |--------------------------------------------------------------------------
-      | Clear the form BEFORE navigation.
-      |--------------------------------------------------------------------------
-      */
+       * Clear the form before leaving the page.
+       */
 
       resetForm();
 
       /*
-      |--------------------------------------------------------------------------
-      | Navigate using Next.js router.
-      |--------------------------------------------------------------------------
-      |
-      | This avoids a complete browser reload and is faster.
-      |--------------------------------------------------------------------------
-      */
+       * -------------------------------------------------------
+       * Redirect
+       * -------------------------------------------------------
+       */
 
       if (requestedStatus === "published") {
         router.replace(
@@ -341,10 +329,7 @@ export default function StoryActions() {
         );
       }
     } catch (error) {
-      console.error(
-        "Story submission error:",
-        error
-      );
+      console.error("Story submission error:", error);
 
       setErrorMessage(
         getSafeErrorMessage(
@@ -438,7 +423,10 @@ export default function StoryActions() {
             </p>
 
             {errorMessage && (
-              <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-600">
+              <p
+                className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-600"
+                role="alert"
+              >
                 {errorMessage}
               </p>
             )}
@@ -464,10 +452,8 @@ export default function StoryActions() {
 
               <button
                 type="button"
-                onClick={() =>
-                  setShowPreview(false)
-                }
-                className="rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-100"
+                onClick={() => setShowPreview(false)}
+                className="rounded-lg px-3 py-2 text-gray-600 transition hover:bg-gray-100"
               >
                 Close
               </button>
@@ -528,9 +514,7 @@ export default function StoryActions() {
             disabled={busy}
             className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-white transition hover:bg-yellow-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {savingDraft
-              ? "Saving..."
-              : "Save Draft"}
+            {savingDraft ? "Saving..." : "Save Draft"}
           </button>
 
           <button
@@ -556,4 +540,4 @@ export default function StoryActions() {
       </section>
     </>
   );
-      }
+}
