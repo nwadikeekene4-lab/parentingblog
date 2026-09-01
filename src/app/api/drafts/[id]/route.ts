@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -22,6 +22,15 @@ type UploadedImage = {
   publicId: string;
 };
 
+/*
+|--------------------------------------------------------------------------
+| GET
+|--------------------------------------------------------------------------
+| Load a draft or pending-review story belonging to the
+| currently authenticated user.
+|--------------------------------------------------------------------------
+*/
+
 export async function GET(
   _request: Request,
   { params }: RouteContext
@@ -39,14 +48,14 @@ export async function GET(
     }
 
     const draft = await db.query.stories.findFirst({
-      where: (stories, { and, eq, or }) =>
+      where: (story, { and, eq, or }) =>
         and(
-          eq(stories.id, id),
-          eq(stories.authorId, user.id),
-          eq(stories.isDeleted, false),
+          eq(story.id, id),
+          eq(story.authorId, user.id),
+          eq(story.isDeleted, false),
           or(
-            eq(stories.status, "draft"),
-            eq(stories.status, "pending_review")
+            eq(story.status, "draft"),
+            eq(story.status, "pending_review")
           )
         ),
       with: {
@@ -63,8 +72,12 @@ export async function GET(
     }
 
     return NextResponse.json(
-      { draft },
-      { status: 200 }
+      {
+        draft,
+      },
+      {
+        status: 200,
+      }
     );
   } catch (error) {
     console.error(
@@ -73,11 +86,32 @@ export async function GET(
     );
 
     return NextResponse.json(
-      { message: "Internal server error." },
-      { status: 500 }
+      {
+        message: "Internal server error.",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
+
+/*
+|--------------------------------------------------------------------------
+| PATCH
+|--------------------------------------------------------------------------
+| Update a draft or pending-review story.
+|
+| Draft:
+|   draft → draft
+|
+| Publish:
+|   draft → pending_review
+|
+| Pending review edit:
+|   pending_review → pending_review
+|--------------------------------------------------------------------------
+*/
 
 export async function PATCH(
   request: Request,
@@ -86,14 +120,30 @@ export async function PATCH(
   try {
     const { id } = await params;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication
+    |--------------------------------------------------------------------------
+    */
+
     const user = await getCurrentUser();
 
     if (!user) {
       return NextResponse.json(
-        { message: "Unauthorized." },
-        { status: 401 }
+        {
+          message: "Unauthorized.",
+        },
+        {
+          status: 401,
+        }
       );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Parse request
+    |--------------------------------------------------------------------------
+    */
 
     let body: unknown;
 
@@ -101,19 +151,33 @@ export async function PATCH(
       body = await request.json();
     } catch {
       return NextResponse.json(
-        { message: "Invalid request." },
-        { status: 400 }
+        {
+          message: "Invalid request.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     if (!body || typeof body !== "object") {
       return NextResponse.json(
-        { message: "Invalid request." },
-        { status: 400 }
+        {
+          message: "Invalid request.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     const data = body as Record<string, unknown>;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Read and sanitize fields
+    |--------------------------------------------------------------------------
+    */
 
     const title =
       typeof data.title === "string"
@@ -148,6 +212,12 @@ export async function PATCH(
         ? data.coverImagePublicId.trim()
         : null;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Story images
+    |--------------------------------------------------------------------------
+    */
+
     const uploadedImages: UploadedImage[] =
       Array.isArray(data.storyImages)
         ? data.storyImages
@@ -156,10 +226,12 @@ export async function PATCH(
                 Boolean(
                   image &&
                     typeof image === "object" &&
-                    typeof (image as Record<string, unknown>)
-                      .url === "string" &&
-                    typeof (image as Record<string, unknown>)
-                      .publicId === "string"
+                    typeof (
+                      image as Record<string, unknown>
+                    ).url === "string" &&
+                    typeof (
+                      image as Record<string, unknown>
+                    ).publicId === "string"
                 )
             )
             .slice(0, 20)
@@ -176,54 +248,74 @@ export async function PATCH(
 
     /*
     |--------------------------------------------------------------------------
-    | Basic validation
+    | Validation
     |--------------------------------------------------------------------------
     */
 
     if (!title) {
       return NextResponse.json(
-        { message: "Please enter a story title." },
-        { status: 400 }
+        {
+          message: "Please enter a story title.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     if (!content) {
       return NextResponse.json(
-        { message: "Please write your story." },
-        { status: 400 }
+        {
+          message: "Please write your story.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     if (!category) {
       return NextResponse.json(
-        { message: "Please select a category." },
-        { status: 400 }
+        {
+          message: "Please select a category.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     if (!status) {
       return NextResponse.json(
-        { message: "Invalid story status." },
-        { status: 400 }
+        {
+          message: "Invalid story status.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Find the story owned by the authenticated user
+    | Find existing story
+    |--------------------------------------------------------------------------
+    |
+    | The authenticated user's ID is always checked.
+    | This prevents one user from editing another user's story.
     |--------------------------------------------------------------------------
     */
 
     const existingStory =
       await db.query.stories.findFirst({
-        where: (stories, { and, eq, or }) =>
+        where: (story, { and, eq, or }) =>
           and(
-            eq(stories.id, id),
-            eq(stories.authorId, user.id),
-            eq(stories.isDeleted, false),
+            eq(story.id, id),
+            eq(story.authorId, user.id),
+            eq(story.isDeleted, false),
             or(
-              eq(stories.status, "draft"),
-              eq(stories.status, "pending_review")
+              eq(story.status, "draft"),
+              eq(story.status, "pending_review")
             )
           ),
       });
@@ -234,22 +326,24 @@ export async function PATCH(
           message:
             "Draft or pending-review story not found.",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Find category
+    | Find active category
     |--------------------------------------------------------------------------
     */
 
     const existingCategory =
       await db.query.categories.findFirst({
-        where: (categories, { and, eq }) =>
+        where: (categoryRecord, { and, eq }) =>
           and(
-            eq(categories.name, category),
-            eq(categories.isActive, true)
+            eq(categoryRecord.name, category),
+            eq(categoryRecord.isActive, true)
           ),
       });
 
@@ -259,23 +353,15 @@ export async function PATCH(
           message:
             "The selected category is not available.",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Determine status
-    |--------------------------------------------------------------------------
-    |
-    | Draft:
-    |     remains draft.
-    |
-    | Publish:
-    |     becomes pending_review.
-    |
-    | Existing pending-review story:
-    |     remains pending_review when edited.
+    | Determine new story status
     |--------------------------------------------------------------------------
     */
 
@@ -288,7 +374,14 @@ export async function PATCH(
 
     /*
     |--------------------------------------------------------------------------
-    | Submission type
+    | Determine submission type
+    |--------------------------------------------------------------------------
+    |
+    | A brand-new submission:
+    |   new_submission
+    |
+    | Editing an already pending story:
+    |   story_update
     |--------------------------------------------------------------------------
     */
 
@@ -381,11 +474,8 @@ export async function PATCH(
     |
     | IMPORTANT:
     |
-    | Activity logging is secondary.
-    |
-    | If it fails, the story has STILL been successfully
-    | saved. Therefore activity failure must NOT turn the
-    | successful save into an HTTP 500 response.
+    | Activity logging is NOT allowed to make the story
+    | save appear to have failed.
     |--------------------------------------------------------------------------
     */
 
@@ -416,9 +506,11 @@ export async function PATCH(
       }
     } catch (activityError) {
       /*
-      | Do not fail the story operation because activity
-      | logging failed.
+      |--------------------------------------------------------------------------
+      | Activity failure must NOT fail the story save.
+      |--------------------------------------------------------------------------
       */
+
       console.error(
         "Story activity logging failed:",
         activityError
@@ -427,7 +519,7 @@ export async function PATCH(
 
     /*
     |--------------------------------------------------------------------------
-    | Success response
+    | SUCCESS
     |--------------------------------------------------------------------------
     */
 
@@ -447,7 +539,9 @@ export async function PATCH(
 
         storyId: id,
       },
-      { status: 200 }
+      {
+        status: 200,
+      }
     );
   } catch (error) {
     console.error(
@@ -460,10 +554,20 @@ export async function PATCH(
         message:
           "Unable to save your story. Please try again.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
+
+/*
+|--------------------------------------------------------------------------
+| DELETE
+|--------------------------------------------------------------------------
+| Only draft stories can be deleted through this endpoint.
+|--------------------------------------------------------------------------
+*/
 
 export async function DELETE(
   _request: Request,
@@ -472,40 +576,58 @@ export async function DELETE(
   try {
     const { id } = await params;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication
+    |--------------------------------------------------------------------------
+    */
+
     const user = await getCurrentUser();
 
     if (!user) {
       return NextResponse.json(
-        { message: "Unauthorized." },
-        { status: 401 }
+        {
+          message: "Unauthorized.",
+        },
+        {
+          status: 401,
+        }
       );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Only the owner can delete their draft.
-    | Pending-review and published stories cannot be
-    | deleted through this endpoint.
+    | Find user's draft
     |--------------------------------------------------------------------------
     */
 
     const draft =
       await db.query.stories.findFirst({
-        where: (stories, { and, eq }) =>
+        where: (story, { and, eq }) =>
           and(
-            eq(stories.id, id),
-            eq(stories.authorId, user.id),
-            eq(stories.status, "draft"),
-            eq(stories.isDeleted, false)
+            eq(story.id, id),
+            eq(story.authorId, user.id),
+            eq(story.status, "draft"),
+            eq(story.isDeleted, false)
           ),
       });
 
     if (!draft) {
       return NextResponse.json(
-        { message: "Draft not found." },
-        { status: 404 }
+        {
+          message: "Draft not found.",
+        },
+        {
+          status: 404,
+        }
       );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Soft delete
+    |--------------------------------------------------------------------------
+    */
 
     await db
       .update(stories)
@@ -526,7 +648,9 @@ export async function DELETE(
         success: true,
         message: "Draft deleted successfully.",
       },
-      { status: 200 }
+      {
+        status: 200,
+      }
     );
   } catch (error) {
     console.error(
@@ -539,7 +663,9 @@ export async function DELETE(
         message:
           "Unable to delete the draft.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
   }
