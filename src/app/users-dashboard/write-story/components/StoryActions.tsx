@@ -310,6 +310,13 @@ export default function StoryActions() {
           "Story submitted successfully!"
         );
 
+        /*
+        | IMPORTANT:
+        | Reset form after successful publish
+        */
+
+        resetForm();
+
         await new Promise(
           (resolve) =>
             setTimeout(resolve, 500)
