@@ -293,7 +293,7 @@ export default function StoryActions() {
       if (!response.ok) {
         throw new Error(
           data.message ??
-            "Failed to save story."
+            `Failed to save story (${response.status})`
         );
       }
 
@@ -322,8 +322,18 @@ export default function StoryActions() {
             setTimeout(resolve, 500)
         );
 
-        window.location.href =
-          "/users-dashboard/pending-review?submitted=true";
+        try {
+          window.location.href =
+            "/users-dashboard/pending-review?submitted=true";
+        } catch (navigationError) {
+          console.error(
+            "Navigation error:",
+            navigationError
+          );
+          setErrorMessage(
+            "Story published but redirect failed. Please navigate manually."
+          );
+        }
 
         return;
       }
@@ -352,8 +362,18 @@ export default function StoryActions() {
       | fetches completely fresh data.
       */
 
-      window.location.href =
-        "/users-dashboard/drafts";
+      try {
+        window.location.href =
+          "/users-dashboard/drafts";
+      } catch (navigationError) {
+        console.error(
+          "Navigation error:",
+          navigationError
+        );
+        setErrorMessage(
+          "Draft saved but redirect failed. Please navigate manually."
+        );
+      }
 
     } catch (error) {
       console.error(
@@ -366,11 +386,17 @@ export default function StoryActions() {
           ? error.message
           : "Something went wrong."
       );
+
+      /*
+      | Important: Do NOT redirect on error
+      */
+
+      setProgress(0);
+      setStatusMessage("");
+
     } finally {
       setSavingDraft(false);
       setPublishing(false);
-      setProgress(0);
-      setStatusMessage("");
     }
   }
 
