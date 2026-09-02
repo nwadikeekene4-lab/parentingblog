@@ -229,10 +229,12 @@ export default async function StoryPage({
         </section>
       )}
 
-      {/* Comments */}
+      {/* Comments - Only show for published stories */}
 
-      <CommentsSection storyId={story.id} />
+      {story.status === "published" && (
+        <CommentsSection storyId={story.id} />
+      )}
 
     </main>
   );
-    }
+}
