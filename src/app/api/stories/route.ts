@@ -431,50 +431,33 @@ export async function POST(
     | Validate story images
     |--------------------------------------------------------------------------
     */
-
-    const uploadedImages = Array.isArray(
-      data.storyImages
-    )
-      ? data.storyImages
-          .filter(
-            (
-              image
-            ): image is {
-              url: string;
-              publicId: string;
-            } =>
-              Boolean(
-                image &&
-                  typeof image ===
-                    "object" &&
-                  typeof (
-                    image as Record<
-                      string,
-                      unknown
-                    >
-                  ).url === "string" &&
-                  typeof (
-                    image as Record<
-                      string,
-                      unknown
-                    >
-                  ).publicId ===
-                    "string"
-              )
-          )
-          .slice(0, 20)
-          .map((image) => ({
-            url: image.url.trim(),
-            publicId:
-              image.publicId.trim(),
-          }))
-          .filter(
-            (image) =>
-              image.url.length > 0 &&
-              image.publicId.length > 0
+const uploadedImages = Array.isArray(data.storyImages)
+  ? data.storyImages
+      .filter(
+        (
+          image
+        ): image is {
+          url: string;
+          publicId: string;
+        } =>
+          Boolean(
+            image &&
+              typeof image === "object" &&
+              typeof (image as Record<string, unknown>).url === "string" &&
+              typeof (image as Record<string, unknown>).publicId === "string"
           )
       )
-      : [];
+      .slice(0, 20)
+      .map((image) => ({
+        url: image.url.trim(),
+        publicId: image.publicId.trim(),
+      }))
+      .filter(
+        (image) =>
+          image.url.length > 0 &&
+          image.publicId.length > 0
+      )
+  : [];
 
     /*
     |--------------------------------------------------------------------------
