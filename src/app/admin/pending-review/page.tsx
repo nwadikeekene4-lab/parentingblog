@@ -663,33 +663,30 @@ export default function AdminPendingReviewPage() {
                     <div className="mt-5 flex gap-2">
 
                       <Link
-                        href={`/stories/${story.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="
-                          flex
-                          flex-1
-                          items-center
-                          justify-center
-                          rounded-xl
-                          border
-                          border-slate-200
-                          bg-white
-                          px-3
-                          py-2.5
-                          text-sm
-                          font-semibold
-                          text-slate-700
-                          transition
-                          hover:border-blue-200
-                          hover:bg-blue-50
-                          hover:text-blue-600
-                          active:scale-[0.98]
-                        "
-                      >
-                        View Story
-                      </Link>
-
+  href={`/admin/pending-review/${story.slug}`}
+  className="
+    flex
+    flex-1
+    items-center
+    justify-center
+    rounded-xl
+    border
+    border-slate-200
+    bg-white
+    px-3
+    py-2.5
+    text-sm
+    font-semibold
+    text-slate-700
+    transition
+    hover:border-blue-200
+    hover:bg-blue-50
+    hover:text-blue-600
+    active:scale-[0.98]
+  "
+>
+  View Story
+</Link>
                       <button
                         type="button"
                         disabled
