@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/session";
 
 import StoryLikeButton from "@/app/components/storylikebutton";
 import CommentsSection from "@/app/components/comments/CommentsSection";
+import StoryOwnerActions from "@/app/components/story/StoryOwnerActions";
 
 type Props = {
   params: Promise<{
@@ -140,6 +141,31 @@ export default async function StoryPage({
         </div>
       </header>
 
+      {/* Story Owner Controls */}
+
+      {story.status === "published" &&
+        currentUser &&
+        (currentUser.id === story.authorId ||
+          currentUser.role === "admin") && (
+          <section className="mx-auto mb-12 max-w-3xl">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <div className="mb-4 text-center">
+                <p className="text-sm font-semibold text-slate-900">
+                  Story Management
+                </p>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  Manage your published story
+                </p>
+              </div>
+
+              <StoryOwnerActions
+                storyId={story.id}
+              />
+            </div>
+          </section>
+        )}
+
       {/* Story Content */}
 
       <article className="mx-auto mt-12 max-w-3xl">
@@ -237,4 +263,4 @@ export default async function StoryPage({
 
     </main>
   );
-}
+  }
