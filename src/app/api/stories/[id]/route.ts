@@ -60,16 +60,24 @@ export async function GET(
 ) {
   try {
     const user = await getCurrentUser();
+
     if (!user)
       return NextResponse.json(
-        { message: "Your session has expired. Please log in again." },
+        {
+          message:
+            "Your session has expired. Please log in again.",
+        },
         { status: 401 }
       );
 
     const { id } = await context.params;
+
     if (!id)
       return NextResponse.json(
-        { message: "The story could not be identified." },
+        {
+          message:
+            "The story could not be identified.",
+        },
         { status: 400 }
       );
 
@@ -81,7 +89,8 @@ export async function GET(
         excerpt: stories.excerpt,
         slug: stories.slug,
         coverImage: stories.coverImage,
-        coverImagePublicId: stories.coverImagePublicId,
+        coverImagePublicId:
+          stories.coverImagePublicId,
         categoryId: stories.categoryId,
         category: categories.name,
         status: stories.status,
@@ -119,7 +128,10 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("GET edit story error:", error);
+    console.error(
+      "GET edit story error:",
+      error
+    );
 
     return NextResponse.json(
       {
@@ -144,7 +156,10 @@ export async function PUT(
 
     if (!user)
       return NextResponse.json(
-        { message: "Your session has expired. Please log in again." },
+        {
+          message:
+            "Your session has expired. Please log in again.",
+        },
         { status: 401 }
       );
 
@@ -152,7 +167,10 @@ export async function PUT(
 
     if (!id)
       return NextResponse.json(
-        { message: "The story could not be identified." },
+        {
+          message:
+            "The story could not be identified.",
+        },
         { status: 400 }
       );
 
@@ -162,7 +180,9 @@ export async function PUT(
       body = await request.json();
     } catch {
       return NextResponse.json(
-        { message: "Invalid request data." },
+        {
+          message: "Invalid request data.",
+        },
         { status: 400 }
       );
     }
@@ -181,7 +201,10 @@ export async function PUT(
       !title.trim()
     )
       return NextResponse.json(
-        { message: "Please enter a story title." },
+        {
+          message:
+            "Please enter a story title.",
+        },
         { status: 400 }
       );
 
@@ -190,7 +213,10 @@ export async function PUT(
       !content.trim()
     )
       return NextResponse.json(
-        { message: "Please write your story." },
+        {
+          message:
+            "Please write your story.",
+        },
         { status: 400 }
       );
 
@@ -199,7 +225,10 @@ export async function PUT(
       !category.trim()
     )
       return NextResponse.json(
-        { message: "Please select a category." },
+        {
+          message:
+            "Please select a category.",
+        },
         { status: 400 }
       );
 
@@ -210,12 +239,17 @@ export async function PUT(
           (image) =>
             !image ||
             typeof image !== "object" ||
-            typeof (image as ImageInput).url !== "string" ||
-            typeof (image as ImageInput).publicId !== "string"
+            typeof (image as ImageInput).url !==
+              "string" ||
+            typeof (image as ImageInput)
+              .publicId !== "string"
         ))
     )
       return NextResponse.json(
-        { message: "One or more story images are invalid." },
+        {
+          message:
+            "One or more story images are invalid.",
+        },
         { status: 400 }
       );
 
@@ -225,7 +259,10 @@ export async function PUT(
       typeof coverImageUrl !== "string"
     )
       return NextResponse.json(
-        { message: "The cover image URL is invalid." },
+        {
+          message:
+            "The cover image URL is invalid.",
+        },
         { status: 400 }
       );
 
@@ -235,7 +272,10 @@ export async function PUT(
       typeof coverImagePublicId !== "string"
     )
       return NextResponse.json(
-        { message: "The cover image identifier is invalid." },
+        {
+          message:
+            "The cover image identifier is invalid.",
+        },
         { status: 400 }
       );
 
@@ -243,15 +283,16 @@ export async function PUT(
     const cleanContent = content.trim();
     const cleanCategory = category.trim();
 
-    const existing = await db.query.stories.findFirst({
-      where: (s, { eq, and }) =>
-        and(
-          eq(s.id, id),
-          eq(s.authorId, user.id),
-          eq(s.status, "pending_review"),
-          eq(s.isDeleted, false)
-        ),
-    });
+    const existing =
+      await db.query.stories.findFirst({
+        where: (s, { eq, and }) =>
+          and(
+            eq(s.id, id),
+            eq(s.authorId, user.id),
+            eq(s.status, "pending_review"),
+            eq(s.isDeleted, false)
+          ),
+      });
 
     if (!existing)
       return NextResponse.json(
@@ -270,7 +311,10 @@ export async function PUT(
 
     if (!categoryRow)
       return NextResponse.json(
-        { message: "The selected category is not available." },
+        {
+          message:
+            "The selected category is not available.",
+        },
         { status: 400 }
       );
 
@@ -300,10 +344,12 @@ export async function PUT(
       !imagesChanged
     )
       return NextResponse.json({
-        message: "There were no changes to save.",
+        message:
+          "There were no changes to save.",
       });
 
     /* New cover asset */
+
     if (
       coverChanged &&
       typeof coverImagePublicId === "string" &&
@@ -317,21 +363,27 @@ export async function PUT(
     }
 
     /* New story image assets */
+
     if (images) {
       const oldImages =
         await getStoryImages(id);
 
       const oldIds = new Set(
-        oldImages.map((i) => i.publicId)
+        oldImages.map(
+          (i) => i.publicId
+        )
       );
 
       for (const image of images as ImageInput[]) {
         if (!oldIds.has(image.publicId))
-          newPublicIds.push(image.publicId);
+          newPublicIds.push(
+            image.publicId
+          );
       }
     }
 
     /* Generate unique slug only when title changed */
+
     let slug = existing.slug;
 
     if (titleChanged) {
@@ -372,7 +424,10 @@ export async function PUT(
 
     const result = await db.transaction(
       async (tx) => {
-        const update: Record<string, unknown> = {};
+        const update: Record<
+          string,
+          unknown
+        > = {};
 
         if (titleChanged) {
           update.title = cleanTitle;
@@ -380,52 +435,79 @@ export async function PUT(
         }
 
         if (contentChanged) {
-          update.content = cleanContent;
+          update.content =
+            cleanContent;
           update.excerpt =
-            generateExcerpt(cleanContent);
+            generateExcerpt(
+              cleanContent
+            );
         }
 
         if (categoryChanged)
-          update.categoryId = categoryRow.id;
+          update.categoryId =
+            categoryRow.id;
 
         if (coverChanged) {
           update.coverImage =
             coverImageUrl ?? null;
+
           update.coverImagePublicId =
             coverImagePublicId ?? null;
         }
 
-        if (Object.keys(update).length)
+        if (
+          Object.keys(update).length
+        )
           await tx
             .update(stories)
             .set(update)
-            .where(eq(stories.id, id));
+            .where(
+              eq(stories.id, id)
+            );
 
         if (images) {
           await tx
             .delete(storyImages)
-            .where(eq(storyImages.storyId, id));
-
-          if (images.length)
-            await tx.insert(storyImages).values(
-              (images as ImageInput[]).map(
-                (image, index) => ({
-                  storyId: id,
-                  imageUrl: image.url,
-                  publicId: image.publicId,
-                  caption:
-                    image.caption ?? null,
-                  displayOrder: index,
-                })
+            .where(
+              eq(
+                storyImages.storyId,
+                id
               )
             );
+
+          if (images.length)
+            await tx
+              .insert(storyImages)
+              .values(
+                (
+                  images as ImageInput[]
+                ).map(
+                  (
+                    image,
+                    index
+                  ) => ({
+                    storyId: id,
+                    imageUrl:
+                      image.url,
+                    publicId:
+                      image.publicId,
+                    caption:
+                      image.caption ??
+                      null,
+                    displayOrder:
+                      index,
+                  })
+                )
+              );
         }
 
         const story =
-          await tx.query.stories.findFirst({
-            where: (s, { eq }) =>
-              eq(s.id, id),
-          });
+          await tx.query.stories.findFirst(
+            {
+              where: (s, { eq }) =>
+                eq(s.id, id),
+            }
+          );
 
         return story;
       }
@@ -440,6 +522,7 @@ export async function PUT(
      * Remove old Cloudinary assets only AFTER
      * the database transaction succeeds.
      */
+
     const removedIds: string[] = [];
 
     if (
@@ -451,15 +534,25 @@ export async function PUT(
 
     if (images) {
       const newIds = new Set(
-        (images as ImageInput[]).map(
+        (
+          images as ImageInput[]
+        ).map(
           (i) => i.publicId
         )
       );
 
-      oldImages.forEach((image) => {
-        if (!newIds.has(image.publicId))
-          removedIds.push(image.publicId);
-      });
+      oldImages.forEach(
+        (image) => {
+          if (
+            !newIds.has(
+              image.publicId
+            )
+          )
+            removedIds.push(
+              image.publicId
+            );
+        }
+      );
     }
 
     await Promise.all(
@@ -468,12 +561,13 @@ export async function PUT(
         .map((publicId) =>
           cloudinary.uploader
             .destroy(publicId)
-            .catch((error) =>
-              console.error(
-                "Cloudinary cleanup error:",
-                publicId,
-                error
-              )
+            .catch(
+              (error) =>
+                console.error(
+                  "Cloudinary cleanup error:",
+                  publicId,
+                  error
+                )
             )
         )
     );
@@ -483,7 +577,8 @@ export async function PUT(
         "Changes saved successfully. Your story remains pending review.",
       story: {
         ...result,
-        images: await getStoryImages(id),
+        images:
+          await getStoryImages(id),
       },
     });
   } catch (error) {
@@ -496,27 +591,153 @@ export async function PUT(
      * Database failed after Cloudinary upload.
      * Remove only assets uploaded during this request.
      */
+
     await Promise.all(
-      [...new Set(newPublicIds)]
-        .map((publicId) =>
+      [...new Set(newPublicIds)].map(
+        (publicId) =>
           cloudinary.uploader
             .destroy(publicId)
-            .catch((cleanupError) =>
-              console.error(
-                "Failed to clean up Cloudinary asset:",
-                cleanupError
-              )
+            .catch(
+              (cleanupError) =>
+                console.error(
+                  "Failed to clean up Cloudinary asset:",
+                  cleanupError
+                )
             )
-        )
+      )
     );
 
     return NextResponse.json(
       {
         message:
           "Your changes could not be saved. Please try again.",
-        error: errorMessage(error),
+        error:
+          errorMessage(error),
       },
       { status: 500 }
     );
   }
-             }
+}
+
+/* DELETE */
+
+export async function DELETE(
+  _request: Request,
+  context: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  try {
+    const user =
+      await getCurrentUser();
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          message:
+            "Your session has expired. Please log in again.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const { id } =
+      await context.params;
+
+    if (!id) {
+      return NextResponse.json(
+        {
+          message:
+            "The story could not be identified.",
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+     * Find the story first so we can verify
+     * ownership before deleting it.
+     */
+
+    const story =
+      await db.query.stories.findFirst({
+        where: (s, { eq, and }) =>
+          and(
+            eq(s.id, id),
+            eq(s.isDeleted, false)
+          ),
+      });
+
+    if (!story) {
+      return NextResponse.json(
+        {
+          message:
+            "This story could not be found.",
+        },
+        { status: 404 }
+      );
+    }
+
+    /*
+     * Security:
+     * Only the story owner or an admin
+     * can delete the story.
+     */
+
+    const isOwner =
+      story.authorId === user.id;
+
+    const isAdmin =
+      user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return NextResponse.json(
+        {
+          message:
+            "You do not have permission to delete this story.",
+        },
+        { status: 403 }
+      );
+    }
+
+    /*
+     * Soft delete.
+     *
+     * We deliberately keep the database record
+     * and its related comments, likes, bookmarks,
+     * and other relationships intact.
+     *
+     * Your story page already checks isDeleted,
+     * so the story will no longer be publicly
+     * accessible after this operation.
+     */
+
+    await db
+      .update(stories)
+      .set({
+        isDeleted: true,
+        updatedAt: new Date(),
+      })
+      .where(
+        eq(stories.id, id)
+      );
+
+    return NextResponse.json({
+      message:
+        "Your story has been deleted successfully.",
+    });
+  } catch (error) {
+    console.error(
+      "Delete story error:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        message:
+          "We couldn't delete this story right now. Please try again.",
+      },
+      { status: 500 }
+    );
+  }
+  }
