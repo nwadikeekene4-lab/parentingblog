@@ -1,3 +1,4 @@
+
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -6,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { stories } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
+import ReviewActions from "../ReviewActions";
 
 type Props = {
   params: Promise<{
@@ -389,73 +391,35 @@ export default async function AdminPendingReviewStoryPage({
         </div>
 
       </article>
+{/* Review Actions */}
 
-      {/* Review Actions Placeholder */}
+<section
+  className="
+    mt-6
+    rounded-2xl
+    border
+    border-slate-200
+    bg-white
+    p-5
+    shadow-sm
+    sm:rounded-3xl
+    sm:p-6
+  "
+>
+  <h2 className="text-lg font-bold text-slate-900">
+    Review Actions
+  </h2>
 
-      <section
-        className="
-          mt-6
-          rounded-2xl
-          border
-          border-slate-200
-          bg-white
-          p-5
-          shadow-sm
-          sm:rounded-3xl
-          sm:p-6
-        "
-      >
+  <p className="mt-1 text-sm leading-6 text-slate-500">
+    Approve this story to publish it immediately, or
+    reject it and send feedback to the author.
+  </p>
 
-        <h2 className="text-lg font-bold text-slate-900">
-          Review Actions
-        </h2>
-
-        <p className="mt-1 text-sm text-slate-500">
-          Approval and rejection controls will be
-          connected here.
-        </p>
-
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-
-          <button
-            type="button"
-            disabled
-            className="
-              flex-1
-              cursor-not-allowed
-              rounded-xl
-              bg-emerald-100
-              px-5
-              py-3
-              text-sm
-              font-bold
-              text-emerald-400
-            "
-          >
-            Approve Story
-          </button>
-
-          <button
-            type="button"
-            disabled
-            className="
-              flex-1
-              cursor-not-allowed
-              rounded-xl
-              bg-red-100
-              px-5
-              py-3
-              text-sm
-              font-bold
-              text-red-400
-            "
-          >
-            Reject Story
-          </button>
-
-        </div>
-
-      </section>
+  <ReviewActions
+    storyId={story.id}
+    storyTitle={story.title}
+  />
+</section>
 
     </main>
   );
