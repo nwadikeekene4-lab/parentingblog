@@ -40,6 +40,12 @@ export const storySubmissionTypeEnum = pgEnum("story_submission_type", [
   "story_update",
 ]);
 
+export const storyRevisionStatusEnum = pgEnum("story_revision_status", [
+  "pending_review",
+  "approved",
+  "rejected",
+]);
+
 export const reportStatusEnum = pgEnum("report_status", [
   "pending",
   "reviewed",
@@ -308,6 +314,136 @@ export const storyImages = pgTable("story_images", {
     .notNull(),
 
 });
+
+
+/* ===========================
+   STORY REVISIONS
+=========================== */
+
+export const storyRevisions = pgTable(
+  "story_revisions",
+  {
+
+    id: uuid("id")
+      .defaultRandom()
+      .primaryKey(),
+
+    storyId: uuid("story_id")
+      .references(() => stories.id, {
+        onDelete: "cascade",
+      })
+      .notNull(),
+
+    authorId: uuid("author_id")
+      .references(() => users.id, {
+        onDelete: "cascade",
+      })
+      .notNull(),
+
+    title: varchar("title", {
+      length: 255,
+    }).notNull(),
+
+    slug: varchar("slug", {
+      length: 255,
+    }).notNull(),
+
+    excerpt: text("excerpt"),
+
+    content: text("content")
+      .notNull(),
+
+    coverImage: text("cover_image"),
+
+    coverImagePublicId: text("cover_image_public_id"),
+
+    categoryId: uuid("category_id")
+      .references(() => categories.id, {
+        onDelete: "restrict",
+      })
+      .notNull(),
+
+    status: storyRevisionStatusEnum("status")
+      .default("pending_review")
+      .notNull(),
+
+    feedback: text("feedback"),
+
+    reviewedAt: timestamp("reviewed_at"),
+
+    reviewerId: uuid("reviewer_id")
+      .references(() => users.id, {
+        onDelete: "set null",
+      }),
+
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull(),
+
+  },
+  (table) => ({
+
+    storyIdIndex: index("story_revisions_story_id_idx").on(
+      table.storyId
+    ),
+
+    authorIdIndex: index("story_revisions_author_id_idx").on(
+      table.authorId
+    ),
+
+    statusIndex: index("story_revisions_status_idx").on(
+      table.status
+    ),
+
+  })
+);
+
+
+/* ===========================
+   STORY REVISION IMAGES
+=========================== */
+
+export const storyRevisionImages = pgTable("story_revision_images", {
+
+  id: uuid("id")
+    .defaultRandom()
+    .primaryKey(),
+
+  revisionId: uuid("revision_id")
+    .references(() => storyRevisions.id, {
+      onDelete: "cascade",
+    })
+    .notNull(),
+
+  imageUrl: text("image_url")
+    .notNull(),
+
+  publicId: text("public_id")
+    .notNull(),
+
+  caption: text("caption"),
+
+  displayOrder: integer("display_order")
+    .default(0)
+    .notNull(),
+
+  createdAt: timestamp("created_at")
+    .defaultNow()
+    .notNull(),
+
+},
+(table) => ({
+
+  revisionIdIndex: index("story_revision_images_revision_id_idx").on(
+    table.revisionId
+  ),
+
+})
+);
 
 
 /* ===========================
@@ -1053,6 +1189,7 @@ export const passwordResetTokens = pgTable(
 
 export const usersRelations = relations(users, ({ many }) => ({
   stories: many(stories),
+  storyRevisions: many(storyRevisions),
   comments: many(comments),
   storyLikes: many(storyLikes),
   commentLikes: many(commentLikes),
@@ -1089,6 +1226,7 @@ export const categoriesRelations = relations(
   categories,
   ({ many }) => ({
     stories: many(stories),
+    storyRevisions: many(storyRevisions),
   })
 );
 
@@ -1110,6 +1248,8 @@ export const storiesRelations = relations(
     }),
 
     images: many(storyImages),
+
+    revisions: many(storyRevisions),
 
     comments: many(comments),
 
@@ -1143,6 +1283,48 @@ export const storyImagesRelations = relations(
       fields: [storyImages.storyId],
       references: [stories.id],
     }),
+  })
+);
+
+
+/* STORY REVISIONS */
+
+export const storyRevisionsRelations = relations(
+  storyRevisions,
+  ({ one, many }) => ({
+
+    story: one(stories, {
+      fields: [storyRevisions.storyId],
+      references: [stories.id],
+    }),
+
+    author: one(users, {
+      fields: [storyRevisions.authorId],
+      references: [users.id],
+    }),
+
+    category: one(categories, {
+      fields: [storyRevisions.categoryId],
+      references: [categories.id],
+    }),
+
+    images: many(storyRevisionImages),
+
+  })
+);
+
+
+/* STORY REVISION IMAGES */
+
+export const storyRevisionImagesRelations = relations(
+  storyRevisionImages,
+  ({ one }) => ({
+
+    revision: one(storyRevisions, {
+      fields: [storyRevisionImages.revisionId],
+      references: [storyRevisions.id],
+    }),
+
   })
 );
 
