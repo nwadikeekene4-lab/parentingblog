@@ -1,423 +1,431 @@
 "use client";
 
 import {
-createContext,
-useContext,
-useEffect,
-useState,
-ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
 } from "react";
 
 import {
-useParams,
-useSearchParams,
+  useParams,
+  useSearchParams,
 } from "next/navigation";
 
 export type UploadedImage = {
-id: string;
-file: File;
-preview: string;
-url?: string;
-publicId?: string;
-uploading: boolean;
-error?: string;
+  id: string;
+  file: File;
+  preview: string;
+  url?: string;
+  publicId?: string;
+  uploading: boolean;
+  error?: string;
 };
 
 type StoryFormContextType = {
-title: string;
-setTitle: (value: string) => void;
+  title: string;
+  setTitle: (value: string) => void;
 
-content: string;
-setContent: (value: string) => void;
+  content: string;
+  setContent: (value: string) => void;
 
-category: string;
-setCategory: (value: string) => void;
+  category: string;
+  setCategory: (value: string) => void;
 
-coverImage: UploadedImage | null;
+  coverImage: UploadedImage | null;
 
-setCoverImage: (
-image: UploadedImage | null
-) => void;
+  setCoverImage: (
+    image: UploadedImage | null
+  ) => void;
 
-storyImages: UploadedImage[];
+  storyImages: UploadedImage[];
 
-setStoryImages: (
-images: UploadedImage[]
-) => void;
+  setStoryImages: (
+    images: UploadedImage[]
+  ) => void;
 
-updateCoverUpload: (
-url: string,
-publicId: string
-) => void;
+  updateCoverUpload: (
+    url: string,
+    publicId: string
+  ) => void;
 
-updateStoryImageUploads: (
-images: {
-url: string;
-publicId: string;
-}[]
-) => void;
+  updateStoryImageUploads: (
+    images: {
+      url: string;
+      publicId: string;
+    }[]
+  ) => void;
 
-resetForm: () => void;
+  resetForm: () => void;
 
-isEditMode: boolean;
-loadingStory: boolean;
+  isEditMode: boolean;
+  isPublishedEdit: boolean;
+  loadingStory: boolean;
 };
 
 const StoryFormContext =
-createContext<StoryFormContextType | null>(
-null
-);
+  createContext<StoryFormContextType | null>(
+    null
+  );
 
 export function StoryFormProvider({
-children,
+  children,
 }: {
-children: ReactNode;
+  children: ReactNode;
 }) {
-const searchParams =
-useSearchParams();
+  const searchParams =
+    useSearchParams();
 
-const params = useParams();
+  const params = useParams();
 
-const routeStoryId =
-typeof params?.id === "string"
-? params.id
-: undefined;
+  const routeStoryId =
+    typeof params?.id === "string"
+      ? params.id
+      : undefined;
 
-const queryStoryId =
-searchParams.get("edit") ??
-searchParams.get("draftId") ??
-undefined;
+  const queryStoryId =
+    searchParams.get("edit") ??
+    searchParams.get("draftId") ??
+    undefined;
 
-const editStoryId =
-routeStoryId ??
-queryStoryId;
+  const editStoryId =
+    routeStoryId ??
+    queryStoryId;
 
-const [title, setTitle] =
-useState("");
+  const mode = searchParams.get("mode");
+  const isPublishedEdit = mode === "published";
 
-const [content, setContent] =
-useState("");
+  const [title, setTitle] =
+    useState("");
 
-const [category, setCategory] =
-useState("");
+  const [content, setContent] =
+    useState("");
 
-const [coverImage, setCoverImage] =
-useState<UploadedImage | null>(
-null
-);
+  const [category, setCategory] =
+    useState("");
 
-const [storyImages, setStoryImages] =
-useState<UploadedImage[]>([]);
-
-const [loadingStory, setLoadingStory] =
-useState(
-Boolean(editStoryId)
-);
-
-/*
-|--------------------------------------------------------------------------
-
-Load existing draft/pending story
-*/
-
-useEffect(() => {
-if (!editStoryId) {
-setLoadingStory(false);
-return;
-}
-
-/*
-|--------------------------------------------------------------------------
-| Store the already-validated ID locally.
-|
-| This guarantees TypeScript knows that storyId is a string.
-|--------------------------------------------------------------------------
-*/
-
-const storyId = editStoryId;
-
-let cancelled = false;
-
-async function loadStory() {
-  try {
-    setLoadingStory(true);
-
-    const response = await fetch(
-      `/api/drafts/${encodeURIComponent(
-        storyId
-      )}`,
-      {
-        method: "GET",
-        cache: "no-store",
-      }
+  const [coverImage, setCoverImage] =
+    useState<UploadedImage | null>(
+      null
     );
 
-    const data =
-      await response.json();
+  const [storyImages, setStoryImages] =
+    useState<UploadedImage[]>([]);
 
-    if (!response.ok) {
-      throw new Error(
-        data.message ??
-          "Failed to load story."
-      );
-    }
+  const [loadingStory, setLoadingStory] =
+    useState(
+      Boolean(editStoryId)
+    );
 
-    const story = data.draft;
+  /*
+  |--------------------------------------------------------------------------
+  | Load existing draft, pending story, or published story for editing
+  |--------------------------------------------------------------------------
+  */
 
-    if (!story) {
-      throw new Error(
-        "Story not found."
-      );
-    }
-
-    if (cancelled) {
+  useEffect(() => {
+    if (!editStoryId) {
+      setLoadingStory(false);
       return;
     }
 
-    setTitle(
-      story.title ?? ""
-    );
+    const storyId = editStoryId;
 
-    setContent(
-      story.content ?? ""
-    );
+    let cancelled = false;
 
-    setCategory(
-      story.category?.name ?? ""
-    );
+    async function loadStory() {
+      try {
+        setLoadingStory(true);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Existing cover
-    |--------------------------------------------------------------------------
-    */
+        const endpoint = isPublishedEdit
+          ? `/api/story-edits/${encodeURIComponent(storyId)}`
+          : `/api/drafts/${encodeURIComponent(storyId)}`;
 
-    if (story.coverImage) {
-      setCoverImage({
-        id:
-          `existing-cover-${story.id}`,
+        const response = await fetch(
+          endpoint,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
 
-        file: new File(
-          [],
-          "existing-cover-image"
-        ),
+        const data =
+          await response.json();
 
-        preview:
-          story.coverImage,
+        if (!response.ok) {
+          throw new Error(
+            data.message ??
+              "Failed to load story."
+          );
+        }
 
-        url:
-          story.coverImage,
+        const story = data.story ?? data.draft;
 
-        publicId:
-          story.coverImagePublicId ??
-          undefined,
+        if (!story) {
+          throw new Error(
+            "Story not found."
+          );
+        }
 
-        uploading: false,
-      });
-    } else {
-      setCoverImage(null);
+        if (cancelled) {
+          return;
+        }
+
+        setTitle(
+          story.title ?? ""
+        );
+
+        setContent(
+          story.content ?? ""
+        );
+
+        setCategory(
+          typeof story.category === "string"
+            ? story.category
+            : story.category?.name ?? ""
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Existing cover
+        |--------------------------------------------------------------------------
+        */
+
+        if (story.coverImage) {
+          setCoverImage({
+            id:
+              `existing-cover-${story.id ?? storyId}`,
+
+            file: new File(
+              [],
+              "existing-cover-image"
+            ),
+
+            preview:
+              story.coverImage,
+
+            url:
+              story.coverImage,
+
+            publicId:
+              story.coverImagePublicId ??
+              undefined,
+
+            uploading: false,
+          });
+        } else {
+          setCoverImage(null);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Existing story images
+        |--------------------------------------------------------------------------
+        */
+
+        const existingImages =
+          Array.isArray(story.images)
+            ? story.images
+            : [];
+
+        setStoryImages(
+          existingImages.map(
+            (image: {
+              id?: string;
+              imageUrl?: string;
+              url?: string;
+              publicId?: string | null;
+              caption?: string | null;
+            }) => ({
+              id: image.id ?? `img-${Math.random()}`,
+
+              file: new File(
+                [],
+                "existing-story-image"
+              ),
+
+              preview:
+                image.imageUrl ?? image.url ?? "",
+
+              url:
+                image.imageUrl ?? image.url ?? "",
+
+              publicId:
+                image.publicId ??
+                undefined,
+
+              uploading: false,
+            })
+          )
+        );
+      } catch (error) {
+        console.error(
+          "Load story for editing error:",
+          error
+        );
+
+        if (!cancelled) {
+          setTitle("");
+          setContent("");
+          setCategory("");
+          setCoverImage(null);
+          setStoryImages([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingStory(false);
+        }
+      }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Existing story images
-    |--------------------------------------------------------------------------
-    */
+    loadStory();
 
-    const existingImages =
-      Array.isArray(story.images)
-        ? story.images
-        : [];
+    return () => {
+      cancelled = true;
+    };
 
-    setStoryImages(
-      existingImages.map(
-        (image: {
-          id: string;
-          imageUrl: string;
-          publicId?: string | null;
-          caption?: string | null;
-        }) => ({
-          id: image.id,
+  }, [editStoryId, isPublishedEdit]);
 
-          file: new File(
-            [],
-            "existing-story-image"
-          ),
+  /*
+  |--------------------------------------------------------------------------
+  | Update cover upload
+  |--------------------------------------------------------------------------
+  */
 
-          preview:
-            image.imageUrl,
-
-          url:
-            image.imageUrl,
-
-          publicId:
-            image.publicId ??
-            undefined,
-
+  function updateCoverUpload(
+    url: string,
+    publicId: string
+  ) {
+    setCoverImage((current) => {
+      if (!current) {
+        return {
+          id: `new-cover-${Date.now()}`,
+          file: new File([], "cover-image"),
+          preview: url,
+          url,
+          publicId,
           uploading: false,
-        })
-      )
-    );
-  } catch (error) {
-    console.error(
-      "Load story for editing error:",
-      error
-    );
-
-    if (!cancelled) {
-      setTitle("");
-      setContent("");
-      setCategory("");
-      setCoverImage(null);
-      setStoryImages([]);
-    }
-  } finally {
-    if (!cancelled) {
-      setLoadingStory(false);
-    }
-  }
-}
-
-loadStory();
-
-return () => {
-  cancelled = true;
-};
-
-}, [editStoryId]);
-
-/*
-|--------------------------------------------------------------------------
-
-Update cover upload
-*/
-
-function updateCoverUpload(
-url: string,
-publicId: string
-) {
-setCoverImage((current) => {
-if (!current) {
-return current;
-}
-
-  return {
-    ...current,
-    url,
-    publicId,
-    preview: url,
-    uploading: false,
-    error: undefined,
-  };
-});
-
-}
-
-/*
-|--------------------------------------------------------------------------
-
-Update story image uploads
-*/
-
-function updateStoryImageUploads(
-images: {
-url: string;
-publicId: string;
-}[]
-) {
-setStoryImages((current) =>
-current.map(
-(image, index) => {
-const uploaded =
-images[index];
-
-      if (!uploaded) {
-        return image;
+        };
       }
 
       return {
-        ...image,
-
-        url:
-          uploaded.url,
-
-        publicId:
-          uploaded.publicId,
-
-        preview:
-          uploaded.url,
-
+        ...current,
+        url,
+        publicId,
+        preview: url,
         uploading: false,
-
         error: undefined,
       };
-    }
-  )
-);
+    });
+  }
 
-}
+  /*
+  |--------------------------------------------------------------------------
+  | Update story image uploads
+  |--------------------------------------------------------------------------
+  */
 
-/*
-|--------------------------------------------------------------------------
+  function updateStoryImageUploads(
+    images: {
+      url: string;
+      publicId: string;
+    }[]
+  ) {
+    setStoryImages((current) =>
+      current.map(
+        (image, index) => {
+          const uploaded =
+            images[index];
 
-Reset form
-*/
+          if (!uploaded) {
+            return image;
+          }
 
-function resetForm() {
-setTitle("");
-setContent("");
-setCategory("");
-setCoverImage(null);
-setStoryImages([]);
-setLoadingStory(false);
-}
+          return {
+            ...image,
 
-return (
-<StoryFormContext.Provider
-value={{
-title,
-setTitle,
+            url:
+              uploaded.url,
 
-    content,
-    setContent,
+            publicId:
+              uploaded.publicId,
 
-    category,
-    setCategory,
+            preview:
+              uploaded.url,
 
-    coverImage,
-    setCoverImage,
+            uploading: false,
 
-    storyImages,
-    setStoryImages,
+            error: undefined,
+          };
+        }
+      )
+    );
+  }
 
-    updateCoverUpload,
-    updateStoryImageUploads,
+  /*
+  |--------------------------------------------------------------------------
+  | Reset form
+  |--------------------------------------------------------------------------
+  */
 
-    resetForm,
+  function resetForm() {
+    setTitle("");
+    setContent("");
+    setCategory("");
+    setCoverImage(null);
+    setStoryImages([]);
+    setLoadingStory(false);
+  }
 
-    isEditMode:
-      Boolean(editStoryId),
+  return (
+    <StoryFormContext.Provider
+      value={{
+        title,
+        setTitle,
 
-    loadingStory,
-  }}
->
-  {children}
-</StoryFormContext.Provider>
+        content,
+        setContent,
 
-);
+        category,
+        setCategory,
+
+        coverImage,
+        setCoverImage,
+
+        storyImages,
+        setStoryImages,
+
+        updateCoverUpload,
+        updateStoryImageUploads,
+
+        resetForm,
+
+        isEditMode:
+          Boolean(editStoryId),
+
+        isPublishedEdit,
+
+        loadingStory,
+      }}
+    >
+      {children}
+    </StoryFormContext.Provider>
+  );
 }
 
 export function useStoryForm() {
-const context =
-useContext(
-StoryFormContext
-);
+  const context =
+    useContext(
+      StoryFormContext
+    );
 
-if (!context) {
-throw new Error(
-"useStoryForm must be used inside StoryFormProvider"
-);
-}
-
-return context;
+  if (!context) {
+    throw new Error(
+      "useStoryForm must be used inside StoryFormProvider"
+    );
   }
+
+  return context;
+  }
+    
