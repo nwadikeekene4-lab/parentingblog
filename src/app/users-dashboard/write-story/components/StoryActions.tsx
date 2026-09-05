@@ -59,11 +59,17 @@ export default function StoryActions() {
   const searchParams = useSearchParams();
   const params = useParams();
 
-  const draftId =
-    (params?.id as string | undefined) ??
-    searchParams.get("draftId") ??
+  const routeStoryId =
+    typeof params?.id === "string"
+      ? params.id
+      : undefined;
+
+  const queryStoryId =
     searchParams.get("edit") ??
+    searchParams.get("draftId") ??
     undefined;
+
+  const draftId = routeStoryId ?? queryStoryId;
 
   const {
     title,
@@ -72,6 +78,7 @@ export default function StoryActions() {
     coverImage,
     storyImages,
     resetForm,
+    isPublishedEdit,
   } = useStoryForm();
 
   const [savingDraft, setSavingDraft] = useState(false);
@@ -138,7 +145,11 @@ export default function StoryActions() {
       setProgress(10);
     } else {
       setPublishing(true);
-      setStatusMessage("Preparing your story...");
+      setStatusMessage(
+        isPublishedEdit
+          ? "Submitting your published story edits for review..."
+          : "Preparing your story..."
+      );
       setProgress(5);
     }
 
@@ -203,14 +214,18 @@ export default function StoryActions() {
       setStatusMessage(
         requestedStatus === "draft"
           ? "Saving your draft..."
-          : "Submitting your story for review..."
+          : isPublishedEdit
+            ? "Submitting changes for administrator review..."
+            : "Submitting your story for review..."
       );
 
-      const endpoint = draftId
-        ? `/api/drafts/${encodeURIComponent(draftId)}`
-        : "/api/stories";
+      const endpoint = isPublishedEdit
+        ? `/api/story-edits/${encodeURIComponent(draftId || "")}`
+        : draftId
+          ? `/api/drafts/${encodeURIComponent(draftId)}`
+          : "/api/stories";
 
-      const method = draftId ? "PATCH" : "POST";
+      const method = isPublishedEdit ? "PUT" : (draftId ? "PATCH" : "POST");
 
       /*
        * -------------------------------------------------------
@@ -225,6 +240,31 @@ export default function StoryActions() {
         (image) => image && image.url && image.url.trim().length > 0
       );
 
+      const requestBody = isPublishedEdit
+        ? {
+            title: cleanTitle,
+            content: cleanContent,
+            category: cleanCategory,
+            coverImageUrl: uploadedCover?.url ?? null,
+            coverImagePublicId: uploadedCover?.publicId || null,
+            storyImages: validStoryImages.map((image) => ({
+              url: image.url,
+              publicId: image.publicId || "",
+            })),
+          }
+        : {
+            title: cleanTitle,
+            content: cleanContent,
+            category: cleanCategory,
+            status: requestedStatus,
+            coverImageUrl: uploadedCover?.url ?? null,
+            coverImagePublicId: uploadedCover?.publicId || null,
+            storyImages: validStoryImages.map((image) => ({
+              url: image.url,
+              publicId: image.publicId || "",
+            })),
+          };
+
       const response = await fetch(endpoint, {
         method,
 
@@ -236,23 +276,7 @@ export default function StoryActions() {
 
         cache: "no-store",
 
-        body: JSON.stringify({
-          title: cleanTitle,
-          content: cleanContent,
-          category: cleanCategory,
-          status: requestedStatus,
-
-          coverImageUrl:
-            uploadedCover?.url ?? null,
-
-          coverImagePublicId:
-            uploadedCover?.publicId || null,
-
-          storyImages: validStoryImages.map((image) => ({
-            url: image.url,
-            publicId: image.publicId || "",
-          })),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       /*
@@ -309,7 +333,9 @@ export default function StoryActions() {
       setStatusMessage(
         requestedStatus === "draft"
           ? "Draft saved successfully!"
-          : "Story submitted successfully!"
+          : isPublishedEdit
+            ? "Changes submitted for review successfully!"
+            : "Story submitted successfully!"
       );
 
       /*
@@ -326,7 +352,9 @@ export default function StoryActions() {
 
       if (requestedStatus === "published") {
         router.replace(
-          "/users-dashboard/pending-review?submitted=true"
+          isPublishedEdit
+            ? "/users-dashboard/my-stories?revised=true"
+            : "/users-dashboard/pending-review?submitted=true"
         );
       } else {
         router.replace(
@@ -362,9 +390,11 @@ export default function StoryActions() {
       return;
     }
 
-    const confirmed = window.confirm(
-      "Are you sure you want to submit this story for review?"
-    );
+    const confirmMessage = isPublishedEdit
+      ? "Are you sure you want to submit these edits for administrator review? Your current published story will remain live until approved."
+      : "Are you sure you want to submit this story for review?";
+
+    const confirmed = window.confirm(confirmMessage);
 
     if (!confirmed) {
       return;
@@ -407,7 +437,7 @@ export default function StoryActions() {
               id="publishing-title"
               className="text-xl font-bold text-gray-900"
             >
-              Submitting Story
+              {isPublishedEdit ? "Submitting Published Story Edits" : "Submitting Story"}
             </h2>
 
             <p className="mt-2 text-sm text-gray-600">
@@ -503,6 +533,12 @@ export default function StoryActions() {
       )}
 
       <section className="rounded-2xl bg-white p-6 shadow-sm">
+        {isPublishedEdit && (
+          <div className="mb-4 rounded-xl bg-amber-50 p-4 border border-amber-200 text-amber-800 text-sm">
+            <span className="font-semibold block mb-1">Edit Published Story</span>
+            Your current published story will remain visible while your changes are reviewed.
+          </div>
+        )}
         <div className="flex flex-col gap-4 md:flex-row md:justify-end">
           <button
             type="button"
@@ -513,14 +549,16 @@ export default function StoryActions() {
             Preview Story
           </button>
 
-          <button
-            type="button"
-            onClick={saveDraft}
-            disabled={busy}
-            className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-white transition hover:bg-yellow-600 active:bg-yellow-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
-          >
-            {savingDraft ? "Saving..." : "Save Draft"}
-          </button>
+          {!isPublishedEdit && (
+            <button
+              type="button"
+              onClick={saveDraft}
+              disabled={busy}
+              className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-white transition hover:bg-yellow-600 active:bg-yellow-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+            >
+              {savingDraft ? "Saving..." : "Save Draft"}
+            </button>
+          )}
 
           <button
             type="button"
@@ -530,7 +568,9 @@ export default function StoryActions() {
           >
             {publishing
               ? "Submitting..."
-              : "Publish Story"}
+              : isPublishedEdit
+                ? "Submit Changes for Review"
+                : "Publish Story"}
           </button>
         </div>
 
@@ -545,4 +585,5 @@ export default function StoryActions() {
       </section>
     </>
   );
-}
+                     }
+  
