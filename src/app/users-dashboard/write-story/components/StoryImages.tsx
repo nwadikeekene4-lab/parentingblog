@@ -96,7 +96,7 @@ export default function StoryImages() {
         multiple
         accept="image/*"
         onChange={handleImages}
-        className="mb-6 block w-full rounded-lg border border-gray-300 p-3"
+        className="mb-6 block w-full rounded-lg border border-gray-300 p-3 transition cursor-pointer hover:border-blue-400 hover:bg-blue-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
       />
 
       {storyImages.length === 0 ? (
@@ -113,7 +113,7 @@ export default function StoryImages() {
 
             <div
               key={image.id}
-              className="overflow-hidden rounded-xl border border-gray-200"
+              className="overflow-hidden rounded-xl border border-gray-200 transition hover:shadow-md"
             >
 
               <div className="relative h-48">
@@ -133,7 +133,7 @@ export default function StoryImages() {
                 onClick={() =>
                   removeImage(image.id)
                 }
-                className="w-full border-t border-gray-200 py-3 text-sm font-medium text-red-600 hover:bg-red-50"
+                className="w-full border-t border-gray-200 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50 active:bg-red-100 cursor-pointer"
               >
                 Remove
               </button>
