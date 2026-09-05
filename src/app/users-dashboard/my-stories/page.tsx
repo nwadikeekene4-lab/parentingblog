@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import MyStoryCard from "@/app/components/dashboard/MyStoryCard";
 
 type StoryImage = {
@@ -36,6 +37,12 @@ type Story = {
 };
 
 export default function MyStoriesPage() {
+  const searchParams = useSearchParams();
+  const revisedParam = searchParams.get("revised");
+
+  const [showSuccessBanner, setShowSuccessBanner] = useState(
+    Boolean(revisedParam)
+  );
 
   const [search, setSearch] =
     useState("");
@@ -252,6 +259,27 @@ export default function MyStoriesPage() {
         </Link>
 
       </section>
+
+
+      {/* Success Notification Banner */}
+
+      {showSuccessBanner && (
+        <div className="flex items-center justify-between rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-emerald-800">
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-600">✓</span>
+            <p className="text-sm font-medium">
+              Your story changes have been successfully submitted for administrator review! Your published story remains live until approved.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowSuccessBanner(false)}
+            className="text-emerald-600 hover:text-emerald-800 font-semibold px-3 py-1"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
 
       {/* Search & Filters */}
@@ -512,4 +540,5 @@ export default function MyStoriesPage() {
 
   );
 
-}
+  }
+      
