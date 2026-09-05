@@ -57,7 +57,7 @@ async function getStoryImages(storyId: string) {
 |--------------------------------------------------------------------------
 | GET
 |--------------------------------------------------------------------------
-| Load a published story belonging to the logged-in user.
+| Load a published story (or its existing pending revision) belonging to the logged-in user.
 |--------------------------------------------------------------------------
 */
 
@@ -134,6 +134,54 @@ export async function GET(
       );
     }
 
+    // Check if there is already a pending revision for this story so the author can continue editing it
+    const existingRevision = await db.query.storyRevisions.findFirst({
+      where: (revision, { and, eq }) =>
+        and(
+          eq(revision.storyId, story.id),
+          eq(revision.status, "pending_review")
+        ),
+    });
+
+    if (existingRevision) {
+      const revisionImages = await db
+        .select({
+          id: storyRevisionImages.id,
+          imageUrl: storyRevisionImages.imageUrl,
+          publicId: storyRevisionImages.publicId,
+          caption: storyRevisionImages.caption,
+          displayOrder: storyRevisionImages.displayOrder,
+        })
+        .from(storyRevisionImages)
+        .where(eq(storyRevisionImages.revisionId, existingRevision.id))
+        .orderBy(storyRevisionImages.displayOrder);
+
+      let revisionCategoryName = story.category;
+      if (existingRevision.categoryId !== story.categoryId) {
+        const [revCat] = await db
+          .select({ name: categories.name })
+          .from(categories)
+          .where(eq(categories.id, existingRevision.categoryId))
+          .limit(1);
+        if (revCat) revisionCategoryName = revCat.name;
+      }
+
+      return NextResponse.json({
+        story: {
+          ...story,
+          title: existingRevision.title,
+          content: existingRevision.content,
+          excerpt: existingRevision.excerpt,
+          slug: existingRevision.slug,
+          coverImage: existingRevision.coverImage,
+          coverImagePublicId: existingRevision.coverImagePublicId,
+          categoryId: existingRevision.categoryId,
+          category: revisionCategoryName,
+          images: revisionImages,
+        },
+      });
+    }
+
     const images = await getStoryImages(id);
 
     return NextResponse.json({
@@ -162,7 +210,7 @@ export async function GET(
 |--------------------------------------------------------------------------
 | PUT
 |--------------------------------------------------------------------------
-| Create a revision of a published story.
+| Create or update a revision of a published story.
 |
 | IMPORTANT:
 | The published stories table is NOT modified here.
@@ -397,7 +445,7 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | Prevent multiple pending revisions
+    | Check for existing pending revision (supports updating existing revision instead of duplicate errors)
     |--------------------------------------------------------------------------
     */
 
@@ -412,16 +460,6 @@ export async function PUT(
             )
           ),
       });
-
-    if (existingRevision) {
-      return NextResponse.json(
-        {
-          message:
-            "This story already has an edit waiting for administrator review. Please wait until that review is completed before submitting another edit.",
-        },
-        { status: 409 }
-      );
-    }
 
     /*
     |--------------------------------------------------------------------------
@@ -508,47 +546,60 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | Create revision + revision images atomically.
+    | Create or Update revision + revision images atomically.
     |--------------------------------------------------------------------------
     */
 
     const revision =
       await db.transaction(async (tx) => {
-        const [createdRevision] =
+        let createdRevision;
+
+        if (existingRevision) {
+          // Update the existing pending revision rather than creating duplicates
+          const [updated] = await tx
+            .update(storyRevisions)
+            .set({
+              title,
+              slug: revisionSlug,
+              excerpt: generateExcerpt(content),
+              content,
+              coverImage: revisionCoverImage,
+              coverImagePublicId: revisionCoverPublicId,
+              categoryId: categoryRow.id,
+              updatedAt: new Date(),
+            })
+            .where(eq(storyRevisions.id, existingRevision.id))
+            .returning();
+
+          createdRevision = updated;
+
+          // Clear old revision images before inserting updated set
           await tx
+            .delete(storyRevisionImages)
+            .where(eq(storyRevisionImages.revisionId, existingRevision.id));
+        } else {
+          // Create new pending revision
+          const [inserted] = await tx
             .insert(storyRevisions)
             .values({
               storyId: story.id,
               authorId: user.id,
-
               title,
-
               slug: revisionSlug,
-
-              excerpt:
-                generateExcerpt(content),
-
+              excerpt: generateExcerpt(content),
               content,
-
-              coverImage:
-                revisionCoverImage,
-
-              coverImagePublicId:
-                revisionCoverPublicId,
-
-              categoryId:
-                categoryRow.id,
-
-              status:
-                "pending_review",
-
+              coverImage: revisionCoverImage,
+              coverImagePublicId: revisionCoverPublicId,
+              categoryId: categoryRow.id,
+              status: "pending_review",
               feedback: null,
-
               reviewedAt: null,
-
               reviewerId: null,
             })
             .returning();
+
+          createdRevision = inserted;
+        }
 
         if (images !== undefined) {
           if (images.length > 0) {
@@ -689,4 +740,5 @@ export async function PUT(
       { status: 500 }
     );
   }
-        }
+  }
+    
