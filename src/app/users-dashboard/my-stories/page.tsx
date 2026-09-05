@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import MyStoryCard from "@/app/components/dashboard/MyStoryCard";
@@ -36,7 +36,7 @@ type Story = {
   updatedAt: string;
 };
 
-export default function MyStoriesPage() {
+function MyStoriesContent() {
   const searchParams = useSearchParams();
   const revisedParam = searchParams.get("revised");
 
@@ -540,5 +540,20 @@ export default function MyStoriesPage() {
 
   );
 
-  }
+}
+
+export default function MyStoriesPage() {
+  return (
+    <Suspense
+      fallback={
+        <section className="rounded-2xl bg-white p-12 text-center shadow-sm">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
+          <p className="mt-5 text-sm text-gray-600">Loading your published stories...</p>
+        </section>
+      }
+    >
+      <MyStoriesContent />
+    </Suspense>
+  );
+      }
       
