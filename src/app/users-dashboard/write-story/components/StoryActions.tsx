@@ -215,8 +215,15 @@ export default function StoryActions() {
       /*
        * -------------------------------------------------------
        * Save story
+       * 
+       * IMPORTANT: Filter storyImages to only include those with valid URLs.
+       * This prevents issues when images have been deleted from the form.
        * -------------------------------------------------------
        */
+
+      const validStoryImages = uploadedStoryImages.filter(
+        (image) => image && image.url && image.url.trim().length > 0
+      );
 
       const response = await fetch(endpoint, {
         method,
@@ -241,12 +248,10 @@ export default function StoryActions() {
           coverImagePublicId:
             uploadedCover?.publicId || null,
 
-          storyImages: uploadedStoryImages
-            .filter((image) => image.url)
-            .map((image) => ({
-              url: image.url,
-              publicId: image.publicId || "",
-            })),
+          storyImages: validStoryImages.map((image) => ({
+            url: image.url,
+            publicId: image.publicId || "",
+          })),
         }),
       });
 
@@ -453,7 +458,7 @@ export default function StoryActions() {
               <button
                 type="button"
                 onClick={() => setShowPreview(false)}
-                className="rounded-lg px-3 py-2 text-gray-600 transition hover:bg-gray-100"
+                className="rounded-lg px-3 py-2 text-gray-600 transition hover:bg-gray-100 active:bg-gray-200 cursor-pointer"
               >
                 Close
               </button>
@@ -503,7 +508,7 @@ export default function StoryActions() {
             type="button"
             onClick={openPreview}
             disabled={busy}
-            className="rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-100 active:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
           >
             Preview Story
           </button>
@@ -512,7 +517,7 @@ export default function StoryActions() {
             type="button"
             onClick={saveDraft}
             disabled={busy}
-            className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-white transition hover:bg-yellow-600 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-white transition hover:bg-yellow-600 active:bg-yellow-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
           >
             {savingDraft ? "Saving..." : "Save Draft"}
           </button>
@@ -521,7 +526,7 @@ export default function StoryActions() {
             type="button"
             onClick={publishStory}
             disabled={busy}
-            className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 active:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
           >
             {publishing
               ? "Submitting..."
