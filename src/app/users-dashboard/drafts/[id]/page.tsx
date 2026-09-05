@@ -30,16 +30,25 @@ function LoadDraft() {
   useEffect(() => {
     async function fetchDraft() {
       try {
-        const response = await fetch(
+        let response = await fetch(
           `/api/drafts/${draftId}`
         );
 
-        const data = await response.json();
+        let data = await response.json();
+
+        // If draft endpoint returns 404, try published-stories endpoint
+        if (!response.ok && response.status === 404) {
+          response = await fetch(
+            `/api/published-stories/${draftId}`
+          );
+
+          data = await response.json();
+        }
 
         if (!response.ok) {
           throw new Error(
             data.message ??
-              "Failed to load draft."
+              "Failed to load story."
           );
         }
 
@@ -106,7 +115,7 @@ function LoadDraft() {
         );
       } catch (error) {
         console.error(
-          "Load draft error:",
+          "Load draft/published story error:",
           error
         );
       }
@@ -188,4 +197,4 @@ export default function DraftEditorPage() {
 
   );
 
-        }
+         }
