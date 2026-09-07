@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import MyStoryCard from "@/app/components/dashboard/MyStoryCard";
 
 type StoryImage = {
@@ -38,6 +38,8 @@ type Story = {
 
 function MyStoriesContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+
   const revisedParam = searchParams.get("revised");
 
   const [showSuccessBanner, setShowSuccessBanner] = useState(
@@ -67,71 +69,101 @@ function MyStoriesContent() {
   */
 
   useEffect(() => {
+    let isMounted = true;
 
     async function loadStories() {
-
       try {
-
         setLoading(true);
-
         setError("");
 
-        const response =
-          await fetch(
-            "/api/stories",
-            {
-              method: "GET",
-              cache: "no-store",
-            }
-          );
+        const response = await fetch(
+          "/api/stories",
+          {
+            method: "GET",
 
+            /*
+            |--------------------------------------------------------------------------
+            | Explicitly include the current authentication cookies.
+            |--------------------------------------------------------------------------
+            */
 
-        const data =
-          await response.json();
+            credentials: "include",
 
+            /*
+            |--------------------------------------------------------------------------
+            | Always request fresh published-story data.
+            |--------------------------------------------------------------------------
+            */
+
+            cache: "no-store",
+          }
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Handle expired / invalid authentication session.
+        |--------------------------------------------------------------------------
+        |
+        | The API correctly protects /api/stories with authentication.
+        | If the session is no longer valid, send the user back to login
+        | instead of displaying "Unable to load your stories".
+        |--------------------------------------------------------------------------
+        */
+
+        if (response.status === 401) {
+          if (isMounted) {
+            router.replace("/login");
+          }
+
+          return;
+        }
+
+        const data = await response.json();
 
         if (!response.ok) {
-
           throw new Error(
             data.message ??
               "Failed to load your stories."
           );
-
         }
 
+        if (!isMounted) {
+          return;
+        }
 
         setStories(
-          data.stories ?? []
+          Array.isArray(data.stories)
+            ? data.stories
+            : []
         );
-
-
       } catch (error) {
+        if (!isMounted) {
+          return;
+        }
 
         console.error(
           "Load my stories error:",
           error
         );
 
-
         setError(
           error instanceof Error
             ? error.message
             : "Something went wrong."
         );
-
-
       } finally {
-
-        setLoading(false);
-
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-
     }
-
 
     loadStories();
 
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
 
   /*
@@ -142,7 +174,6 @@ function MyStoriesContent() {
 
   const filteredStories =
     useMemo(() => {
-
       let filtered =
         stories.filter((story) =>
           story.title
@@ -152,11 +183,8 @@ function MyStoriesContent() {
             )
         );
 
-
       switch (sortBy) {
-
         case "Oldest":
-
           filtered = [
             ...filtered,
           ].sort(
@@ -173,9 +201,7 @@ function MyStoriesContent() {
 
           break;
 
-
         case "Most Viewed":
-
           filtered = [
             ...filtered,
           ].sort(
@@ -185,9 +211,7 @@ function MyStoriesContent() {
 
           break;
 
-
         case "Featured":
-
           filtered =
             filtered.filter(
               (story) =>
@@ -196,11 +220,8 @@ function MyStoriesContent() {
 
           break;
 
-
         case "Newest":
-
         default:
-
           filtered = [
             ...filtered,
           ].sort(
@@ -216,12 +237,9 @@ function MyStoriesContent() {
           );
 
           break;
-
       }
 
-
       return filtered;
-
     }, [
       stories,
       search,
@@ -230,7 +248,6 @@ function MyStoriesContent() {
 
 
   return (
-
     <div className="space-y-8">
 
 
@@ -264,20 +281,30 @@ function MyStoriesContent() {
       {/* Success Notification Banner */}
 
       {showSuccessBanner && (
-        <div className="flex items-center justify-between rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-emerald-800">
+        <div className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
+
           <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-600">✓</span>
+
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-600">
+              ✓
+            </span>
+
             <p className="text-sm font-medium">
               Your story changes have been successfully submitted for administrator review! Your published story remains live until approved.
             </p>
+
           </div>
+
           <button
             type="button"
-            onClick={() => setShowSuccessBanner(false)}
-            className="text-emerald-600 hover:text-emerald-800 font-semibold px-3 py-1"
+            onClick={() =>
+              setShowSuccessBanner(false)
+            }
+            className="px-3 py-1 font-semibold text-emerald-600 hover:text-emerald-800"
           >
             ✕
           </button>
+
         </div>
       )}
 
@@ -329,7 +356,6 @@ function MyStoriesContent() {
       {/* Loading */}
 
       {loading && (
-
         <section className="rounded-2xl bg-white p-12 text-center shadow-sm">
 
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
@@ -339,7 +365,6 @@ function MyStoriesContent() {
           </p>
 
         </section>
-
       )}
 
 
@@ -436,7 +461,6 @@ function MyStoriesContent() {
 
 
               return (
-
                 <MyStoryCard
                   key={story.id}
 
@@ -477,9 +501,7 @@ function MyStoriesContent() {
                   featured={
                     story.featured
                   }
-
                 />
-
               );
 
             }
@@ -522,14 +544,12 @@ function MyStoriesContent() {
 
 
           {!search && (
-
             <Link
               href="/users-dashboard/write-story"
               className="mt-8 inline-flex rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
             >
               Write Your First Story
             </Link>
-
           )}
 
         </section>
@@ -537,23 +557,26 @@ function MyStoriesContent() {
       )}
 
     </div>
-
   );
-
 }
+
 
 export default function MyStoriesPage() {
   return (
     <Suspense
       fallback={
         <section className="rounded-2xl bg-white p-12 text-center shadow-sm">
+
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
-          <p className="mt-5 text-sm text-gray-600">Loading your published stories...</p>
+
+          <p className="mt-5 text-sm text-gray-600">
+            Loading your published stories...
+          </p>
+
         </section>
       }
     >
       <MyStoriesContent />
     </Suspense>
   );
-      }
-      
+  }
