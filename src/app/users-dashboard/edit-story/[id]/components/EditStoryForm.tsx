@@ -81,31 +81,41 @@ export default function EditStoryForm({
         setLoading(true);
         clearMessages();
 
-        const res = await fetch(`/api/stories/${storyId}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(
+          `/api/story-edits/${storyId}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
 
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data.message ?? "Failed to load story.");
+          throw new Error(
+            data.message ?? "Failed to load story."
+          );
         }
 
         const s = data.story as StoryData;
+
         if (cancelled) return;
 
-        const images = (s.images ?? []).map((image) => ({
-          id: image.id,
-          url: image.imageUrl,
-          publicId: image.publicId,
-        }));
+        const images = (s.images ?? []).map(
+          (image) => ({
+            id: image.id,
+            url: image.imageUrl,
+            publicId: image.publicId,
+          })
+        );
 
         initial.current = {
           title: s.title ?? "",
           content: s.content ?? "",
           category: s.category ?? "",
           coverImage: s.coverImage ?? null,
-          coverImagePublicId: s.coverImagePublicId ?? null,
+          coverImagePublicId:
+            s.coverImagePublicId ?? null,
           storyImages: images,
         };
 
@@ -121,22 +131,29 @@ export default function EditStoryForm({
                 file: null,
                 preview: s.coverImage,
                 url: s.coverImage,
-                publicId: s.coverImagePublicId ?? undefined,
+                publicId:
+                  s.coverImagePublicId ??
+                  undefined,
               }
             : null
         );
 
         setStoryImages(
-          (s.images ?? []).map((image) => ({
-            id: image.id,
-            file: null,
-            preview: image.imageUrl,
-            url: image.imageUrl,
-            publicId: image.publicId,
-          }))
+          (s.images ?? []).map(
+            (image) => ({
+              id: image.id,
+              file: null,
+              preview: image.imageUrl,
+              url: image.imageUrl,
+              publicId: image.publicId,
+            })
+          )
         );
       } catch (err) {
-        console.error("Load story error:", err);
+        console.error(
+          "Load story edit error:",
+          err
+        );
 
         if (!cancelled) {
           setError(
@@ -146,7 +163,9 @@ export default function EditStoryForm({
           );
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
@@ -161,16 +180,21 @@ export default function EditStoryForm({
     e: React.ChangeEvent<HTMLInputElement>
   ) {
     const file = e.target.files?.[0];
+
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("Please select a valid cover image.");
+      setError(
+        "Please select a valid cover image."
+      );
       e.target.value = "";
       return;
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      setError("Cover image must be smaller than 10MB.");
+      setError(
+        "Cover image must be smaller than 10MB."
+      );
       e.target.value = "";
       return;
     }
@@ -181,7 +205,9 @@ export default function EditStoryForm({
       coverImage?.file &&
       coverImage.preview.startsWith("blob:")
     ) {
-      URL.revokeObjectURL(coverImage.preview);
+      URL.revokeObjectURL(
+        coverImage.preview
+      );
     }
 
     setCoverImage({
@@ -200,7 +226,9 @@ export default function EditStoryForm({
       coverImage?.file &&
       coverImage.preview.startsWith("blob:")
     ) {
-      URL.revokeObjectURL(coverImage.preview);
+      URL.revokeObjectURL(
+        coverImage.preview
+      );
     }
 
     setCoverImage(null);
@@ -210,6 +238,7 @@ export default function EditStoryForm({
     e: React.ChangeEvent<HTMLInputElement>
   ) {
     const files = e.target.files;
+
     if (!files) return;
 
     clearMessages();
@@ -218,12 +247,16 @@ export default function EditStoryForm({
 
     for (const file of Array.from(files)) {
       if (!file.type.startsWith("image/")) {
-        setError(`${file.name} is not a valid image.`);
+        setError(
+          `${file.name} is not a valid image.`
+        );
         continue;
       }
 
       if (file.size > MAX_FILE_SIZE) {
-        setError(`${file.name} is larger than 10MB.`);
+        setError(
+          `${file.name} is larger than 10MB.`
+        );
         continue;
       }
 
@@ -235,7 +268,10 @@ export default function EditStoryForm({
     }
 
     if (images.length) {
-      setStoryImages((current) => [...current, ...images]);
+      setStoryImages((current) => [
+        ...current,
+        ...images,
+      ]);
     }
 
     e.target.value = "";
@@ -245,43 +281,67 @@ export default function EditStoryForm({
     clearMessages();
 
     setStoryImages((current) => {
-      const image = current.find((item) => item.id === id);
+      const image = current.find(
+        (item) => item.id === id
+      );
 
       if (
         image?.file &&
         image.preview.startsWith("blob:")
       ) {
-        URL.revokeObjectURL(image.preview);
+        URL.revokeObjectURL(
+          image.preview
+        );
       }
 
-      return current.filter((item) => item.id !== id);
+      return current.filter(
+        (item) => item.id !== id
+      );
     });
   }
 
   function imagesChanged() {
     const old = initial.current;
+
     if (!old) return true;
 
-    if (storyImages.some((image) => image.file)) return true;
+    if (
+      storyImages.some(
+        (image) => image.file
+      )
+    ) {
+      return true;
+    }
 
-    const current = storyImages.map((image) => ({
-      id: image.id,
-      url: image.url ?? "",
-      publicId: image.publicId ?? "",
-    }));
+    const current = storyImages.map(
+      (image) => ({
+        id: image.id,
+        url: image.url ?? "",
+        publicId: image.publicId ?? "",
+      })
+    );
 
-    if (current.length !== old.storyImages.length) return true;
+    if (
+      current.length !==
+      old.storyImages.length
+    ) {
+      return true;
+    }
 
-    return current.some((image, i) => {
-      const original = old.storyImages[i];
+    return current.some(
+      (image, i) => {
+        const original =
+          old.storyImages[i];
 
-      return (
-        !original ||
-        image.id !== original.id ||
-        image.url !== original.url ||
-        image.publicId !== original.publicId
-      );
-    });
+        return (
+          !original ||
+          image.id !== original.id ||
+          image.url !== original.url ||
+          image.publicId !==
+            original.publicId
+        );
+      }
+    );
   }
 
   async function saveChanges() {
@@ -295,17 +355,23 @@ export default function EditStoryForm({
     const old = initial.current;
 
     if (!t) {
-      setError("Please enter a story title.");
+      setError(
+        "Please enter a story title."
+      );
       return;
     }
 
     if (!c) {
-      setError("Please write your story.");
+      setError(
+        "Please write your story."
+      );
       return;
     }
 
     if (!cat) {
-      setError("Please select a category.");
+      setError(
+        "Please select a category."
+      );
       return;
     }
 
@@ -316,17 +382,24 @@ export default function EditStoryForm({
       return;
     }
 
-    const titleChanged = t !== old.title;
-    const contentChanged = c !== old.content;
-    const categoryChanged = cat !== old.category;
+    const titleChanged =
+      t !== old.title;
+
+    const contentChanged =
+      c !== old.content;
+
+    const categoryChanged =
+      cat !== old.category;
 
     const coverChanged =
-  !!coverImage?.file ||
-  (coverImage?.url ?? null) !== old.coverImage ||
-  (coverImage?.publicId ?? null) !==
-    old.coverImagePublicId;
+      !!coverImage?.file ||
+      (coverImage?.url ?? null) !==
+        old.coverImage ||
+      (coverImage?.publicId ?? null) !==
+        old.coverImagePublicId;
 
-    const storyImagesChanged = imagesChanged();
+    const storyImagesChanged =
+      imagesChanged();
 
     if (
       !titleChanged &&
@@ -335,49 +408,72 @@ export default function EditStoryForm({
       !coverChanged &&
       !storyImagesChanged
     ) {
-      setSuccess("There are no changes to save.");
+      setSuccess(
+        "There are no changes to submit."
+      );
       return;
     }
 
     setSaving(true);
 
     try {
-      let coverUrl: string | null | undefined;
-      let coverPublicId: string | null | undefined;
+      let coverUrl:
+        | string
+        | null
+        | undefined;
+
+      let coverPublicId:
+        | string
+        | null
+        | undefined;
 
       if (coverChanged) {
         if (coverImage?.file) {
-          const uploaded = await uploadImage(
-            coverImage.file,
-            "parenting-blog/cover-images"
-          );
+          const uploaded =
+            await uploadImage(
+              coverImage.file,
+              "parenting-blog/cover-images"
+            );
 
           coverUrl = uploaded.url;
-          coverPublicId = uploaded.publicId;
+          coverPublicId =
+            uploaded.publicId;
         } else {
-          coverUrl = coverImage?.url ?? null;
-          coverPublicId = coverImage?.publicId ?? null;
+          coverUrl =
+            coverImage?.url ?? null;
+
+          coverPublicId =
+            coverImage?.publicId ??
+            null;
         }
       }
 
       let uploadedImages:
-        | { url: string; publicId: string }[]
+        | {
+            url: string;
+            publicId: string;
+          }[]
         | undefined;
 
       if (storyImagesChanged) {
-        uploadedImages = await Promise.all(
-          storyImages.map((image) =>
-            image.file
-              ? uploadImage(
-                  image.file,
-                  "parenting-blog/story-images"
-                )
-              : {
-                  url: image.url ?? "",
-                  publicId: image.publicId ?? "",
-                }
-          )
-        );
+        uploadedImages =
+          await Promise.all(
+            storyImages.map(
+              (image) =>
+                image.file
+                  ? uploadImage(
+                      image.file,
+                      "parenting-blog/story-images"
+                    )
+                  : {
+                      url:
+                        image.url ?? "",
+                      publicId:
+                        image.publicId ??
+                        "",
+                    }
+            )
+          );
       }
 
       const body: {
@@ -397,110 +493,62 @@ export default function EditStoryForm({
       };
 
       if (coverChanged) {
-        body.coverImageUrl = coverUrl ?? null;
-        body.coverImagePublicId = coverPublicId ?? null;
+        body.coverImageUrl =
+          coverUrl ?? null;
+
+        body.coverImagePublicId =
+          coverPublicId ?? null;
       }
 
       if (storyImagesChanged) {
-        body.storyImages = uploadedImages ?? [];
+        body.storyImages =
+          uploadedImages ?? [];
       }
 
-      const res = await fetch(`/api/stories/${storyId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+      const res = await fetch(
+        `/api/story-edits/${storyId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify(body),
+        }
+      );
 
       const data = await res.json();
 
       if (!res.ok) {
         throw new Error(
-          data.message ?? "Failed to save changes."
+          data.message ??
+            "Failed to submit changes."
         );
-      }
-
-      if (data.story) {
-        setStory(data.story);
-      }
-
-      const savedImages = storyImages.map((image, i) => ({
-        id: image.id,
-        url:
-          image.url ??
-          uploadedImages?.[i]?.url ??
-          "",
-        publicId:
-          image.publicId ??
-          uploadedImages?.[i]?.publicId ??
-          "",
-      }));
-
-      initial.current = {
-        title: t,
-        content: c,
-        category: cat,
-        coverImage: coverChanged
-          ? coverUrl ?? null
-          : old.coverImage,
-        coverImagePublicId: coverChanged
-          ? coverPublicId ?? null
-          : old.coverImagePublicId,
-        storyImages: savedImages,
-      };
-
-      if (storyImagesChanged && uploadedImages) {
-        setStoryImages((current) =>
-          current.map((image, i) => {
-            const uploaded = uploadedImages?.[i];
-
-            if (!image.file || !uploaded) return image;
-
-            if (image.preview.startsWith("blob:")) {
-              URL.revokeObjectURL(image.preview);
-            }
-
-            return {
-              ...image,
-              file: null,
-              preview: uploaded.url,
-              url: uploaded.url,
-              publicId: uploaded.publicId,
-            };
-          })
-        );
-      }
-
-      if (coverChanged && coverImage?.file && coverUrl) {
-        if (coverImage.preview.startsWith("blob:")) {
-          URL.revokeObjectURL(coverImage.preview);
-        }
-
-        setCoverImage({
-          ...coverImage,
-          file: null,
-          preview: coverUrl,
-          url: coverUrl,
-          publicId: coverPublicId ?? undefined,
-        });
       }
 
       setSuccess(
-        "Changes saved successfully. Your story remains pending review."
+        data.message ??
+          "Your changes have been submitted for administrator review. Your published story remains unchanged until approved."
       );
 
+      /*
+       * Keep the editor on the page briefly so the
+       * author can see the successful submission message.
+       */
       setTimeout(() => {
         window.location.href =
           "/users-dashboard/pending-review";
-      }, 1000);
+      }, 1200);
     } catch (err) {
-      console.error("Save edited story error:", err);
+      console.error(
+        "Save edited story error:",
+        err
+      );
 
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong while saving."
+          : "Something went wrong while submitting your changes."
       );
     } finally {
       setSaving(false);
@@ -510,7 +558,9 @@ export default function EditStoryForm({
   if (loading) {
     return (
       <section className="rounded-2xl bg-white p-8 text-center shadow-sm">
-        <p className="text-gray-600">Loading story...</p>
+        <p className="text-gray-600">
+          Loading story...
+        </p>
       </section>
     );
   }
@@ -521,7 +571,10 @@ export default function EditStoryForm({
         <h2 className="text-xl font-bold text-red-800">
           Unable to load story
         </h2>
-        <p className="mt-2 text-red-700">{error}</p>
+
+        <p className="mt-2 text-red-700">
+          {error}
+        </p>
       </section>
     );
   }
@@ -529,7 +582,9 @@ export default function EditStoryForm({
   if (!story) {
     return (
       <section className="rounded-2xl bg-white p-8 text-center shadow-sm">
-        <p className="text-gray-600">Story not found.</p>
+        <p className="text-gray-600">
+          Story not found.
+        </p>
       </section>
     );
   }
@@ -540,9 +595,12 @@ export default function EditStoryForm({
         <h2 className="font-semibold text-yellow-900">
           Story is awaiting review
         </h2>
+
         <p className="mt-1 text-sm text-yellow-800">
-          You can make changes to your story here.
-          After saving, it will remain pending review.
+          You are editing a proposed revision.
+          Your currently published story will
+          remain unchanged until an administrator
+          approves these changes.
         </p>
       </section>
 
@@ -599,13 +657,18 @@ export default function EditStoryForm({
           </div>
         ) : (
           <label className="flex h-64 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-blue-500 hover:bg-blue-50">
-            <span className="text-5xl">📷</span>
+            <span className="text-5xl">
+              📷
+            </span>
+
             <p className="mt-4 font-semibold text-gray-700">
               Click to upload cover image
             </p>
+
             <p className="mt-2 text-sm text-gray-500">
               JPG, PNG or WEBP (Max 10MB)
             </p>
+
             <input
               type="file"
               accept="image/*"
@@ -641,33 +704,37 @@ export default function EditStoryForm({
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {storyImages.map((image) => (
-              <div
-                key={image.id}
-                className="overflow-hidden rounded-xl border border-gray-200"
-              >
-                <div className="relative h-48">
-                  <Image
-                    src={image.preview}
-                    alt="Story Image"
-                    fill
-                    unoptimized
-                    className="object-cover"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    removeStoryImage(image.id)
-                  }
-                  disabled={saving}
-                  className="w-full border-t border-gray-200 py-3 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            {storyImages.map(
+              (image) => (
+                <div
+                  key={image.id}
+                  className="overflow-hidden rounded-xl border border-gray-200"
                 >
-                  Remove
-                </button>
-              </div>
-            ))}
+                  <div className="relative h-48">
+                    <Image
+                      src={image.preview}
+                      alt="Story Image"
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      removeStoryImage(
+                        image.id
+                      )
+                    }
+                    disabled={saving}
+                    className="w-full border-t border-gray-200 py-3 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )
+            )}
           </div>
         )}
       </section>
@@ -692,10 +759,12 @@ export default function EditStoryForm({
             disabled={saving}
             className="rounded-xl bg-blue-600 px-8 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {saving ? "Saving Changes..." : "Save Changes"}
+            {saving
+              ? "Submitting..."
+              : "Submit Changes for Review"}
           </button>
         </div>
       </section>
     </div>
   );
-  }
+      }
