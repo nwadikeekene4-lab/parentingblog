@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { useParams } from "next/navigation";
+import {
+  useParams,
+  useSearchParams,
+} from "next/navigation";
 
 import StoryEditor from "../../write-story/components/StoryEditor";
 import CategorySelector from "../../write-story/components/CategorySelector";
@@ -16,8 +19,12 @@ import {
 
 function LoadDraft() {
   const params = useParams();
+  const searchParams = useSearchParams();
 
   const draftId = params.id as string;
+
+  const isPublishedEdit =
+    searchParams.get("mode") === "published";
 
   const {
     setTitle,
@@ -28,6 +35,18 @@ function LoadDraft() {
   } = useStoryForm();
 
   useEffect(() => {
+    /*
+     * When editing an already-published story, StoryFormContext
+     * loads the story through /api/story-edits/[id].
+     *
+     * Do not run the old draft loader at the same time because
+     * it could overwrite the published story/revision data loaded
+     * by StoryFormContext.
+     */
+    if (isPublishedEdit) {
+      return;
+    }
+
     async function fetchDraft() {
       try {
         let response = await fetch(
@@ -124,6 +143,7 @@ function LoadDraft() {
     fetchDraft();
   }, [
     draftId,
+    isPublishedEdit,
     setTitle,
     setContent,
     setCategory,
@@ -132,13 +152,11 @@ function LoadDraft() {
   ]);
 
   return null;
-  }
+}
+
 function DraftEditorContent() {
-
   return (
-
     <>
-
       <LoadDraft />
 
       <div className="space-y-8">
@@ -179,22 +197,14 @@ function DraftEditorContent() {
         <StoryActions />
 
       </div>
-
     </>
-
   );
+}
 
-            }
 export default function DraftEditorPage() {
-
   return (
-
     <StoryFormProvider>
-
       <DraftEditorContent />
-
     </StoryFormProvider>
-
   );
-
-         }
+          }
