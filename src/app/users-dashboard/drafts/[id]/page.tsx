@@ -157,7 +157,11 @@ function LoadDraft() {
 function DraftEditorContent() {
   return (
     <>
-      <LoadDraft />
+      {/* 
+       * StoryFormContext is now responsible for loading
+       * the story data. LoadDraft is intentionally not mounted
+       * here to prevent competing form-state updates.
+       */}
 
       <div className="space-y-8">
 
@@ -207,4 +211,4 @@ export default function DraftEditorPage() {
       <DraftEditorContent />
     </StoryFormProvider>
   );
-          }
+      }
