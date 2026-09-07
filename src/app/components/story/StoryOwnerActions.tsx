@@ -68,7 +68,7 @@ export default function StoryOwnerActions({
     <>
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Link
-          href={`/users-dashboard/drafts/${storyId}`}
+          href={`/users-dashboard/edit-story/${storyId}`}
           className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           Edit Story
@@ -139,7 +139,7 @@ export default function StoryOwnerActions({
                 type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="w-full rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                className="w-full rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed sm:w-auto"
               >
                 {isDeleting
                   ? "Deleting..."
@@ -151,4 +151,4 @@ export default function StoryOwnerActions({
       )}
     </>
   );
-    }
+        }
