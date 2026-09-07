@@ -57,7 +57,7 @@ async function getStoryImages(storyId: string) {
 |--------------------------------------------------------------------------
 | GET
 |--------------------------------------------------------------------------
-| Load a published story (or its existing pending revision) belonging to the logged-in user.
+| Load a published story or its existing pending revision.
 |--------------------------------------------------------------------------
 */
 
@@ -134,14 +134,25 @@ export async function GET(
       );
     }
 
-    // Check if there is already a pending revision for this story so the author can continue editing it
-    const existingRevision = await db.query.storyRevisions.findFirst({
-      where: (revision, { and, eq }) =>
+    /*
+    |--------------------------------------------------------------------------
+    | Load an existing pending revision if one exists.
+    |--------------------------------------------------------------------------
+    */
+
+    const pendingRevisionResult = await db
+      .select()
+      .from(storyRevisions)
+      .where(
         and(
-          eq(revision.storyId, story.id),
-          eq(revision.status, "pending_review")
-        ),
-    });
+          eq(storyRevisions.storyId, story.id),
+          eq(storyRevisions.status, "pending_review")
+        )
+      )
+      .limit(1);
+
+    const existingRevision =
+      pendingRevisionResult[0];
 
     if (existingRevision) {
       const revisionImages = await db
@@ -150,20 +161,43 @@ export async function GET(
           imageUrl: storyRevisionImages.imageUrl,
           publicId: storyRevisionImages.publicId,
           caption: storyRevisionImages.caption,
-          displayOrder: storyRevisionImages.displayOrder,
+          displayOrder:
+            storyRevisionImages.displayOrder,
         })
         .from(storyRevisionImages)
-        .where(eq(storyRevisionImages.revisionId, existingRevision.id))
-        .orderBy(storyRevisionImages.displayOrder);
+        .where(
+          eq(
+            storyRevisionImages.revisionId,
+            existingRevision.id
+          )
+        )
+        .orderBy(
+          storyRevisionImages.displayOrder
+        );
 
       let revisionCategoryName = story.category;
-      if (existingRevision.categoryId !== story.categoryId) {
-        const [revCat] = await db
-          .select({ name: categories.name })
+
+      if (
+        existingRevision.categoryId !==
+        story.categoryId
+      ) {
+        const categoryResult = await db
+          .select({
+            name: categories.name,
+          })
           .from(categories)
-          .where(eq(categories.id, existingRevision.categoryId))
+          .where(
+            eq(
+              categories.id,
+              existingRevision.categoryId
+            )
+          )
           .limit(1);
-        if (revCat) revisionCategoryName = revCat.name;
+
+        if (categoryResult[0]) {
+          revisionCategoryName =
+            categoryResult[0].name;
+        }
       }
 
       return NextResponse.json({
@@ -173,9 +207,12 @@ export async function GET(
           content: existingRevision.content,
           excerpt: existingRevision.excerpt,
           slug: existingRevision.slug,
-          coverImage: existingRevision.coverImage,
-          coverImagePublicId: existingRevision.coverImagePublicId,
-          categoryId: existingRevision.categoryId,
+          coverImage:
+            existingRevision.coverImage,
+          coverImagePublicId:
+            existingRevision.coverImagePublicId,
+          categoryId:
+            existingRevision.categoryId,
           category: revisionCategoryName,
           images: revisionImages,
         },
@@ -210,10 +247,10 @@ export async function GET(
 |--------------------------------------------------------------------------
 | PUT
 |--------------------------------------------------------------------------
-| Create or update a revision of a published story.
+| Create or update the pending revision of a published story.
 |
 | IMPORTANT:
-| The published stories table is NOT modified here.
+| The currently published story is NEVER modified here.
 |--------------------------------------------------------------------------
 */
 
@@ -224,6 +261,12 @@ export async function PUT(
   }
 ) {
   try {
+    /*
+    |--------------------------------------------------------------------------
+    | Authenticate
+    |--------------------------------------------------------------------------
+    */
+
     const user = await getCurrentUser();
 
     if (!user) {
@@ -247,6 +290,12 @@ export async function PUT(
       );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Parse request body
+    |--------------------------------------------------------------------------
+    */
+
     let body: EditBody;
 
     try {
@@ -259,6 +308,12 @@ export async function PUT(
         { status: 400 }
       );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate text fields
+    |--------------------------------------------------------------------------
+    */
 
     const title =
       typeof body.title === "string"
@@ -308,8 +363,15 @@ export async function PUT(
     |--------------------------------------------------------------------------
     */
 
-    let coverImageUrl: string | null | undefined;
-    let coverImagePublicId: string | null | undefined;
+    let coverImageUrl:
+      | string
+      | null
+      | undefined;
+
+    let coverImagePublicId:
+      | string
+      | null
+      | undefined;
 
     if (body.coverImageUrl !== undefined) {
       if (
@@ -318,7 +380,8 @@ export async function PUT(
       ) {
         return NextResponse.json(
           {
-            message: "The cover image URL is invalid.",
+            message:
+              "The cover image URL is invalid.",
           },
           { status: 400 }
         );
@@ -330,7 +393,9 @@ export async function PUT(
           : null;
     }
 
-    if (body.coverImagePublicId !== undefined) {
+    if (
+      body.coverImagePublicId !== undefined
+    ) {
       if (
         body.coverImagePublicId !== null &&
         typeof body.coverImagePublicId !== "string"
@@ -353,6 +418,19 @@ export async function PUT(
     /*
     |--------------------------------------------------------------------------
     | Validate story images
+    |--------------------------------------------------------------------------
+    |
+    | IMPORTANT:
+    |
+    | storyImages: undefined
+    |   = the client did not provide an image list.
+    |
+    | storyImages: []
+    |   = the user intentionally has ZERO additional images.
+    |
+    | storyImages: [...]
+    |   = this exact list becomes the revision image set.
+    |
     |--------------------------------------------------------------------------
     */
 
@@ -379,59 +457,77 @@ export async function PUT(
         );
       }
 
-      images = body.storyImages.map(
-        (image): ImageInput | null => {
-          if (
-            !image ||
-            typeof image !== "object"
-          ) {
-            return null;
-          }
+      const parsedImages: ImageInput[] = [];
 
-          const item =
-            image as Record<string, unknown>;
-
-          if (
-            typeof item.url !== "string" ||
-            typeof item.publicId !== "string"
-          ) {
-            return null;
-          }
-
-          return {
-            url: item.url.trim(),
-            publicId: item.publicId.trim(),
-            caption:
-              typeof item.caption === "string"
-                ? item.caption.trim()
-                : null,
-          };
+      for (
+        const image of body.storyImages
+      ) {
+        if (
+          !image ||
+          typeof image !== "object"
+        ) {
+          continue;
         }
-      ).filter(
-        (image): image is ImageInput =>
-          Boolean(
-            image &&
-            image.url &&
-            image.publicId
-          )
-      );
+
+        const item =
+          image as Record<string, unknown>;
+
+        if (
+          typeof item.url !== "string" ||
+          typeof item.publicId !== "string"
+        ) {
+          continue;
+        }
+
+        const url = item.url.trim();
+        const publicId =
+          item.publicId.trim();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Ignore incomplete image records.
+        |
+        | The database requires both URL and publicId.
+        |--------------------------------------------------------------------------
+        */
+
+        if (!url || !publicId) {
+          continue;
+        }
+
+        parsedImages.push({
+          url,
+          publicId,
+          caption:
+            typeof item.caption === "string"
+              ? item.caption.trim()
+              : null,
+        });
+      }
+
+      images = parsedImages;
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Find the original published story
+    | Find the original published story.
     |--------------------------------------------------------------------------
     */
 
-    const story = await db.query.stories.findFirst({
-      where: (storyTable, { and, eq }) =>
+    const storyResult = await db
+      .select()
+      .from(stories)
+      .where(
         and(
-          eq(storyTable.id, id),
-          eq(storyTable.authorId, user.id),
-          eq(storyTable.status, "published"),
-          eq(storyTable.isDeleted, false)
-        ),
-    });
+          eq(stories.id, id),
+          eq(stories.authorId, user.id),
+          eq(stories.status, "published"),
+          eq(stories.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    const story = storyResult[0];
 
     if (!story) {
       return NextResponse.json(
@@ -445,36 +541,23 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | Check for existing pending revision (supports updating existing revision instead of duplicate errors)
+    | Find the selected active category.
     |--------------------------------------------------------------------------
     */
 
-    const existingRevision =
-      await db.query.storyRevisions.findFirst({
-        where: (revision, { and, eq }) =>
-          and(
-            eq(revision.storyId, story.id),
-            eq(
-              revision.status,
-              "pending_review"
-            )
-          ),
-      });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Find category
-    |--------------------------------------------------------------------------
-    */
+    const categoryResult = await db
+      .select()
+      .from(categories)
+      .where(
+        and(
+          eq(categories.name, category),
+          eq(categories.isActive, true)
+        )
+      )
+      .limit(1);
 
     const categoryRow =
-      await db.query.categories.findFirst({
-        where: (categoryTable, { and, eq }) =>
-          and(
-            eq(categoryTable.name, category),
-            eq(categoryTable.isActive, true)
-          ),
-      });
+      categoryResult[0];
 
     if (!categoryRow) {
       return NextResponse.json(
@@ -488,10 +571,35 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | Generate the future slug.
+    | Find existing pending revision.
+    |--------------------------------------------------------------------------
+    */
+
+    const revisionResult = await db
+      .select()
+      .from(storyRevisions)
+      .where(
+        and(
+          eq(
+            storyRevisions.storyId,
+            story.id
+          ),
+          eq(
+            storyRevisions.status,
+            "pending_review"
+          )
+        )
+      )
+      .limit(1);
+
+    const existingRevision =
+      revisionResult[0];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Generate revision slug.
     |
-    | The published story itself keeps its current slug until
-    | the administrator approves the revision.
+    | The published story's slug is untouched.
     |--------------------------------------------------------------------------
     */
 
@@ -503,14 +611,21 @@ export async function PUT(
     let counter = 1;
 
     while (true) {
+      const slugResult = await db
+        .select({
+          id: stories.id,
+        })
+        .from(stories)
+        .where(
+          eq(
+            stories.slug,
+            revisionSlug
+          )
+        )
+        .limit(1);
+
       const existingStory =
-        await db.query.stories.findFirst({
-          where: (storyTable, { eq }) =>
-            eq(
-              storyTable.slug,
-              revisionSlug
-            ),
-        });
+        slugResult[0];
 
       if (
         !existingStory ||
@@ -529,8 +644,8 @@ export async function PUT(
     |--------------------------------------------------------------------------
     | Determine cover image.
     |
-    | If the client did not send cover information, preserve
-    | the currently published cover.
+    | If cover information was not supplied,
+    | preserve the currently published cover.
     |--------------------------------------------------------------------------
     */
 
@@ -546,94 +661,183 @@ export async function PUT(
 
     /*
     |--------------------------------------------------------------------------
-    | Create or Update revision + revision images atomically.
+    | Create or update revision atomically.
     |--------------------------------------------------------------------------
     */
 
     const revision =
       await db.transaction(async (tx) => {
-        let createdRevision;
+        let revisionId: string;
+
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE existing pending revision
+        |--------------------------------------------------------------------------
+        */
 
         if (existingRevision) {
-          // Update the existing pending revision rather than creating duplicates
-          const [updated] = await tx
-            .update(storyRevisions)
-            .set({
-              title,
-              slug: revisionSlug,
-              excerpt: generateExcerpt(content),
-              content,
-              coverImage: revisionCoverImage,
-              coverImagePublicId: revisionCoverPublicId,
-              categoryId: categoryRow.id,
-              updatedAt: new Date(),
-            })
-            .where(eq(storyRevisions.id, existingRevision.id))
-            .returning();
-
-          createdRevision = updated;
-
-          // Clear old revision images before inserting updated set
-          await tx
-            .delete(storyRevisionImages)
-            .where(eq(storyRevisionImages.revisionId, existingRevision.id));
-        } else {
-          // Create new pending revision
-          const [inserted] = await tx
-            .insert(storyRevisions)
-            .values({
-              storyId: story.id,
-              authorId: user.id,
-              title,
-              slug: revisionSlug,
-              excerpt: generateExcerpt(content),
-              content,
-              coverImage: revisionCoverImage,
-              coverImagePublicId: revisionCoverPublicId,
-              categoryId: categoryRow.id,
-              status: "pending_review",
-              feedback: null,
-              reviewedAt: null,
-              reviewerId: null,
-            })
-            .returning();
-
-          createdRevision = inserted;
-        }
-
-        if (images !== undefined) {
-          if (images.length > 0) {
+          const updatedResult =
             await tx
-              .insert(storyRevisionImages)
-              .values(
-                images.map(
-                  (image, index) => ({
-                    revisionId:
-                      createdRevision.id,
-
-                    imageUrl:
-                      image.url,
-
-                    publicId:
-                      image.publicId,
-
-                    caption:
-                      image.caption ?? null,
-
-                    displayOrder:
-                      index,
-                  })
+              .update(storyRevisions)
+              .set({
+                title,
+                slug: revisionSlug,
+                excerpt:
+                  generateExcerpt(content),
+                content,
+                coverImage:
+                  revisionCoverImage,
+                coverImagePublicId:
+                  revisionCoverPublicId,
+                categoryId:
+                  categoryRow.id,
+                updatedAt: new Date(),
+              })
+              .where(
+                eq(
+                  storyRevisions.id,
+                  existingRevision.id
                 )
-              );
+              )
+              .returning({
+                id: storyRevisions.id,
+                storyId:
+                  storyRevisions.storyId,
+                authorId:
+                  storyRevisions.authorId,
+                status:
+                  storyRevisions.status,
+              });
+
+          const updatedRevision =
+            updatedResult[0];
+
+          if (!updatedRevision) {
+            throw new Error(
+              "The pending story revision could not be updated."
+            );
           }
-        } else {
+
+          revisionId =
+            updatedRevision.id;
+
           /*
           |--------------------------------------------------------------------------
-          | No new image list was supplied.
-          | Copy the current published images into the revision.
+          | The new submitted image list completely replaces
+          | the old pending revision image list.
           |--------------------------------------------------------------------------
           */
 
+          await tx
+            .delete(storyRevisionImages)
+            .where(
+              eq(
+                storyRevisionImages.revisionId,
+                revisionId
+              )
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE new pending revision
+        |--------------------------------------------------------------------------
+        */
+
+        else {
+          const insertedResult =
+            await tx
+              .insert(storyRevisions)
+              .values({
+                storyId: story.id,
+                authorId: user.id,
+                title,
+                slug: revisionSlug,
+                excerpt:
+                  generateExcerpt(content),
+                content,
+                coverImage:
+                  revisionCoverImage,
+                coverImagePublicId:
+                  revisionCoverPublicId,
+                categoryId:
+                  categoryRow.id,
+                status: "pending_review",
+                feedback: null,
+                reviewedAt: null,
+                reviewerId: null,
+              })
+              .returning({
+                id: storyRevisions.id,
+                storyId:
+                  storyRevisions.storyId,
+                authorId:
+                  storyRevisions.authorId,
+                status:
+                  storyRevisions.status,
+              });
+
+          const insertedRevision =
+            insertedResult[0];
+
+          if (!insertedRevision) {
+            throw new Error(
+              "The story revision could not be created."
+            );
+          }
+
+          revisionId =
+            insertedRevision.id;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Save the exact image state supplied by the editor.
+        |--------------------------------------------------------------------------
+        |
+        | If images === []:
+        |   Insert nothing.
+        |
+        | This intentionally means the author removed all
+        | additional story images.
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+          images !== undefined &&
+          images.length > 0
+        ) {
+          await tx
+            .insert(storyRevisionImages)
+            .values(
+              images.map(
+                (image, index) => ({
+                  revisionId,
+
+                  imageUrl:
+                    image.url,
+
+                  publicId:
+                    image.publicId,
+
+                  caption:
+                    image.caption ?? null,
+
+                  displayOrder:
+                    index,
+                })
+              )
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | If storyImages was NOT supplied at all,
+        | preserve the current published images.
+        |--------------------------------------------------------------------------
+        */
+
+        if (images === undefined) {
           const currentImages =
             await tx
               .select({
@@ -663,8 +867,7 @@ export async function PUT(
               .values(
                 currentImages.map(
                   (image) => ({
-                    revisionId:
-                      createdRevision.id,
+                    revisionId,
 
                     imageUrl:
                       image.imageUrl,
@@ -683,12 +886,48 @@ export async function PUT(
           }
         }
 
-        return createdRevision;
+        /*
+        |--------------------------------------------------------------------------
+        | Return the final revision from inside the transaction.
+        |--------------------------------------------------------------------------
+        */
+
+        const finalRevisionResult =
+          await tx
+            .select({
+              id: storyRevisions.id,
+              storyId:
+                storyRevisions.storyId,
+              status:
+                storyRevisions.status,
+            })
+            .from(storyRevisions)
+            .where(
+              eq(
+                storyRevisions.id,
+                revisionId
+              )
+            )
+            .limit(1);
+
+        const finalRevision =
+          finalRevisionResult[0];
+
+        if (!finalRevision) {
+          throw new Error(
+            "The story revision could not be confirmed after saving."
+          );
+        }
+
+        return finalRevision;
       });
 
     /*
     |--------------------------------------------------------------------------
-    | Notify author
+    | Notify the author.
+    |
+    | Notification failure must NOT undo a successfully
+    | saved revision.
     |--------------------------------------------------------------------------
     */
 
@@ -701,7 +940,7 @@ export async function PUT(
           message:
             `Your changes to "${story.title}" have been submitted for administrator review.`,
           link:
-            `/users-dashboard/my-stories`,
+            "/users-dashboard/my-stories",
           storyId: story.id,
           commentId: null,
           isRead: false,
@@ -712,6 +951,12 @@ export async function PUT(
         notificationError
       );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUCCESS
+    |--------------------------------------------------------------------------
+    */
 
     return NextResponse.json(
       {
@@ -732,6 +977,67 @@ export async function PUT(
       error
     );
 
+    /*
+    |--------------------------------------------------------------------------
+    | Return a useful server-side error message.
+    |
+    | This does not expose database internals.
+    |--------------------------------------------------------------------------
+    */
+
+    if (error instanceof Error) {
+      const message =
+        error.message.toLowerCase();
+
+      if (
+        message.includes(
+          "duplicate"
+        ) ||
+        message.includes(
+          "unique constraint"
+        )
+      ) {
+        return NextResponse.json(
+          {
+            message:
+              "A pending version of this story already exists. Please refresh the editor and try again.",
+          },
+          { status: 409 }
+        );
+      }
+
+      if (
+        message.includes(
+          "foreign key"
+        )
+      ) {
+        return NextResponse.json(
+          {
+            message:
+              "Some story information is no longer valid. Please refresh the editor and try again.",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (
+        message.includes(
+          "pending story revision"
+        ) ||
+        message.includes(
+          "story revision could not"
+        )
+      ) {
+        return NextResponse.json(
+          {
+            message:
+              "The story changes could not be saved. Please refresh the editor and try again.",
+          },
+          { status: 500 }
+        );
+      }
+    }
+
     return NextResponse.json(
       {
         message:
@@ -740,5 +1046,4 @@ export async function PUT(
       { status: 500 }
     );
   }
-  }
-    
+            }
