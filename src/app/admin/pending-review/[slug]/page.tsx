@@ -213,6 +213,7 @@ export default async function AdminPendingReviewStoryPage({
                 fill
                 priority
                 sizes="100vw"
+                unoptimized
                 className="object-cover"
               />
 
@@ -433,6 +434,7 @@ export default async function AdminPendingReviewStoryPage({
                         }
                         fill
                         sizes="100vw"
+                        unoptimized
                         className="object-cover"
                       />
 
@@ -650,6 +652,7 @@ export default async function AdminPendingReviewStoryPage({
               fill
               priority
               sizes="100vw"
+              unoptimized
               className="object-cover"
             />
 
@@ -828,6 +831,7 @@ export default async function AdminPendingReviewStoryPage({
                       }
                       fill
                       sizes="100vw"
+                      unoptimized
                       className="object-cover"
                     />
 
@@ -858,6 +862,7 @@ export default async function AdminPendingReviewStoryPage({
 
       </article>
 
+      
       {/* Review Actions */}
 
       <section
