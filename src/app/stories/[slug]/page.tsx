@@ -97,6 +97,7 @@ export default async function StoryPage({
             fill
             priority
             sizes="100vw"
+            unoptimized
             className="object-cover"
           />
         </div>
@@ -214,6 +215,7 @@ export default async function StoryPage({
                   }
                   fill
                   sizes="100vw"
+                  unoptimized
                   className="object-cover"
                 />
 
@@ -263,4 +265,4 @@ export default async function StoryPage({
 
     </main>
   );
-  }
+        }
