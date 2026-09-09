@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq, ilike, ne, or } from "drizzle-orm";
+import { and, desc, eq, ilike, ne } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -27,56 +27,28 @@ import { getCurrentUser } from "@/lib/session";
 
 export async function GET(request: Request) {
   try {
-    /*
-    |--------------------------------------------------------------------------
-    | Authentication
-    |--------------------------------------------------------------------------
-    */
-
     const user = await getCurrentUser();
 
     if (!user) {
       return NextResponse.json(
-        {
-          message: "Unauthorized.",
-        },
-        {
-          status: 401,
-        }
+        { message: "Unauthorized." },
+        { status: 401 }
       );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Administrator authorization
-    |--------------------------------------------------------------------------
-    */
 
     if (user.role !== "admin") {
       return NextResponse.json(
-        {
-          message: "Forbidden.",
-        },
-        {
-          status: 403,
-        }
+        { message: "Forbidden." },
+        { status: 403 }
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Search
-    |--------------------------------------------------------------------------
-    */
-
     const { searchParams } = new URL(request.url);
-
-    const search =
-      searchParams.get("search")?.trim() || "";
+    const search = searchParams.get("search")?.trim() || "";
 
     /*
     |--------------------------------------------------------------------------
-    | NEW STORY CONDITIONS
+    | NEW STORY SUBMISSIONS
     |--------------------------------------------------------------------------
     */
 
@@ -90,12 +62,6 @@ export async function GET(request: Request) {
         ilike(stories.title, `%${search}%`)
       );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Load new story submissions
-    |--------------------------------------------------------------------------
-    */
 
     const pendingStories = await db
       .select({
@@ -112,9 +78,7 @@ export async function GET(request: Request) {
         authorName: users.displayName,
         authorEmail: users.email,
 
-        submissionType: stories.submissionType,
         status: stories.status,
-
         createdAt: stories.createdAt,
         updatedAt: stories.updatedAt,
       })
@@ -132,7 +96,7 @@ export async function GET(request: Request) {
 
     /*
     |--------------------------------------------------------------------------
-    | STORY REVISION CONDITIONS
+    | PUBLISHED STORY REVISIONS
     |--------------------------------------------------------------------------
     */
 
@@ -145,12 +109,6 @@ export async function GET(request: Request) {
         ilike(storyRevisions.title, `%${search}%`)
       );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Load published-story revisions
-    |--------------------------------------------------------------------------
-    */
 
     const pendingRevisions = await db
       .select({
@@ -170,7 +128,6 @@ export async function GET(request: Request) {
         authorEmail: users.email,
 
         status: storyRevisions.status,
-
         createdAt: storyRevisions.createdAt,
         updatedAt: storyRevisions.updatedAt,
       })
@@ -188,7 +145,7 @@ export async function GET(request: Request) {
 
     /*
     |--------------------------------------------------------------------------
-    | Combine both submission types
+    | COMBINE BOTH TYPES
     |--------------------------------------------------------------------------
     */
 
@@ -219,17 +176,7 @@ export async function GET(request: Request) {
       })),
 
       ...pendingRevisions.map((revision) => ({
-        /*
-        | The main ID remains the original story ID.
-        | This allows the existing admin UI to continue
-        | identifying the story.
-        */
         id: revision.storyId,
-
-        /*
-        | The revision ID is also returned so the admin
-        | interface can identify the exact submitted revision.
-        */
         revisionId: revision.revisionId,
 
         title: revision.title,
@@ -258,21 +205,13 @@ export async function GET(request: Request) {
         new Date(a.updatedAt).getTime()
     );
 
-    /*
-    |--------------------------------------------------------------------------
-    | Response
-    |--------------------------------------------------------------------------
-    */
-
     return NextResponse.json(
       {
         stories: combinedStories,
         count: combinedStories.length,
         search,
       },
-      {
-        status: 200,
-      }
+      { status: 200 }
     );
   } catch (error) {
     console.error(
@@ -282,12 +221,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       {
-        message:
-          "Unable to load pending stories.",
+        message: "Unable to load pending stories.",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
@@ -300,60 +236,26 @@ export async function GET(request: Request) {
 |
 | 1. New story submissions
 | 2. Published-story revisions
-|
-| body:
-|
-| {
-|   action: "approve" | "reject",
-|   storyId: string,
-|   feedback?: string
-| }
 |--------------------------------------------------------------------------
 */
 
 export async function POST(request: Request) {
   try {
-    /*
-    |--------------------------------------------------------------------------
-    | Authentication
-    |--------------------------------------------------------------------------
-    */
-
     const user = await getCurrentUser();
 
     if (!user) {
       return NextResponse.json(
-        {
-          message: "Unauthorized.",
-        },
-        {
-          status: 401,
-        }
+        { message: "Unauthorized." },
+        { status: 401 }
       );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Administrator authorization
-    |--------------------------------------------------------------------------
-    */
 
     if (user.role !== "admin") {
       return NextResponse.json(
-        {
-          message: "Forbidden.",
-        },
-        {
-          status: 403,
-        }
+        { message: "Forbidden." },
+        { status: 403 }
       );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Parse body
-    |--------------------------------------------------------------------------
-    */
 
     let body: unknown;
 
@@ -361,33 +263,19 @@ export async function POST(request: Request) {
       body = await request.json();
     } catch {
       return NextResponse.json(
-        {
-          message: "Invalid request.",
-        },
-        {
-          status: 400,
-        }
+        { message: "Invalid request." },
+        { status: 400 }
       );
     }
 
     if (!body || typeof body !== "object") {
       return NextResponse.json(
-        {
-          message: "Invalid request.",
-        },
-        {
-          status: 400,
-        }
+        { message: "Invalid request." },
+        { status: 400 }
       );
     }
 
     const data = body as Record<string, unknown>;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Validate action
-    |--------------------------------------------------------------------------
-    */
 
     const action =
       data.action === "approve" ||
@@ -397,21 +285,10 @@ export async function POST(request: Request) {
 
     if (!action) {
       return NextResponse.json(
-        {
-          message:
-            "Invalid review action.",
-        },
-        {
-          status: 400,
-        }
+        { message: "Invalid review action." },
+        { status: 400 }
       );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Validate story ID
-    |--------------------------------------------------------------------------
-    */
 
     const storyId =
       typeof data.storyId === "string"
@@ -420,20 +297,10 @@ export async function POST(request: Request) {
 
     if (!storyId) {
       return NextResponse.json(
-        {
-          message: "Story ID is required.",
-        },
-        {
-          status: 400,
-        }
+        { message: "Story ID is required." },
+        { status: 400 }
       );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Rejection feedback
-    |--------------------------------------------------------------------------
-    */
 
     const feedback =
       typeof data.feedback === "string"
@@ -447,9 +314,7 @@ export async function POST(request: Request) {
             message:
               "Please provide a reason for rejecting this story.",
           },
-          {
-            status: 400,
-          }
+          { status: 400 }
         );
       }
 
@@ -459,9 +324,7 @@ export async function POST(request: Request) {
             message:
               "Rejection feedback must be at least 5 characters.",
           },
-          {
-            status: 400,
-          }
+          { status: 400 }
         );
       }
 
@@ -471,16 +334,14 @@ export async function POST(request: Request) {
             message:
               "Rejection feedback cannot exceed 1,000 characters.",
           },
-          {
-            status: 400,
-          }
+          { status: 400 }
         );
       }
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Check whether this is a published-story revision
+    | CHECK FOR PUBLISHED-STORY REVISION
     |--------------------------------------------------------------------------
     */
 
@@ -512,7 +373,7 @@ export async function POST(request: Request) {
 
     /*
     |--------------------------------------------------------------------------
-    | PUBLISHED STORY UPDATE
+    | PUBLISHED STORY REVISION
     |--------------------------------------------------------------------------
     */
 
@@ -525,13 +386,13 @@ export async function POST(request: Request) {
 
       if (action === "approve") {
         try {
-          const result = await db.transaction(
+          const approvedStory = await db.transaction(
             async (tx) => {
               const reviewedAt = new Date();
 
               /*
               |--------------------------------------------------------------------------
-              | Make sure the original story is still published.
+              | Confirm live story still exists and is published
               |--------------------------------------------------------------------------
               */
 
@@ -567,7 +428,7 @@ export async function POST(request: Request) {
 
               /*
               |--------------------------------------------------------------------------
-              | Prevent a duplicate slug conflict.
+              | Prevent slug collision with another story
               |--------------------------------------------------------------------------
               */
 
@@ -578,9 +439,18 @@ export async function POST(request: Request) {
                 .from(stories)
                 .where(
                   and(
-                    eq(stories.slug, pendingRevision.slug),
-                    ne(stories.id, storyId),
-                    eq(stories.isDeleted, false)
+                    eq(
+                      stories.slug,
+                      pendingRevision.slug
+                    ),
+                    ne(
+                      stories.id,
+                      storyId
+                    ),
+                    eq(
+                      stories.isDeleted,
+                      false
+                    )
                   )
                 )
                 .limit(1);
@@ -593,18 +463,19 @@ export async function POST(request: Request) {
 
               /*
               |--------------------------------------------------------------------------
-              | Apply revision to the LIVE story.
+              | Update the existing live story
+              |--------------------------------------------------------------------------
               |
-              | IMPORTANT:
-              | We update the existing story row.
-              | We do NOT create a new story.
+              | The story ID remains unchanged.
               |
-              | Therefore:
-              | - story ID stays the same
-              | - comments stay attached
-              | - likes stay attached
-              | - bookmarks stay attached
-              | - reports stay attached
+              | Therefore existing:
+              | - comments
+              | - comment likes
+              | - story likes
+              | - bookmarks
+              | - reports
+              |
+              | remain attached to the same story.
               |--------------------------------------------------------------------------
               */
 
@@ -613,8 +484,10 @@ export async function POST(request: Request) {
                 .set({
                   title: pendingRevision.title,
                   slug: pendingRevision.slug,
-                  excerpt: pendingRevision.excerpt,
-                  content: pendingRevision.content,
+                  excerpt:
+                    pendingRevision.excerpt,
+                  content:
+                    pendingRevision.content,
                   coverImage:
                     pendingRevision.coverImage,
                   coverImagePublicId:
@@ -626,8 +499,14 @@ export async function POST(request: Request) {
                 .where(
                   and(
                     eq(stories.id, storyId),
-                    eq(stories.status, "published"),
-                    eq(stories.isDeleted, false)
+                    eq(
+                      stories.status,
+                      "published"
+                    ),
+                    eq(
+                      stories.isDeleted,
+                      false
+                    )
                   )
                 )
                 .returning({
@@ -645,7 +524,7 @@ export async function POST(request: Request) {
 
               /*
               |--------------------------------------------------------------------------
-              | Replace live story images with revision images.
+              | Replace live story images
               |--------------------------------------------------------------------------
               */
 
@@ -703,7 +582,7 @@ export async function POST(request: Request) {
 
               /*
               |--------------------------------------------------------------------------
-              | Mark revision as approved.
+              | Mark revision approved
               |--------------------------------------------------------------------------
               */
 
@@ -733,22 +612,375 @@ export async function POST(request: Request) {
           );
 
           /*
+          |--------------------------------------------------------------------------
+          | Notify author
+          |--------------------------------------------------------------------------
+          */
+
+          try {
+            await db
+              .insert(notifications)
+              .values({
+                userId:
+                  approvedStory.authorId,
+                type: "system",
+                message:
+                  `Your changes to "${approvedStory.title}" have been approved and published.`,
+                link: `/stories/${approvedStory.slug}`,
+                storyId:
+                  approvedStory.id,
+                commentId: null,
+                isRead: false,
+              });
+          } catch (notificationError) {
+            console.error(
+              "Story update approval notification failed:",
+              notificationError
+            );
+          }
+
+          return NextResponse.json(
+            {
+              success: true,
+              action: "approve",
+              submissionType:
+                "story_update",
+              message:
+                "Story update approved and published successfully.",
+              story: {
+                id: approvedStory.id,
+                title:
+                  approvedStory.title,
+                slug:
+                  approvedStory.slug,
+              },
+            },
+            { status: 200 }
+          );
+        } catch (error) {
+          console.error(
+            "Story revision approval error:",
+            error
+          );
+
+          if (
+            error instanceof Error &&
+            error.message ===
+              "STORY_NOT_FOUND"
+          ) {
+            return NextResponse.json(
+              {
+                message:
+                  "The original published story could not be found.",
+              },
+              { status: 404 }
+            );
+          }
+
+          if (
+            error instanceof Error &&
+            error.message ===
+              "STORY_NOT_PUBLISHED"
+          ) {
+            return NextResponse.json(
+              {
+                message:
+                  "This story is no longer published and cannot be updated through this review.",
+              },
+              { status: 409 }
+            );
+          }
+
+          if (
+            error instanceof Error &&
+            error.message ===
+              "SLUG_CONFLICT"
+          ) {
+            return NextResponse.json(
+              {
+                message:
+                  "The proposed story URL is already being used by another story. Please ask the author to change the title.",
+              },
+              { status: 409 }
+            );
+          }
+
+          return NextResponse.json(
+            {
+              message:
+                "Unable to approve this story update. Please try again.",
+            },
+            { status: 500 }
+          );
+        }
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | REJECT REVISION
+      |--------------------------------------------------------------------------
+      */
+
+      const reviewedAt = new Date();
+
+      const [rejectedRevision] = await db
+        .update(storyRevisions)
+        .set({
+          status: "rejected",
+          feedback,
+          reviewedAt,
+          reviewerId: user.id,
+          updatedAt: reviewedAt,
+        })
+        .where(
+          and(
+            eq(
+              storyRevisions.id,
+              pendingRevision.id
+            ),
+            eq(
+              storyRevisions.status,
+              "pending_review"
+            )
+          )
+        )
+        .returning({
+          id: storyRevisions.id,
+          storyId: storyRevisions.storyId,
+          title: storyRevisions.title,
+          authorId: storyRevisions.authorId,
+        });
+
+      if (!rejectedRevision) {
+        return NextResponse.json(
+          {
+            message:
+              "This story update has already been reviewed.",
+          },
+          { status: 409 }
+        );
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | IMPORTANT:
+      | The live published story is NOT modified on rejection.
+      |--------------------------------------------------------------------------
+      */
+
+      try {
+        await db
+          .insert(notifications)
+          .values({
+            userId:
+              rejectedRevision.authorId,
+            type: "system",
+            message:
+              `Your changes to "${rejectedRevision.title}" were not approved. Admin feedback: ${feedback}`,
+            link: `/users-dashboard/edit-story/${rejectedRevision.storyId}`,
+            storyId:
+              rejectedRevision.storyId,
+            commentId: null,
+            isRead: false,
+          });
+      } catch (notificationError) {
+        console.error(
+          "Story update rejection notification failed:",
+          notificationError
+        );
+      }
+
+      return NextResponse.json(
+        {
+          success: true,
+          action: "reject",
+          submissionType: "story_update",
+          message:
+            "Story update rejected. The published story remains unchanged.",
+          story: {
+            id: rejectedRevision.storyId,
+            title:
+              rejectedRevision.title,
+          },
+        },
+        { status: 200 }
+      );
+    }
+
+    /*
     |--------------------------------------------------------------------------
-    | Notify author
+    | NEW STORY SUBMISSION
     |--------------------------------------------------------------------------
     */
+
+    const [pendingStory] = await db
+      .select({
+        id: stories.id,
+        title: stories.title,
+        slug: stories.slug,
+        authorId: stories.authorId,
+        status: stories.status,
+      })
+      .from(stories)
+      .where(
+        and(
+          eq(stories.id, storyId),
+          eq(
+            stories.status,
+            "pending_review"
+          ),
+          eq(stories.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (!pendingStory) {
+      return NextResponse.json(
+        {
+          message:
+            "Pending story not found or it has already been reviewed.",
+        },
+        { status: 404 }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | APPROVE NEW STORY
+    |--------------------------------------------------------------------------
+    */
+
+    if (action === "approve") {
+      const [approvedStory] = await db
+        .update(stories)
+        .set({
+          status: "published",
+          publishedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(stories.id, storyId),
+            eq(
+              stories.status,
+              "pending_review"
+            ),
+            eq(stories.isDeleted, false)
+          )
+        )
+        .returning({
+          id: stories.id,
+          title: stories.title,
+          slug: stories.slug,
+          authorId: stories.authorId,
+        });
+
+      if (!approvedStory) {
+        return NextResponse.json(
+          {
+            message:
+              "This story has already been reviewed.",
+          },
+          { status: 409 }
+        );
+      }
+
+      try {
+        await db
+          .insert(notifications)
+          .values({
+            userId:
+              approvedStory.authorId,
+            type: "system",
+            message:
+              `Your story "${approvedStory.title}" has been approved and published.`,
+            link: `/stories/${approvedStory.slug}`,
+            storyId:
+              approvedStory.id,
+            commentId: null,
+            isRead: false,
+          });
+      } catch (notificationError) {
+        console.error(
+          "Story approval notification failed:",
+          notificationError
+        );
+      }
+
+      return NextResponse.json(
+        {
+          success: true,
+          action: "approve",
+          submissionType:
+            "new_submission",
+          message:
+            "Story approved and published successfully.",
+          story: {
+            id: approvedStory.id,
+            title:
+              approvedStory.title,
+            slug:
+              approvedStory.slug,
+          },
+        },
+        { status: 200 }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | REJECT NEW STORY
+    |--------------------------------------------------------------------------
+    */
+
+    const [rejectedStory] = await db
+      .update(stories)
+      .set({
+        status: "draft",
+        publishedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(stories.id, storyId),
+          eq(
+            stories.status,
+            "pending_review"
+          ),
+          eq(stories.isDeleted, false)
+        )
+      )
+      .returning({
+        id: stories.id,
+        title: stories.title,
+        slug: stories.slug,
+        authorId: stories.authorId,
+      });
+
+    if (!rejectedStory) {
+      return NextResponse.json(
+        {
+          message:
+            "This story has already been reviewed.",
+        },
+        { status: 409 }
+      );
+    }
 
     try {
       await db
         .insert(notifications)
         .values({
-          userId: rejectedStory.authorId,
+          userId:
+            rejectedStory.authorId,
           type: "system",
-          message: `Your story "${rejectedStory.title}" needs changes before it can be published. Admin feedback: ${feedback}`,
+          message:
+            `Your story "${rejectedStory.title}" needs changes before it can be published. Admin feedback: ${feedback}`,
           link: `/users-dashboard/write-story?edit=${encodeURIComponent(
             rejectedStory.id
           )}`,
-          storyId: rejectedStory.id,
+          storyId:
+            rejectedStory.id,
           commentId: null,
           isRead: false,
         });
@@ -763,18 +995,19 @@ export async function POST(request: Request) {
       {
         success: true,
         action: "reject",
-        submissionType: "new_submission",
+        submissionType:
+          "new_submission",
         message:
           "Story rejected and returned to the author as a draft.",
         story: {
           id: rejectedStory.id,
-          title: rejectedStory.title,
-          slug: rejectedStory.slug,
+          title:
+            rejectedStory.title,
+          slug:
+            rejectedStory.slug,
         },
       },
-      {
-        status: 200,
-      }
+      { status: 200 }
     );
   } catch (error) {
     console.error(
@@ -787,9 +1020,7 @@ export async function POST(request: Request) {
         message:
           "Unable to process the review action. Please try again.",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
-      }
+            }
