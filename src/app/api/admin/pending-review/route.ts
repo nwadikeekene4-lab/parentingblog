@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq, ilike } from "drizzle-orm";
+import { and, desc, eq, ilike, ne, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
   stories,
+  storyImages,
+  storyRevisions,
+  storyRevisionImages,
   categories,
   users,
   notifications,
@@ -15,7 +18,10 @@ import { getCurrentUser } from "@/lib/session";
 |--------------------------------------------------------------------------
 | GET
 |--------------------------------------------------------------------------
-| Return stories waiting for administrator review.
+| Return both:
+|
+| 1. New stories waiting for administrator review
+| 2. Updates to already-published stories waiting for review
 |--------------------------------------------------------------------------
 */
 
@@ -70,24 +76,24 @@ export async function GET(request: Request) {
 
     /*
     |--------------------------------------------------------------------------
-    | Conditions
+    | NEW STORY CONDITIONS
     |--------------------------------------------------------------------------
     */
 
-    const conditions = [
+    const storyConditions = [
       eq(stories.status, "pending_review"),
       eq(stories.isDeleted, false),
     ];
 
     if (search) {
-      conditions.push(
+      storyConditions.push(
         ilike(stories.title, `%${search}%`)
       );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Load pending stories
+    | Load new story submissions
     |--------------------------------------------------------------------------
     */
 
@@ -121,8 +127,136 @@ export async function GET(request: Request) {
         users,
         eq(stories.authorId, users.id)
       )
-      .where(and(...conditions))
+      .where(and(...storyConditions))
       .orderBy(desc(stories.updatedAt));
+
+    /*
+    |--------------------------------------------------------------------------
+    | STORY REVISION CONDITIONS
+    |--------------------------------------------------------------------------
+    */
+
+    const revisionConditions = [
+      eq(storyRevisions.status, "pending_review"),
+    ];
+
+    if (search) {
+      revisionConditions.push(
+        ilike(storyRevisions.title, `%${search}%`)
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load published-story revisions
+    |--------------------------------------------------------------------------
+    */
+
+    const pendingRevisions = await db
+      .select({
+        revisionId: storyRevisions.id,
+        storyId: storyRevisions.storyId,
+
+        title: storyRevisions.title,
+        slug: storyRevisions.slug,
+        excerpt: storyRevisions.excerpt,
+        coverImage: storyRevisions.coverImage,
+
+        category: categories.name,
+        categoryId: categories.id,
+
+        authorId: users.id,
+        authorName: users.displayName,
+        authorEmail: users.email,
+
+        status: storyRevisions.status,
+
+        createdAt: storyRevisions.createdAt,
+        updatedAt: storyRevisions.updatedAt,
+      })
+      .from(storyRevisions)
+      .leftJoin(
+        categories,
+        eq(storyRevisions.categoryId, categories.id)
+      )
+      .leftJoin(
+        users,
+        eq(storyRevisions.authorId, users.id)
+      )
+      .where(and(...revisionConditions))
+      .orderBy(desc(storyRevisions.updatedAt));
+
+    /*
+    |--------------------------------------------------------------------------
+    | Combine both submission types
+    |--------------------------------------------------------------------------
+    */
+
+    const combinedStories = [
+      ...pendingStories.map((story) => ({
+        id: story.id,
+        revisionId: null as string | null,
+
+        title: story.title,
+        slug: story.slug,
+        excerpt: story.excerpt,
+        coverImage: story.coverImage,
+
+        category: story.category ?? "Uncategorized",
+        categoryId: story.categoryId,
+
+        author: {
+          id: story.authorId,
+          name: story.authorName ?? "Unknown author",
+          email: story.authorEmail ?? "",
+        },
+
+        submissionType: "new_submission" as const,
+        status: story.status,
+
+        submittedAt: story.createdAt,
+        updatedAt: story.updatedAt,
+      })),
+
+      ...pendingRevisions.map((revision) => ({
+        /*
+        | The main ID remains the original story ID.
+        | This allows the existing admin UI to continue
+        | identifying the story.
+        */
+        id: revision.storyId,
+
+        /*
+        | The revision ID is also returned so the admin
+        | interface can identify the exact submitted revision.
+        */
+        revisionId: revision.revisionId,
+
+        title: revision.title,
+        slug: revision.slug,
+        excerpt: revision.excerpt,
+        coverImage: revision.coverImage,
+
+        category: revision.category ?? "Uncategorized",
+        categoryId: revision.categoryId,
+
+        author: {
+          id: revision.authorId,
+          name: revision.authorName ?? "Unknown author",
+          email: revision.authorEmail ?? "",
+        },
+
+        submissionType: "story_update" as const,
+        status: revision.status,
+
+        submittedAt: revision.createdAt,
+        updatedAt: revision.updatedAt,
+      })),
+    ].sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() -
+        new Date(a.updatedAt).getTime()
+    );
 
     /*
     |--------------------------------------------------------------------------
@@ -132,31 +266,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       {
-        stories: pendingStories.map((story) => ({
-          id: story.id,
-          title: story.title,
-          slug: story.slug,
-          excerpt: story.excerpt,
-          coverImage: story.coverImage,
-
-          category: story.category ?? "Uncategorized",
-          categoryId: story.categoryId,
-
-          author: {
-            id: story.authorId,
-            name: story.authorName ?? "Unknown author",
-            email: story.authorEmail ?? "",
-          },
-
-          submissionType: story.submissionType,
-          status: story.status,
-
-          submittedAt: story.createdAt,
-          updatedAt: story.updatedAt,
-        })),
-
-        count: pendingStories.length,
-
+        stories: combinedStories,
+        count: combinedStories.length,
         search,
       },
       {
@@ -185,7 +296,10 @@ export async function GET(request: Request) {
 |--------------------------------------------------------------------------
 | POST
 |--------------------------------------------------------------------------
-| Approve or reject a pending story.
+| Approve or reject:
+|
+| 1. New story submissions
+| 2. Published-story revisions
 |
 | body:
 |
@@ -366,182 +480,279 @@ export async function POST(request: Request) {
 
     /*
     |--------------------------------------------------------------------------
-    | APPROVE
+    | Check whether this is a published-story revision
     |--------------------------------------------------------------------------
     */
 
-    if (action === "approve") {
-      const publishedAt = new Date();
-
-      /*
-      |--------------------------------------------------------------------------
-      | Atomic pending → published transition
-      |--------------------------------------------------------------------------
-      |
-      | The status condition prevents two administrators/actions from
-      | approving the same story twice.
-      |--------------------------------------------------------------------------
-      */
-
-      const updatedStories = await db
-        .update(stories)
-        .set({
-          status: "published",
-          publishedAt,
-          updatedAt: publishedAt,
-        })
-        .where(
-          and(
-            eq(stories.id, storyId),
-            eq(stories.status, "pending_review"),
-            eq(stories.isDeleted, false)
-          )
-        )
-        .returning({
-          id: stories.id,
-          title: stories.title,
-          slug: stories.slug,
-          authorId: stories.authorId,
-        });
-
-      const approvedStory = updatedStories[0];
-
-      if (!approvedStory) {
-        return NextResponse.json(
-          {
-            message:
-              "This story is no longer waiting for review. It may already have been processed.",
-          },
-          {
-            status: 409,
-          }
-        );
-      }
-
-      /*
-      |--------------------------------------------------------------------------
-      | Notify author
-      |--------------------------------------------------------------------------
-      */
-
-      try {
-        await db.insert(notifications).values({
-          userId: approvedStory.authorId,
-          type: "system",
-          message: `Your story "${approvedStory.title}" has been approved and published.`,
-          link: `/stories/${approvedStory.slug}`,
-          storyId: approvedStory.id,
-          commentId: null,
-          isRead: false,
-        });
-      } catch (notificationError) {
-        /*
-        |--------------------------------------------------------------------------
-        | Notification failure must not undo approval.
-        |--------------------------------------------------------------------------
-        */
-
-        console.error(
-          "Story approval notification failed:",
-          notificationError
-        );
-      }
-
-      return NextResponse.json(
-        {
-          success: true,
-          action: "approve",
-          message:
-            "Story approved and published successfully.",
-          story: {
-            id: approvedStory.id,
-            title: approvedStory.title,
-            slug: approvedStory.slug,
-          },
-        },
-        {
-          status: 200,
-        }
-      );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | REJECT
-    |--------------------------------------------------------------------------
-    */
-
-    /*
-    |--------------------------------------------------------------------------
-    | Atomic pending → draft transition
-    |--------------------------------------------------------------------------
-    |
-    | This is safe with the current architecture because the
-    | story_update status is only used for stories that are already
-    | pending review.
-    |--------------------------------------------------------------------------
-    */
-
-    const updatedStories = await db
-      .update(stories)
-      .set({
-        status: "draft",
-        publishedAt: null,
-        updatedAt: new Date(),
+    const [pendingRevision] = await db
+      .select({
+        id: storyRevisions.id,
+        storyId: storyRevisions.storyId,
+        title: storyRevisions.title,
+        slug: storyRevisions.slug,
+        excerpt: storyRevisions.excerpt,
+        content: storyRevisions.content,
+        coverImage: storyRevisions.coverImage,
+        coverImagePublicId:
+          storyRevisions.coverImagePublicId,
+        categoryId: storyRevisions.categoryId,
+        authorId: storyRevisions.authorId,
       })
+      .from(storyRevisions)
       .where(
         and(
-          eq(stories.id, storyId),
-          eq(stories.status, "pending_review"),
-          eq(stories.isDeleted, false)
+          eq(storyRevisions.storyId, storyId),
+          eq(
+            storyRevisions.status,
+            "pending_review"
+          )
         )
       )
-      .returning({
-        id: stories.id,
-        title: stories.title,
-        slug: stories.slug,
-        authorId: stories.authorId,
-      });
-
-    const rejectedStory = updatedStories[0];
-
-    if (!rejectedStory) {
-      return NextResponse.json(
-        {
-          message:
-            "This story is no longer waiting for review. It may already have been processed.",
-        },
-        {
-          status: 409,
-        }
-      );
-    }
+      .limit(1);
 
     /*
+    |--------------------------------------------------------------------------
+    | PUBLISHED STORY UPDATE
+    |--------------------------------------------------------------------------
+    */
+
+    if (pendingRevision) {
+      /*
+      |--------------------------------------------------------------------------
+      | APPROVE REVISION
+      |--------------------------------------------------------------------------
+      */
+
+      if (action === "approve") {
+        try {
+          const result = await db.transaction(
+            async (tx) => {
+              const reviewedAt = new Date();
+
+              /*
+              |--------------------------------------------------------------------------
+              | Make sure the original story is still published.
+              |--------------------------------------------------------------------------
+              */
+
+              const [currentStory] = await tx
+                .select({
+                  id: stories.id,
+                  authorId: stories.authorId,
+                  status: stories.status,
+                })
+                .from(stories)
+                .where(
+                  and(
+                    eq(stories.id, storyId),
+                    eq(stories.isDeleted, false)
+                  )
+                )
+                .limit(1);
+
+              if (!currentStory) {
+                throw new Error(
+                  "STORY_NOT_FOUND"
+                );
+              }
+
+              if (
+                currentStory.status !==
+                "published"
+              ) {
+                throw new Error(
+                  "STORY_NOT_PUBLISHED"
+                );
+              }
+
+              /*
+              |--------------------------------------------------------------------------
+              | Prevent a duplicate slug conflict.
+              |--------------------------------------------------------------------------
+              */
+
+              const [slugConflict] = await tx
+                .select({
+                  id: stories.id,
+                })
+                .from(stories)
+                .where(
+                  and(
+                    eq(stories.slug, pendingRevision.slug),
+                    ne(stories.id, storyId),
+                    eq(stories.isDeleted, false)
+                  )
+                )
+                .limit(1);
+
+              if (slugConflict) {
+                throw new Error(
+                  "SLUG_CONFLICT"
+                );
+              }
+
+              /*
+              |--------------------------------------------------------------------------
+              | Apply revision to the LIVE story.
+              |
+              | IMPORTANT:
+              | We update the existing story row.
+              | We do NOT create a new story.
+              |
+              | Therefore:
+              | - story ID stays the same
+              | - comments stay attached
+              | - likes stay attached
+              | - bookmarks stay attached
+              | - reports stay attached
+              |--------------------------------------------------------------------------
+              */
+
+              const [updatedStory] = await tx
+                .update(stories)
+                .set({
+                  title: pendingRevision.title,
+                  slug: pendingRevision.slug,
+                  excerpt: pendingRevision.excerpt,
+                  content: pendingRevision.content,
+                  coverImage:
+                    pendingRevision.coverImage,
+                  coverImagePublicId:
+                    pendingRevision.coverImagePublicId,
+                  categoryId:
+                    pendingRevision.categoryId,
+                  updatedAt: reviewedAt,
+                })
+                .where(
+                  and(
+                    eq(stories.id, storyId),
+                    eq(stories.status, "published"),
+                    eq(stories.isDeleted, false)
+                  )
+                )
+                .returning({
+                  id: stories.id,
+                  title: stories.title,
+                  slug: stories.slug,
+                  authorId: stories.authorId,
+                });
+
+              if (!updatedStory) {
+                throw new Error(
+                  "STORY_UPDATE_FAILED"
+                );
+              }
+
+              /*
+              |--------------------------------------------------------------------------
+              | Replace live story images with revision images.
+              |--------------------------------------------------------------------------
+              */
+
+              const revisionImages =
+                await tx
+                  .select({
+                    imageUrl:
+                      storyRevisionImages.imageUrl,
+                    publicId:
+                      storyRevisionImages.publicId,
+                    caption:
+                      storyRevisionImages.caption,
+                    displayOrder:
+                      storyRevisionImages.displayOrder,
+                  })
+                  .from(storyRevisionImages)
+                  .where(
+                    eq(
+                      storyRevisionImages.revisionId,
+                      pendingRevision.id
+                    )
+                  )
+                  .orderBy(
+                    storyRevisionImages.displayOrder
+                  );
+
+              await tx
+                .delete(storyImages)
+                .where(
+                  eq(
+                    storyImages.storyId,
+                    storyId
+                  )
+                );
+
+              if (revisionImages.length > 0) {
+                await tx
+                  .insert(storyImages)
+                  .values(
+                    revisionImages.map(
+                      (image) => ({
+                        storyId,
+                        imageUrl:
+                          image.imageUrl,
+                        publicId:
+                          image.publicId,
+                        caption:
+                          image.caption,
+                        displayOrder:
+                          image.displayOrder,
+                      })
+                    )
+                  );
+              }
+
+              /*
+              |--------------------------------------------------------------------------
+              | Mark revision as approved.
+              |--------------------------------------------------------------------------
+              */
+
+              await tx
+                .update(storyRevisions)
+                .set({
+                  status: "approved",
+                  reviewedAt,
+                  reviewerId: user.id,
+                  updatedAt: reviewedAt,
+                })
+                .where(
+                  and(
+                    eq(
+                      storyRevisions.id,
+                      pendingRevision.id
+                    ),
+                    eq(
+                      storyRevisions.status,
+                      "pending_review"
+                    )
+                  )
+                );
+
+              return updatedStory;
+            }
+          );
+
+          /*
     |--------------------------------------------------------------------------
     | Notify author
     |--------------------------------------------------------------------------
     */
 
     try {
-      await db.insert(notifications).values({
-        userId: rejectedStory.authorId,
-        type: "system",
-        message: `Your story "${rejectedStory.title}" needs changes before it can be published. Admin feedback: ${feedback}`,
-        link: `/users-dashboard/write-story?edit=${encodeURIComponent(
-          rejectedStory.id
-        )}`,
-        storyId: rejectedStory.id,
-        commentId: null,
-        isRead: false,
-      });
+      await db
+        .insert(notifications)
+        .values({
+          userId: rejectedStory.authorId,
+          type: "system",
+          message: `Your story "${rejectedStory.title}" needs changes before it can be published. Admin feedback: ${feedback}`,
+          link: `/users-dashboard/write-story?edit=${encodeURIComponent(
+            rejectedStory.id
+          )}`,
+          storyId: rejectedStory.id,
+          commentId: null,
+          isRead: false,
+        });
     } catch (notificationError) {
-      /*
-      |--------------------------------------------------------------------------
-      | Notification failure must not undo rejection.
-      |--------------------------------------------------------------------------
-      */
-
       console.error(
         "Story rejection notification failed:",
         notificationError
@@ -552,6 +763,7 @@ export async function POST(request: Request) {
       {
         success: true,
         action: "reject",
+        submissionType: "new_submission",
         message:
           "Story rejected and returned to the author as a draft.",
         story: {
@@ -580,4 +792,4 @@ export async function POST(request: Request) {
       }
     );
   }
-          }
+      }
