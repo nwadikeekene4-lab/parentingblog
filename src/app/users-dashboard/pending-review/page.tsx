@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { stories, categories } from "@/db/schema";
+import {
+  stories,
+  storyRevisions,
+  categories,
+} from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
 
 type PendingReviewPageProps = {
@@ -25,6 +29,7 @@ export default async function PendingReviewPage({
     redirect("/login");
   }
 
+  // New story submissions awaiting approval
   const pendingStories = await db
     .select({
       id: stories.id,
@@ -47,6 +52,46 @@ export default async function PendingReviewPage({
       )
     )
     .orderBy(desc(stories.createdAt));
+
+  // Published-story edits awaiting administrator approval
+  const pendingRevisions = await db
+    .select({
+      id: storyRevisions.storyId,
+      title: storyRevisions.title,
+      slug: storyRevisions.slug,
+      coverImage: storyRevisions.coverImage,
+      createdAt: storyRevisions.createdAt,
+      category: categories.name,
+      revisionId: storyRevisions.id,
+    })
+    .from(storyRevisions)
+    .innerJoin(
+      categories,
+      eq(storyRevisions.categoryId, categories.id)
+    )
+    .where(
+      and(
+        eq(storyRevisions.authorId, user.id),
+        eq(storyRevisions.status, "pending_review")
+      )
+    )
+    .orderBy(desc(storyRevisions.createdAt));
+
+  const pendingItems = [
+    ...pendingStories.map((story) => ({
+      ...story,
+      type: "new_submission" as const,
+      revisionId: null,
+    })),
+    ...pendingRevisions.map((revision) => ({
+      ...revision,
+      type: "story_update" as const,
+    })),
+  ].sort(
+    (a, b) =>
+      new Date(b.createdAt).getTime() -
+      new Date(a.createdAt).getTime()
+  );
 
   return (
     <div className="space-y-8">
@@ -75,7 +120,7 @@ export default async function PendingReviewPage({
         </section>
       )}
 
-      {pendingStories.length === 0 ? (
+      {pendingItems.length === 0 ? (
         <section className="rounded-2xl border border-yellow-200 bg-yellow-50 p-8 shadow-sm">
           <h2 className="text-xl font-semibold text-yellow-900">
             No stories are currently awaiting review
@@ -96,9 +141,9 @@ export default async function PendingReviewPage({
         </section>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {pendingStories.map((story) => (
+          {pendingItems.map((story) => (
             <article
-              key={story.id}
+              key={story.revisionId ?? story.id}
               className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
             >
               <div className="relative h-52 w-full overflow-hidden bg-gray-100">
@@ -118,12 +163,14 @@ export default async function PendingReviewPage({
               </div>
 
               <div className="space-y-3 p-5">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800">
-                    Pending Review
+                    {story.type === "story_update"
+                      ? "Story Update — Pending Review"
+                      : "Pending Review"}
                   </span>
 
-                  <span className="text-sm text-gray-500">
+                  <span className="shrink-0 text-sm text-gray-500">
                     {new Date(story.createdAt).toLocaleDateString()}
                   </span>
                 </div>
@@ -136,21 +183,30 @@ export default async function PendingReviewPage({
                   {story.category}
                 </p>
 
+                {story.type === "story_update" && (
+                  <p className="text-sm text-gray-600">
+                    This is an edited version of your published story.
+                    The current published version remains unchanged until an
+                    administrator approves these changes.
+                  </p>
+                )}
+
                 <div className="flex flex-wrap gap-3 pt-2">
                   <Link
-  href={`/users-dashboard/edit-story/${story.id}`}
-  aria-label={`Edit ${story.title}`}
-  className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md active:translate-y-0 active:scale-95 active:bg-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
->
-  Edit Story
-</Link>
+                    href={`/users-dashboard/edit-story/${story.id}`}
+                    aria-label={`Edit ${story.title}`}
+                    className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md active:translate-y-0 active:scale-95 active:bg-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  >
+                    Edit Story
+                  </Link>
+
                   <Link
-  href={`/stories/${story.slug}`}
-  aria-label={`Preview ${story.title}`}
-  className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-2.5 font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-400 hover:bg-gray-50 hover:shadow-md active:translate-y-0 active:scale-95 active:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
->
-  Preview Story
-</Link>
+                    href={`/stories/${story.slug}`}
+                    aria-label={`Preview ${story.title}`}
+                    className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-2.5 font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-400 hover:bg-gray-50 hover:shadow-md active:translate-y-0 active:scale-95 active:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
+                  >
+                    Preview Story
+                  </Link>
                 </div>
               </div>
             </article>
@@ -159,4 +215,4 @@ export default async function PendingReviewPage({
       )}
     </div>
   );
-             }
+    }
