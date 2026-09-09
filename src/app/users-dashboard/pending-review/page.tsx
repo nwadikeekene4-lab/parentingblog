@@ -201,7 +201,11 @@ export default async function PendingReviewPage({
                   </Link>
 
                   <Link
-                    href={`/stories/${story.slug}`}
+                    href={
+                      story.type === "story_update" && story.revisionId
+                        ? `/users-dashboard/pending-review/preview/${story.revisionId}`
+                        : `/stories/${story.slug}`
+                    }
                     aria-label={`Preview ${story.title}`}
                     className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-2.5 font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-400 hover:bg-gray-50 hover:shadow-md active:translate-y-0 active:scale-95 active:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
                   >
@@ -215,4 +219,4 @@ export default async function PendingReviewPage({
       )}
     </div>
   );
-    }
+      }
