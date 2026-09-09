@@ -96,6 +96,7 @@ export default function MyStoryCard({
             }
             alt={title}
             fill
+            unoptimized
             className="object-cover transition duration-500 group-hover:scale-105"
           />
 
@@ -236,4 +237,4 @@ export default function MyStoryCard({
 
     </>
   );
-  }
+          }
