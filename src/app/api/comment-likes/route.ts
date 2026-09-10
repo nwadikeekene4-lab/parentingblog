@@ -498,6 +498,18 @@ export async function POST(
         { status: 404 }
       );
     }
+    if (
+  currentUser &&
+  comment.userId === currentUser.id
+) {
+  return NextResponse.json(
+    {
+      message:
+        "You can't like your own comment.",
+    },
+    { status: 403 }
+  );
+            }
 
 
     /*
