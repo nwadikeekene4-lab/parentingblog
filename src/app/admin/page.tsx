@@ -3,495 +3,539 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+type OverviewStats = {
+  pendingReview: number;
+  published: number;
+  myStories: number;
+  featured: number;
+  users: number;
+  visitors: number;
+};
+
 const stats = [
-{
-title: "Pending Review",
-value: "0",
-description: "Awaiting approval",
-icon: "⏳",
-href: "/admin/pending-review",
-iconBg: "bg-amber-50",
-iconText: "text-amber-600",
-},
-{
-title: "Published",
-value: "0",
-description: "Published stories",
-icon: "📚",
-href: "/admin/published",
-iconBg: "bg-blue-50",
-iconText: "text-blue-600",
-},
-{
-title: "My Stories",
-value: "0",
-description: "Your stories",
-icon: "✍️",
-href: "/admin/my-stories",
-iconBg: "bg-purple-50",
-iconText: "text-purple-600",
-},
-{
-title: "Featured",
-value: "0",
-description: "Featured stories",
-icon: "⭐",
-href: "/admin/featured",
-iconBg: "bg-yellow-50",
-iconText: "text-yellow-600",
-},
-{
-title: "Users",
-value: "0",
-description: "Registered users",
-icon: "👤",
-href: "/admin/users",
-iconBg: "bg-emerald-50",
-iconText: "text-emerald-600",
-},
-{
-title: "Visitors",
-value: "0",
-description: "Stories visitors",
-icon: "👁️",
-href: "/admin/visitors",
-iconBg: "bg-cyan-50",
-iconText: "text-cyan-600",
-},
-];
+  {
+    title: "Pending Review",
+    key: "pendingReview",
+    description: "Awaiting approval",
+    icon: "⏳",
+    href: "/admin/pending-review",
+    iconBg: "bg-amber-50",
+    iconText: "text-amber-600",
+  },
+  {
+    title: "Published",
+    key: "published",
+    description: "Published stories",
+    icon: "📚",
+    href: "/admin/published",
+    iconBg: "bg-blue-50",
+    iconText: "text-blue-600",
+  },
+  {
+    title: "My Stories",
+    key: "myStories",
+    description: "Your stories",
+    icon: "✍️",
+    href: "/admin/my-stories",
+    iconBg: "bg-purple-50",
+    iconText: "text-purple-600",
+  },
+  {
+    title: "Featured",
+    key: "featured",
+    description: "Featured stories",
+    icon: "⭐",
+    href: "/admin/featured",
+    iconBg: "bg-yellow-50",
+    iconText: "text-yellow-600",
+  },
+  {
+    title: "Users",
+    key: "users",
+    description: "Registered users",
+    icon: "👤",
+    href: "/admin/users",
+    iconBg: "bg-emerald-50",
+    iconText: "text-emerald-600",
+  },
+  {
+    title: "Visitors",
+    key: "visitors",
+    description: "Total story views",
+    icon: "👁️",
+    href: "/admin/visitors",
+    iconBg: "bg-cyan-50",
+    iconText: "text-cyan-600",
+  },
+] as const;
 
 export default function AdminOverviewPage() {
-const [pendingCount, setPendingCount] = useState<number | null>(null);
+  const [overview, setOverview] =
+    useState<OverviewStats | null>(null);
 
-useEffect(() => {
-let cancelled = false;
+  useEffect(() => {
+    let cancelled = false;
 
-const loadPendingCount = async () => {
-  try {
-    const response = await fetch("/api/admin/pending-review", {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store",
-    });
+    async function loadOverview() {
+      try {
+        const response = await fetch(
+          "/api/admin/overview",
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+          }
+        );
 
-    if (!response.ok) {
-      throw new Error("Failed to load pending review count");
+        if (!response.ok) {
+          throw new Error(
+            "Failed to load admin overview."
+          );
+        }
+
+        const data =
+          await response.json();
+
+        if (!cancelled) {
+          setOverview({
+            pendingReview:
+              typeof data.pendingReview ===
+              "number"
+                ? data.pendingReview
+                : 0,
+
+            published:
+              typeof data.published ===
+              "number"
+                ? data.published
+                : 0,
+
+            myStories:
+              typeof data.myStories ===
+              "number"
+                ? data.myStories
+                : 0,
+
+            featured:
+              typeof data.featured ===
+              "number"
+                ? data.featured
+                : 0,
+
+            users:
+              typeof data.users ===
+              "number"
+                ? data.users
+                : 0,
+
+            visitors:
+              typeof data.visitors ===
+              "number"
+                ? data.visitors
+                : 0,
+          });
+        }
+      } catch (error) {
+        console.error(
+          "Failed to load admin overview:",
+          error
+        );
+
+        if (!cancelled) {
+          setOverview({
+            pendingReview: 0,
+            published: 0,
+            myStories: 0,
+            featured: 0,
+            users: 0,
+            visitors: 0,
+          });
+        }
+      }
     }
 
-    const data = await response.json();
+    loadOverview();
 
-    if (!cancelled) {
-      setPendingCount(
-        typeof data.count === "number" ? data.count : 0
-      );
-    }
-  } catch (error) {
-    console.error("Failed to load pending review count:", error);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-    if (!cancelled) {
-      setPendingCount(0);
-    }
-  }
-};
+  return (
+    <div className="w-full space-y-5 sm:space-y-6">
 
-loadPendingCount();
-
-return () => {
-  cancelled = true;
-};
-
-}, []);
-
-const displayedStats = stats.map((stat) =>
-stat.title === "Pending Review"
-? {
-...stat,
-value: pendingCount === null ? "..." : String(pendingCount),
-}
-: stat
-);
-
-return (
-<div className="w-full space-y-5 sm:space-y-6">
-
-  {/* Welcome */}
-  <section
-    className="
-      relative
-      overflow-hidden
-      rounded-2xl
-      bg-gradient-to-br
-      from-blue-600
-      via-blue-700
-      to-indigo-800
-      px-5
-      py-6
-      text-white
-      shadow-lg
-      sm:rounded-3xl
-      sm:px-7
-      sm:py-7
-      lg:px-8
-    "
-  >
-    {/* Decorative circles */}
-    <div
-      className="
-        pointer-events-none
-        absolute
-        -right-16
-        -top-20
-        h-48
-        w-48
-        rounded-full
-        bg-white/10
-        blur-2xl
-      "
-    />
-
-    <div
-      className="
-        pointer-events-none
-        absolute
-        -bottom-20
-        right-24
-        h-40
-        w-40
-        rounded-full
-        bg-indigo-300/20
-        blur-3xl
-      "
-    />
-
-    <div className="relative">
-      <p className="text-xs font-medium uppercase tracking-wide text-blue-100 sm:text-sm">
-        Administration
-      </p>
-
-      <h1
+      {/* Welcome */}
+      <section
         className="
-          mt-1
-          text-2xl
-          font-bold
-          tracking-tight
-          sm:text-3xl
+          relative
+          overflow-hidden
+          rounded-2xl
+          bg-gradient-to-br
+          from-blue-600
+          via-blue-700
+          to-indigo-800
+          px-5
+          py-6
+          text-white
+          shadow-lg
+          sm:rounded-3xl
+          sm:px-7
+          sm:py-7
+          lg:px-8
         "
       >
-        Admin Dashboard
-      </h1>
-
-      <p
-        className="
-          mt-2
-          max-w-2xl
-          text-sm
-          leading-6
-          text-blue-100
-        "
-      >
-        Manage your stories, featured content, users
-        and website activity from one place.
-      </p>
-    </div>
-  </section>
-
-
-  {/* Overview */}
-  <section>
-    <div className="mb-3 flex items-end justify-between">
-      <div>
-        <h2 className="text-lg font-bold text-slate-900">
-          Overview
-        </h2>
-
-        <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
-          Quick statistics
-        </p>
-      </div>
-
-      {/* Mobile scroll hint */}
-      <span className="text-xs text-slate-400 sm:hidden">
-        Swipe →
-      </span>
-    </div>
-
-
-    {/* Horizontal statistics rail */}
-    <div
-      className="
-        -mx-4
-        flex
-        gap-3
-        overflow-x-auto
-        px-4
-        pb-2
-        scrollbar-none
-        sm:-mx-6
-        sm:px-6
-        lg:-mx-8
-        lg:px-8
-      "
-    >
-      {displayedStats.map((stat) => (
-        <Link
-          key={stat.title}
-          href={stat.href}
+        <div
           className="
-            group
-            w-[220px]
-            min-w-[220px]
-            rounded-2xl
-            border
-            border-slate-200
-            bg-white
-            p-4
-            shadow-sm
-            transition-all
-            duration-200
-            hover:-translate-y-1
-            hover:shadow-md
-            active:scale-[0.98]
-            focus:outline-none
-            focus:ring-2
-            focus:ring-blue-500
-            sm:w-[230px]
-            sm:min-w-[230px]
-            sm:p-5
-            lg:w-[240px]
-            lg:min-w-[240px]
+            pointer-events-none
+            absolute
+            -right-16
+            -top-20
+            h-48
+            w-48
+            rounded-full
+            bg-white/10
+            blur-2xl
+          "
+        />
+
+        <div
+          className="
+            pointer-events-none
+            absolute
+            -bottom-20
+            right-24
+            h-40
+            w-40
+            rounded-full
+            bg-indigo-300/20
+            blur-3xl
+          "
+        />
+
+        <div className="relative">
+          <p className="text-xs font-medium uppercase tracking-wide text-blue-100 sm:text-sm">
+            Administration
+          </p>
+
+          <h1
+            className="
+              mt-1
+              text-2xl
+              font-bold
+              tracking-tight
+              sm:text-3xl
+            "
+          >
+            Admin Dashboard
+          </h1>
+
+          <p
+            className="
+              mt-2
+              max-w-2xl
+              text-sm
+              leading-6
+              text-blue-100
+            "
+          >
+            Manage your stories, featured content, users
+            and website activity from one place.
+          </p>
+        </div>
+      </section>
+
+      {/* Overview */}
+      <section>
+        <div className="mb-3 flex items-end justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">
+              Overview
+            </h2>
+
+            <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
+              Quick statistics
+            </p>
+          </div>
+
+          <span className="text-xs text-slate-400 sm:hidden">
+            Swipe →
+          </span>
+        </div>
+
+        {/* Horizontal statistics rail */}
+        <div
+          className="
+            -mx-4
+            flex
+            gap-3
+            overflow-x-auto
+            px-4
+            pb-2
+            scrollbar-none
+            sm:-mx-6
+            sm:px-6
+            lg:-mx-8
+            lg:px-8
           "
         >
-          <div className="flex items-center justify-between">
-            <div
-              className={`
-                flex
-                h-10
-                w-10
-                items-center
-                justify-center
-                rounded-xl
-                text-lg
-                ${stat.iconBg}
-                ${stat.iconText}
-              `}
-            >
-              {stat.icon}
-            </div>
+          {stats.map((stat) => {
+            const value =
+              overview === null
+                ? "..."
+                : String(
+                    overview[stat.key]
+                  );
 
-            <span
-              className="
-                text-sm
-                text-slate-300
-                transition
-                group-hover:translate-x-1
-                group-hover:text-blue-500
-              "
-            >
-              →
-            </span>
+            return (
+              <Link
+                key={stat.title}
+                href={stat.href}
+                className="
+                  group
+                  w-[220px]
+                  min-w-[220px]
+                  rounded-2xl
+                  border
+                  border-slate-200
+                  bg-white
+                  p-4
+                  shadow-sm
+                  transition-all
+                  duration-200
+                  hover:-translate-y-1
+                  hover:shadow-md
+                  active:scale-[0.98]
+                  focus:outline-none
+                  focus:ring-2
+                  focus:ring-blue-500
+                  sm:w-[230px]
+                  sm:min-w-[230px]
+                  sm:p-5
+                  lg:w-[240px]
+                  lg:min-w-[240px]
+                "
+              >
+                <div className="flex items-center justify-between">
+                  <div
+                    className={`
+                      flex
+                      h-10
+                      w-10
+                      items-center
+                      justify-center
+                      rounded-xl
+                      text-lg
+                      ${stat.iconBg}
+                      ${stat.iconText}
+                    `}
+                  >
+                    {stat.icon}
+                  </div>
+
+                  <span
+                    className="
+                      text-sm
+                      text-slate-300
+                      transition
+                      group-hover:translate-x-1
+                      group-hover:text-blue-500
+                    "
+                  >
+                    →
+                  </span>
+                </div>
+
+                <div className="mt-4">
+                  <p className="text-xs font-medium text-slate-500">
+                    {stat.title}
+                  </p>
+
+                  <p className="mt-0.5 text-2xl font-bold text-slate-900">
+                    {value}
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-400">
+                    {stat.description}
+                  </p>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Quick Actions */}
+      <section
+        className="
+          rounded-2xl
+          border
+          border-slate-200
+          bg-white
+          p-4
+          shadow-sm
+          sm:rounded-3xl
+          sm:p-5
+          lg:p-6
+        "
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">
+              Quick Actions
+            </h2>
+
+            <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
+              Frequently used tools
+            </p>
           </div>
+        </div>
 
-          <div className="mt-4">
-            <p className="text-xs font-medium text-slate-500">
-              {stat.title}
-            </p>
+        <div
+          className="
+            -mx-1
+            flex
+            gap-2
+            overflow-x-auto
+            px-1
+            pb-1
+            sm:grid
+            sm:grid-cols-2
+            sm:overflow-visible
+            lg:grid-cols-4
+          "
+        >
+          <Link
+            href="/admin/pending-review"
+            className="
+              flex
+              min-w-[150px]
+              items-center
+              justify-center
+              rounded-xl
+              bg-blue-600
+              px-4
+              py-3
+              text-sm
+              font-semibold
+              text-white
+              shadow-sm
+              transition
+              hover:bg-blue-700
+              active:scale-[0.98]
+              sm:min-w-0
+            "
+          >
+            Review Stories
+          </Link>
 
-            <p className="mt-0.5 text-2xl font-bold text-slate-900">
-              {stat.value}
-            </p>
+          <Link
+            href="/admin/my-stories"
+            className="
+              flex
+              min-w-[150px]
+              items-center
+              justify-center
+              rounded-xl
+              border
+              border-slate-200
+              bg-white
+              px-4
+              py-3
+              text-sm
+              font-semibold
+              text-slate-700
+              transition
+              hover:border-blue-200
+              hover:bg-blue-50
+              hover:text-blue-600
+              active:scale-[0.98]
+              sm:min-w-0
+            "
+          >
+            Write a Story
+          </Link>
 
-            <p className="mt-1 text-xs text-slate-400">
-              {stat.description}
-            </p>
-          </div>
-        </Link>
-      ))}
-    </div>
-  </section>
+          <Link
+            href="/admin/featured"
+            className="
+              flex
+              min-w-[150px]
+              items-center
+              justify-center
+              rounded-xl
+              border
+              border-slate-200
+              bg-white
+              px-4
+              py-3
+              text-sm
+              font-semibold
+              text-slate-700
+              transition
+              hover:border-yellow-200
+              hover:bg-yellow-50
+              hover:text-yellow-700
+              active:scale-[0.98]
+              sm:min-w-0
+            "
+          >
+            Featured Stories
+          </Link>
 
+          <Link
+            href="/admin/users"
+            className="
+              flex
+              min-w-[150px]
+              items-center
+              justify-center
+              rounded-xl
+              border
+              border-slate-200
+              bg-white
+              px-4
+              py-3
+              text-sm
+              font-semibold
+              text-slate-700
+              transition
+              hover:border-emerald-200
+              hover:bg-emerald-50
+              hover:text-emerald-700
+              active:scale-[0.98]
+              sm:min-w-0
+            "
+          >
+            Manage Users
+          </Link>
+        </div>
+      </section>
 
-  {/* Quick Actions */}
-  <section
-    className="
-      rounded-2xl
-      border
-      border-slate-200
-      bg-white
-      p-4
-      shadow-sm
-      sm:rounded-3xl
-      sm:p-5
-      lg:p-6
-    "
-  >
-    <div className="mb-4 flex items-center justify-between">
-      <div>
-        <h2 className="text-lg font-bold text-slate-900">
-          Quick Actions
-        </h2>
+      {/* Admin tip */}
+      <div
+        className="
+          flex
+          items-start
+          gap-3
+          rounded-2xl
+          border
+          border-blue-100
+          bg-blue-50/70
+          px-4
+          py-3
+          text-sm
+          text-blue-800
+        "
+      >
+        <span className="mt-0.5 text-base">
+          💡
+        </span>
 
-        <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
-          Frequently used tools
+        <p className="leading-5">
+          Use the sidebar to manage stories, featured
+          content, users, comments and visitor activity.
         </p>
       </div>
     </div>
-
-
-    {/* Quick action rail on small screens */}
-    <div
-      className="
-        -mx-1
-        flex
-        gap-2
-        overflow-x-auto
-        px-1
-        pb-1
-        sm:grid
-        sm:grid-cols-2
-        sm:overflow-visible
-        lg:grid-cols-4
-      "
-    >
-
-      <Link
-        href="/admin/pending-review"
-        className="
-          flex
-          min-w-[150px]
-          items-center
-          justify-center
-          rounded-xl
-          bg-blue-600
-          px-4
-          py-3
-          text-sm
-          font-semibold
-          text-white
-          shadow-sm
-          transition
-          hover:bg-blue-700
-          active:scale-[0.98]
-          sm:min-w-0
-        "
-      >
-        Review Stories
-      </Link>
-
-
-      <Link
-        href="/admin/my-stories"
-        className="
-          flex
-          min-w-[150px]
-          items-center
-          justify-center
-          rounded-xl
-          border
-          border-slate-200
-          bg-white
-          px-4
-          py-3
-          text-sm
-          font-semibold
-          text-slate-700
-          transition
-          hover:border-blue-200
-          hover:bg-blue-50
-          hover:text-blue-600
-          active:scale-[0.98]
-          sm:min-w-0
-        "
-      >
-        Write a Story
-      </Link>
-
-
-      <Link
-        href="/admin/featured"
-        className="
-          flex
-          min-w-[150px]
-          items-center
-          justify-center
-          rounded-xl
-          border
-          border-slate-200
-          bg-white
-          px-4
-          py-3
-          text-sm
-          font-semibold
-          text-slate-700
-          transition
-          hover:border-yellow-200
-          hover:bg-yellow-50
-          hover:text-yellow-700
-          active:scale-[0.98]
-          sm:min-w-0
-        "
-      >
-        Featured Stories
-      </Link>
-
-
-      <Link
-        href="/admin/users"
-        className="
-          flex
-          min-w-[150px]
-          items-center
-          justify-center
-          rounded-xl
-          border
-          border-slate-200
-          bg-white
-          px-4
-          py-3
-          text-sm
-          font-semibold
-          text-slate-700
-          transition
-          hover:border-emerald-200
-          hover:bg-emerald-50
-          hover:text-emerald-700
-          active:scale-[0.98]
-          sm:min-w-0
-        "
-      >
-        Manage Users
-      </Link>
-
-    </div>
-  </section>
-
-
-  {/* Admin tip */}
-  <div
-    className="
-      flex
-      items-start
-      gap-3
-      rounded-2xl
-      border
-      border-blue-100
-      bg-blue-50/70
-      px-4
-      py-3
-      text-sm
-      text-blue-800
-    "
-  >
-    <span className="mt-0.5 text-base">
-      💡
-    </span>
-
-    <p className="leading-5">
-      Use the sidebar to manage stories, featured
-      content, users, comments and visitor activity.
-    </p>
-  </div>
-
-</div>
-
-);
-  }
+  );
+    }
