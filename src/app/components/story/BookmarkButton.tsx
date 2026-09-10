@@ -12,21 +12,12 @@ export default function BookmarkButton({
   storyId,
   storySlug,
 }: BookmarkButtonProps) {
-
   const router = useRouter();
 
-  const [bookmarked, setBookmarked] =
-    useState(false);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [authenticated, setAuthenticated] =
-    useState(false);
-
+  const [bookmarked, setBookmarked] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
 
   /*
   |--------------------------------------------------------------------------
@@ -35,24 +26,16 @@ export default function BookmarkButton({
   */
 
   useEffect(() => {
-
     let cancelled = false;
 
     async function checkBookmark() {
-
       try {
-
         setLoading(true);
 
-        const response =
-          await fetch(
-            "/api/bookmarks",
-            {
-              method: "GET",
-              cache: "no-store",
-            }
-          );
-
+        const response = await fetch("/api/bookmarks", {
+          method: "GET",
+          cache: "no-store",
+        });
 
         /*
         |--------------------------------------------------------------------------
@@ -61,34 +44,25 @@ export default function BookmarkButton({
         */
 
         if (response.status === 401) {
-
           if (!cancelled) {
-
             setAuthenticated(false);
             setBookmarked(false);
-
           }
 
           return;
         }
 
-
         if (!response.ok) {
           return;
         }
 
-
-        const data =
-          await response.json();
-
+        const data = await response.json();
 
         if (cancelled) {
           return;
         }
 
-
         setAuthenticated(true);
-
 
         const exists =
           Array.isArray(data.bookmarks) &&
@@ -97,47 +71,27 @@ export default function BookmarkButton({
               story?: {
                 id?: string;
               };
-            }) =>
-              bookmark.story?.id === storyId
+            }) => bookmark.story?.id === storyId
           );
 
-
-        setBookmarked(
-          Boolean(exists)
-        );
-
-
+        setBookmarked(Boolean(exists));
       } catch (error) {
-
         if (!cancelled) {
-
-          console.error(
-            "Check bookmark error:",
-            error
-          );
-
+          console.error("Check bookmark error:", error);
         }
-
       } finally {
-
         if (!cancelled) {
           setLoading(false);
         }
-
       }
-
     }
 
-
     checkBookmark();
-
 
     return () => {
       cancelled = true;
     };
-
   }, [storyId]);
-
 
   /*
   |--------------------------------------------------------------------------
@@ -146,11 +100,9 @@ export default function BookmarkButton({
   */
 
   async function handleBookmark() {
-
     if (saving) {
       return;
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -159,9 +111,8 @@ export default function BookmarkButton({
     */
 
     if (!authenticated) {
-
       router.push(
-        `/login?redirect=${encodeURIComponent(
+        `/auth?redirect=${encodeURIComponent(
           `/stories/${storySlug}`
         )}`
       );
@@ -169,35 +120,20 @@ export default function BookmarkButton({
       return;
     }
 
-
     try {
-
       setSaving(true);
 
+      const response = await fetch("/api/bookmarks", {
+        method: bookmarked ? "DELETE" : "POST",
 
-      const response =
-        await fetch(
-          "/api/bookmarks",
-          {
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-            method:
-              bookmarked
-                ? "DELETE"
-                : "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body:
-              JSON.stringify({
-                storyId,
-              }),
-
-          }
-        );
-
+        body: JSON.stringify({
+          storyId,
+        }),
+      });
 
       /*
       |--------------------------------------------------------------------------
@@ -206,12 +142,11 @@ export default function BookmarkButton({
       */
 
       if (response.status === 401) {
-
         setAuthenticated(false);
         setBookmarked(false);
 
         router.push(
-          `/login?redirect=${encodeURIComponent(
+          `/auth?redirect=${encodeURIComponent(
             `/stories/${storySlug}`
           )}`
         );
@@ -219,20 +154,13 @@ export default function BookmarkButton({
         return;
       }
 
-
-      const data =
-        await response.json();
-
+      const data = await response.json();
 
       if (!response.ok) {
-
         throw new Error(
-          data.message ??
-            "Unable to update bookmark."
+          data.message ?? "Unable to update bookmark."
         );
-
       }
-
 
       /*
       |--------------------------------------------------------------------------
@@ -240,44 +168,25 @@ export default function BookmarkButton({
       |--------------------------------------------------------------------------
       */
 
-      setBookmarked(
-        !bookmarked
-      );
-
-
+      setBookmarked(!bookmarked);
     } catch (error) {
-
-      console.error(
-        "Bookmark error:",
-        error
-      );
-
+      console.error("Bookmark error:", error);
 
       alert(
         error instanceof Error
           ? error.message
           : "Something went wrong."
       );
-
-
     } finally {
-
       setSaving(false);
-
     }
-
   }
 
-
   return (
-
     <button
       type="button"
       onClick={handleBookmark}
-      disabled={
-        loading ||
-        saving
-      }
+      disabled={loading || saving}
       aria-label={
         !authenticated
           ? "Log in to bookmark story"
@@ -298,10 +207,7 @@ export default function BookmarkButton({
           : "border-slate-300 bg-white text-slate-700 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-600"
       } disabled:cursor-not-allowed disabled:opacity-60`}
     >
-
-      <span className="text-lg">
-        🔖
-      </span>
+      <span className="text-lg">🔖</span>
 
       {loading
         ? "Checking..."
@@ -312,8 +218,6 @@ export default function BookmarkButton({
         : bookmarked
         ? "Bookmarked"
         : "Bookmark"}
-
     </button>
-
   );
-      }
+    }
