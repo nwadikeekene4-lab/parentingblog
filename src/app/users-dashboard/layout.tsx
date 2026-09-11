@@ -15,6 +15,15 @@ export default async function UsersDashboardLayout({
     redirect("/auth");
   }
 
+  /*
+   * Admin accounts belong in the Admin Dashboard.
+   *
+   * Keep the existing behavior for other roles unchanged.
+   */
+  if (user.role === "admin") {
+    redirect("/admin");
+  }
+
   return (
     <DashboardShell>
       {children}
