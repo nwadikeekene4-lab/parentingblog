@@ -346,6 +346,29 @@ export async function POST(
 
     /*
     |--------------------------------------------------------------------------
+    | Role protection
+    |--------------------------------------------------------------------------
+    | Admin accounts use the Admin Dashboard and must not create
+    | stories through the normal Users Dashboard story API.
+    |
+    | Moderator behavior is intentionally left unchanged.
+    |--------------------------------------------------------------------------
+    */
+
+    if (user.role === "admin") {
+      return NextResponse.json(
+        {
+          message:
+            "Admin accounts cannot create stories through the Users Dashboard.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Parse request
     |--------------------------------------------------------------------------
     */
@@ -376,7 +399,7 @@ export async function POST(
             "Invalid request.",
         },
         {
-          status: 400,
+          status: 400
         }
       );
     }
@@ -431,33 +454,47 @@ export async function POST(
     | Validate story images
     |--------------------------------------------------------------------------
     */
-const uploadedImages = Array.isArray(data.storyImages)
-  ? data.storyImages
-      .filter(
-        (
-          image
-        ): image is {
-          url: string;
-          publicId: string;
-        } =>
-          Boolean(
-            image &&
-              typeof image === "object" &&
-              typeof (image as Record<string, unknown>).url === "string" &&
-              typeof (image as Record<string, unknown>).publicId === "string"
+
+    const uploadedImages = Array.isArray(
+      data.storyImages
+    )
+      ? data.storyImages
+          .filter(
+            (
+              image
+            ): image is {
+              url: string;
+              publicId: string;
+            } =>
+              Boolean(
+                image &&
+                  typeof image === "object" &&
+                  typeof (
+                    image as Record<
+                      string,
+                      unknown
+                    >
+                  ).url === "string" &&
+                  typeof (
+                    image as Record<
+                      string,
+                      unknown
+                    >
+                  ).publicId === "string"
+              )
           )
-      )
-      .slice(0, 20)
-      .map((image) => ({
-        url: image.url.trim(),
-        publicId: image.publicId.trim(),
-      }))
-      .filter(
-        (image) =>
-          image.url.length > 0 &&
-          image.publicId.length > 0
-      )
-  : [];
+          .slice(0, 20)
+          .map((image) => ({
+            url: image.url.trim(),
+            publicId:
+              image.publicId.trim(),
+          }))
+          .filter(
+            (image) =>
+              image.url.length > 0 &&
+              image.publicId.length > 0
+          )
+      : [];
 
     /*
     |--------------------------------------------------------------------------
@@ -559,7 +596,8 @@ const uploadedImages = Array.isArray(data.storyImages)
       createSlug(title);
 
     let slug =
-      baseSlug || `story-${Date.now()}`;
+      baseSlug ||
+      `story-${Date.now()}`;
 
     let counter = 1;
 
@@ -804,4 +842,4 @@ const uploadedImages = Array.isArray(data.storyImages)
       }
     );
   }
-}
+  }
