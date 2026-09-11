@@ -162,6 +162,87 @@ export const sessions = pgTable("sessions", {
     .notNull(),
 });
 
+/* ===========================
+VISITOR ANALYTICS
+=========================== */
+
+export const visitorAnalytics = pgTable(
+  "visitor_analytics",
+  {
+    id: uuid("id")
+      .defaultRandom()
+      .primaryKey(),
+
+    /*
+     * Registered visitors:
+     * Store the authenticated user's ID.
+     *
+     * Anonymous visitors:
+     * Store a secure random browser visitor ID.
+     *
+     * Exactly one of these should be present.
+     */
+    userId: uuid("user_id").references(
+      () => users.id,
+      {
+        onDelete: "cascade",
+      }
+    ),
+
+    visitorId: varchar("visitor_id", {
+      length: 64,
+    }),
+
+    /*
+     * The calendar day on which the visitor
+     * accessed the public Stories page.
+     *
+     * One visitor can only have one record
+     * for a particular day.
+     */
+    visitDate: date("visit_date")
+      .notNull(),
+
+    createdAt: timestamp("created_at")
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    /*
+     * Registered users:
+     * one visit per user per day.
+     */
+    uniqueIndex(
+      "visitor_analytics_user_date_unique"
+    ).on(
+      table.userId,
+      table.visitDate
+    ),
+
+    /*
+     * Anonymous visitors:
+     * one visit per anonymous visitor per day.
+     */
+    uniqueIndex(
+      "visitor_analytics_visitor_date_unique"
+    ).on(
+      table.visitorId,
+      table.visitDate
+    ),
+
+    index(
+      "visitor_analytics_visit_date_idx"
+    ).on(table.visitDate),
+
+    index(
+      "visitor_analytics_user_id_idx"
+    ).on(table.userId),
+
+    index(
+      "visitor_analytics_visitor_id_idx"
+    ).on(table.visitorId),
+  ]
+);
 
 /* ===========================
    CATEGORIES
