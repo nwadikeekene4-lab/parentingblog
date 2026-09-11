@@ -1,59 +1,27 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useState } from "react";
+import { getCurrentUser } from "@/lib/session";
 
-import AdminSidebar from "./components/AdminSidebar";
-import AdminMobileSidebar from "./components/AdminMobileSidebar";
-import AdminHeader from "./components/AdminHeader";
+import AdminLayoutClient from "./components/AdminLayoutClient";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [mobileSidebarOpen, setMobileSidebarOpen] =
-    useState(false);
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/auth");
+  }
+
+  if (user.role !== "admin") {
+    redirect("/users-dashboard");
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-
-      {/* Desktop Sidebar */}
-      <AdminSidebar />
-
-      {/* Mobile Sidebar */}
-      <AdminMobileSidebar
-        isOpen={mobileSidebarOpen}
-        onClose={() => setMobileSidebarOpen(false)}
-      />
-
-      {/* Main Area */}
-      <div className="lg:pl-72">
-
-        {/* Header */}
-        <AdminHeader
-          onMenuClick={() =>
-            setMobileSidebarOpen(true)
-          }
-        />
-
-        {/* Page Content */}
-        <main
-          className="
-            min-h-[calc(100vh-4rem)]
-            px-4
-            py-5
-            sm:px-6
-            sm:py-6
-            lg:px-8
-            lg:py-8
-          "
-        >
-          <div className="mx-auto w-full max-w-[1600px]">
-            {children}
-          </div>
-        </main>
-
-      </div>
-    </div>
+    <AdminLayoutClient>
+      {children}
+    </AdminLayoutClient>
   );
-      }
+}
