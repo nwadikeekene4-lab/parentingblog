@@ -17,7 +17,6 @@ import {
 import { getCurrentUser } from "@/lib/session";
 import { sendNotificationEmail } from "@/lib/email";
 
-
 /*
 |--------------------------------------------------------------------------
 | GET
@@ -37,6 +36,24 @@ export async function GET() {
         },
         {
           status: 401,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin accounts do not use normal-user bookmarks.
+    |--------------------------------------------------------------------------
+    */
+
+    if (user.role === "admin") {
+      return NextResponse.json(
+        {
+          message:
+            "Admin accounts cannot use bookmarks.",
+        },
+        {
+          status: 403,
         }
       );
     }
@@ -391,7 +408,6 @@ export async function GET() {
   }
 }
 
-
 /*
 |--------------------------------------------------------------------------
 | POST
@@ -420,6 +436,24 @@ export async function POST(
         },
         {
           status: 401,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin accounts do not use normal-user bookmarks.
+    |--------------------------------------------------------------------------
+    */
+
+    if (user.role === "admin") {
+      return NextResponse.json(
+        {
+          message:
+            "Admin accounts cannot use bookmarks.",
+        },
+        {
+          status: 403,
         }
       );
     }
@@ -708,7 +742,6 @@ export async function POST(
   }
 }
 
-
 /*
 |--------------------------------------------------------------------------
 | DELETE
@@ -732,6 +765,24 @@ export async function DELETE(
         },
         {
           status: 401,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin accounts do not use normal-user bookmarks.
+    |--------------------------------------------------------------------------
+    */
+
+    if (user.role === "admin") {
+      return NextResponse.json(
+        {
+          message:
+            "Admin accounts cannot use bookmarks.",
+        },
+        {
+          status: 403,
         }
       );
     }
@@ -824,4 +875,4 @@ export async function DELETE(
       }
     );
   }
-          }
+        }
