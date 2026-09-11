@@ -15,6 +15,7 @@ import {
   foreignKey,
   check,
   index,
+  date,
 } from "drizzle-orm/pg-core";
 
 
