@@ -16,6 +16,7 @@ import {
   check,
   index,
   date,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 
