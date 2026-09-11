@@ -61,6 +61,12 @@ export default function LoginForm() {
 
       let data: {
         message?: string;
+        user?: {
+          id?: string;
+          displayName?: string;
+          email?: string;
+          role?: string;
+        };
       } = {};
 
       try {
@@ -77,7 +83,12 @@ export default function LoginForm() {
         return;
       }
 
-      router.push("/users-dashboard");
+      if (data.user?.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/users-dashboard");
+      }
+
       router.refresh();
     } catch (error) {
       console.error(
@@ -330,4 +341,4 @@ export default function LoginForm() {
       </button>
     </form>
   );
-    }
+        }
