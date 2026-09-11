@@ -1,14 +1,24 @@
 import { NextResponse } from "next/server";
-import { and, count, eq, sum } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
   stories,
   storyRevisions,
   users,
+  visitorAnalytics,
 } from "@/db/schema";
 
 import { getCurrentUser } from "@/lib/session";
+
+function getLagosDate(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Lagos",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
 
 export async function GET() {
   try {
@@ -43,6 +53,8 @@ export async function GET() {
     |
     */
 
+    const today = getLagosDate();
+
     const [
       pendingStoriesResult,
       pendingRevisionsResult,
@@ -50,7 +62,7 @@ export async function GET() {
       myStoriesResult,
       featuredResult,
       usersResult,
-      viewsResult,
+      visitorsResult,
     ] = await Promise.all([
       /*
       |--------------------------------------------------------------------------
@@ -184,31 +196,31 @@ export async function GET() {
 
       /*
       |--------------------------------------------------------------------------
-      | Total story views
+      | Unique visitors today
       |--------------------------------------------------------------------------
       |
-      | The current project stores story views directly on stories.views.
-      | This represents total story views, not unique visitors.
+      | This now uses the visitor analytics system.
+      |
+      | It represents unique visitors who landed on the
+      | public Stories page today.
+      |
+      | Admins and moderators are excluded by the
+      | visitor tracking API before records are created.
+      |
+      | Registered and unregistered visitors are both
+      | included here.
       |
       */
 
       db
         .select({
-          totalViews: sum(
-            stories.views
-          ),
+          count: count(),
         })
-        .from(stories)
+        .from(visitorAnalytics)
         .where(
-          and(
-            eq(
-              stories.status,
-              "published"
-            ),
-            eq(
-              stories.isDeleted,
-              false
-            )
+          eq(
+            visitorAnalytics.visitDate,
+            today
           )
         ),
     ]);
@@ -243,7 +255,7 @@ export async function GET() {
 
     const visitors =
       Number(
-        viewsResult[0]?.totalViews ?? 0
+        visitorsResult[0]?.count ?? 0
       );
 
     return NextResponse.json(
@@ -271,4 +283,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-  }
+}
