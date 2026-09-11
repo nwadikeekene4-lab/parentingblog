@@ -1,10 +1,13 @@
 import StoryIntroduction from "./components/StoryIntroduction";
 import StoryCategories from "./components/StoryCategories";
 import FeaturedStories from "./components/FeaturedStories";
+import VisitorTracker from "../components/analytics/VisitorTracker";
+
 
 export default function StoriesPage() {
   return (
     <main className="min-h-screen bg-gray-50">
+      <VisitorTracker />
       {/* Hero */}
       <StoryIntroduction />
 
