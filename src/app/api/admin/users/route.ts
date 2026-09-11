@@ -13,12 +13,6 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/session";
 
-/*
-|--------------------------------------------------------------------------
-| ADMIN AUTHORIZATION
-|--------------------------------------------------------------------------
-*/
-
 async function requireAdmin() {
   const user = await getCurrentUser();
 
@@ -26,12 +20,8 @@ async function requireAdmin() {
     return {
       user: null,
       response: NextResponse.json(
-        {
-          message: "Unauthorized.",
-        },
-        {
-          status: 401,
-        }
+        { message: "Unauthorized." },
+        { status: 401 }
       ),
     };
   }
@@ -40,12 +30,8 @@ async function requireAdmin() {
     return {
       user: null,
       response: NextResponse.json(
-        {
-          message: "Forbidden.",
-        },
-        {
-          status: 403,
-        }
+        { message: "Forbidden." },
+        { status: 403 }
       ),
     };
   }
@@ -55,19 +41,6 @@ async function requireAdmin() {
     response: null,
   };
 }
-
-/*
-|--------------------------------------------------------------------------
-| GET /api/admin/users
-|--------------------------------------------------------------------------
-|
-| Supports:
-| - Search by display name or email
-| - Role filter
-| - Active/inactive filter
-| - Pagination
-|--------------------------------------------------------------------------
-*/
 
 export async function GET(request: Request) {
   try {
@@ -89,15 +62,13 @@ export async function GET(request: Request) {
     const status =
       searchParams.get("status")?.trim() ?? "all";
 
-    const pageParam =
-      Number(
-        searchParams.get("page") ?? "1"
-      );
+    const pageParam = Number(
+      searchParams.get("page") ?? "1"
+    );
 
-    const limitParam =
-      Number(
-        searchParams.get("limit") ?? "20"
-      );
+    const limitParam = Number(
+      searchParams.get("limit") ?? "20"
+    );
 
     const page =
       Number.isFinite(pageParam) &&
@@ -108,20 +79,10 @@ export async function GET(request: Request) {
     const limit =
       Number.isFinite(limitParam) &&
       limitParam > 0
-        ? Math.min(
-            Math.floor(limitParam),
-            50
-          )
+        ? Math.min(Math.floor(limitParam), 50)
         : 20;
 
-    const offset =
-      (page - 1) * limit;
-
-    /*
-    |--------------------------------------------------------------------------
-    | BUILD CONDITIONS
-    |--------------------------------------------------------------------------
-    */
+    const offset = (page - 1) * limit;
 
     const conditions = [];
 
@@ -167,63 +128,48 @@ export async function GET(request: Request) {
         ? and(...conditions)
         : undefined;
 
-    /*
-    |--------------------------------------------------------------------------
-    | FETCH USERS + TOTAL
-    |--------------------------------------------------------------------------
-    */
+    const [userRows, totalRows] =
+      await Promise.all([
+        db
+          .select({
+            id: users.id,
+            displayName: users.displayName,
+            email: users.email,
+            profileImage: users.profileImage,
+            role: users.role,
+            emailVerified:
+              users.emailVerified,
+            emailNotifications:
+              users.emailNotifications,
+            isActive: users.isActive,
+            createdAt: users.createdAt,
+            updatedAt: users.updatedAt,
+          })
+          .from(users)
+          .where(whereCondition)
+          .orderBy(
+            desc(users.createdAt),
+            asc(users.displayName)
+          )
+          .limit(limit)
+          .offset(offset),
 
-    const [
-      userRows,
-      totalRows,
-    ] = await Promise.all([
-      db
-        .select({
-          id: users.id,
-          displayName:
-            users.displayName,
-          email: users.email,
-          profileImage:
-            users.profileImage,
-          role: users.role,
-          emailVerified:
-            users.emailVerified,
-          emailNotifications:
-            users.emailNotifications,
-          isActive:
-            users.isActive,
-          createdAt:
-            users.createdAt,
-          updatedAt:
-            users.updatedAt,
-        })
-        .from(users)
-        .where(whereCondition)
-        .orderBy(
-          desc(users.createdAt),
-          asc(users.displayName)
-        )
-        .limit(limit)
-        .offset(offset),
+        db
+          .select({
+            count: count(),
+          })
+          .from(users)
+          .where(whereCondition),
+      ]);
 
-      db
-        .select({
-          count: count(),
-        })
-        .from(users)
-        .where(whereCondition),
-    ]);
+    const total = Number(
+      totalRows[0]?.count ?? 0
+    );
 
-    const total =
-      Number(
-        totalRows[0]?.count ?? 0
-      );
-
-    const totalPages =
-      Math.max(
-        1,
-        Math.ceil(total / limit)
-      );
+    const totalPages = Math.max(
+      1,
+      Math.ceil(total / limit)
+    );
 
     return NextResponse.json(
       {
@@ -235,9 +181,7 @@ export async function GET(request: Request) {
           totalPages,
         },
       },
-      {
-        status: 200,
-      }
+      { status: 200 }
     );
   } catch (error) {
     console.error(
@@ -247,12 +191,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       {
-        message:
-          "Failed to load users.",
+        message: "Failed to load users.",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
-}
+          }
