@@ -76,7 +76,7 @@ export async function POST() {
      * Anonymous visitors are identified using a
      * random first-party cookie.
      */
-    let visitorId =
+    const existingVisitorId =
       cookieStore.get(VISITOR_COOKIE)?.value ?? null;
 
     /*
@@ -86,14 +86,19 @@ export async function POST() {
      * is missing or malformed, create a new identifier.
      */
     const validVisitorId =
-      visitorId &&
+      existingVisitorId &&
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        visitorId
+        existingVisitorId
       );
 
-    if (!validVisitorId) {
-      visitorId = crypto.randomUUID();
-    }
+    /*
+     * At this point visitorId is guaranteed to be a
+     * string, which also satisfies the cookie API type.
+     */
+    const visitorId: string =
+      validVisitorId
+        ? existingVisitorId
+        : crypto.randomUUID();
 
     await db
       .insert(visitorAnalytics)
@@ -119,6 +124,9 @@ export async function POST() {
     );
 
     /*
+     * Only set the cookie when a new visitor ID
+     * was generated.
+     *
      * The visitor ID is:
      * - HttpOnly
      * - Secure in production
