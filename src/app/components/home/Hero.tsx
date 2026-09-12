@@ -42,68 +42,75 @@ export default function Hero() {
       "
     >
       {/* =========================================================
-          MOBILE / PAGE BACKGROUND
+          BACKGROUND
           ========================================================= */}
       <div className="absolute inset-0 z-0 overflow-hidden bg-[#180f17]">
-        {/* Main atmospheric gradient */}
+        {/* Mobile atmospheric background */}
         <div
           className="
             absolute
             inset-0
+            sm:hidden
             bg-[radial-gradient(circle_at_50%_18%,rgba(236,72,153,0.24),transparent_32%),radial-gradient(circle_at_10%_72%,rgba(168,85,247,0.16),transparent_30%),radial-gradient(circle_at_90%_78%,rgba(244,114,182,0.12),transparent_28%),linear-gradient(180deg,#24131f_0%,#1b1019_42%,#120b11_100%)]
           "
         />
 
-        {/* Soft central glow */}
+        {/* Mobile soft glow */}
         <div
           className="
             absolute
             left-1/2
             top-[42%]
+            hidden
             h-[360px]
             w-[360px]
             -translate-x-1/2
             rounded-full
             bg-pink-500/10
             blur-[100px]
+            sm:block
             sm:h-[500px]
             sm:w-[500px]
           "
         />
 
-        {/* Subtle decorative glow — left */}
+        {/* Mobile left glow */}
         <div
           className="
             absolute
             -left-24
             bottom-16
+            hidden
             h-56
             w-56
             rounded-full
             bg-fuchsia-500/10
             blur-[90px]
+            sm:block
             sm:h-72
             sm:w-72
           "
         />
 
-        {/* Subtle decorative glow — right */}
+        {/* Mobile right glow */}
         <div
           className="
             absolute
             -right-24
             bottom-24
+            hidden
             h-56
             w-56
             rounded-full
             bg-rose-400/10
             blur-[90px]
+            sm:block
             sm:h-72
             sm:w-72
           "
         />
 
-        {/* Background image */}
+        {/* Background Image */}
         <motion.img
           src="/Images/stories/homebg.jpg"
           alt="Family background"
@@ -115,7 +122,6 @@ export default function Hero() {
             inset-0
             w-full
             h-full
-
             object-cover
             object-center
 
@@ -125,9 +131,6 @@ export default function Hero() {
             max-sm:bottom-auto
             max-sm:object-contain
             max-sm:object-top
-
-            sm:object-cover
-            sm:object-center
           "
           initial={
             shouldReduceMotion
@@ -144,13 +147,17 @@ export default function Hero() {
           }}
         />
 
-        {/* Smooth transition from image into the lower background */}
+        {/* =======================================================
+            MOBILE IMAGE TRANSITION ONLY
+            ======================================================= */}
+
         <div
           className="
             absolute
             inset-x-0
             top-0
             h-[55%]
+            sm:hidden
             bg-gradient-to-b
             from-black/10
             via-transparent
@@ -158,32 +165,47 @@ export default function Hero() {
           "
         />
 
-        {/* Stronger lower fade on mobile */}
         <div
           className="
             absolute
             inset-x-0
             top-[22%]
             bottom-0
+            sm:hidden
             bg-gradient-to-b
             from-transparent
             via-[#180f17]/45
             to-[#120b11]
-            sm:hidden
-          "
-        />
-
-        {/* Desktop readability overlay */}
-        <div
-          className="
-            absolute
-            inset-0
-            hidden
-            bg-black/25
-            sm:block
           "
         />
       </div>
+
+      {/* =========================================================
+          DESKTOP OVERLAY
+          Kept close to the original desktop treatment.
+          ========================================================= */}
+      <div
+        className="
+          absolute
+          inset-0
+          z-[1]
+          bg-black/45
+        "
+      />
+
+      {/* Slight mobile readability overlay */}
+      <div
+        className="
+          absolute
+          inset-0
+          z-[1]
+          sm:hidden
+          bg-gradient-to-t
+          from-black/35
+          via-transparent
+          to-transparent
+        "
+      />
 
       {/* =========================================================
           CONTENT
@@ -218,7 +240,11 @@ export default function Hero() {
             delay: 0.1,
             ease: "easeOut",
           }}
-          className="max-w-5xl mx-auto text-center"
+          className="
+            max-w-5xl
+            mx-auto
+            text-center
+          "
         >
           <h1
             className="
@@ -231,7 +257,6 @@ export default function Hero() {
               font-extrabold
               tracking-tight
               text-white
-              drop-shadow-[0_3px_18px_rgba(0,0,0,0.35)]
             "
           >
             Welcome to
@@ -263,7 +288,6 @@ export default function Hero() {
               md:text-xl
               md:leading-8
               text-gray-100
-              drop-shadow-[0_2px_12px_rgba(0,0,0,0.4)]
             "
           >
             Parenting is one of life's greatest journeys.
@@ -273,9 +297,9 @@ export default function Hero() {
           </p>
         </motion.div>
 
-        {/* =========================================================
+        {/* =======================================================
             ACTION CARDS
-            ========================================================= */}
+            ======================================================= */}
         <div
           className="
             mt-9
@@ -302,22 +326,19 @@ export default function Hero() {
               rounded-2xl
               sm:rounded-3xl
               border
-              border-white/20
-              bg-white/[0.10]
+              border-white/30
+              bg-white/15
               backdrop-blur-xl
               p-5
               sm:p-6
               lg:p-10
-              shadow-[0_20px_60px_rgba(0,0,0,0.25)]
-              hover:bg-white/[0.16]
-              hover:border-white/30
-              transition-all
+              shadow-2xl
+              hover:bg-white/25
+              transition
               duration-300
               focus:outline-none
               focus-visible:ring-2
               focus-visible:ring-pink-300
-              focus-visible:ring-offset-2
-              focus-visible:ring-offset-transparent
             "
           >
             <div className="text-3xl sm:text-4xl">📖</div>
@@ -385,18 +406,15 @@ export default function Hero() {
               p-5
               sm:p-6
               lg:p-10
-              shadow-[0_20px_60px_rgba(190,24,93,0.22)]
+              shadow-2xl
               hover:from-pink-500
               hover:via-pink-600
               hover:to-fuchsia-600
-              hover:shadow-[0_24px_70px_rgba(190,24,93,0.30)]
-              transition-all
+              transition
               duration-300
               focus:outline-none
               focus-visible:ring-2
               focus-visible:ring-pink-200
-              focus-visible:ring-offset-2
-              focus-visible:ring-offset-transparent
             "
           >
             <div className="text-3xl sm:text-4xl">✍️</div>
@@ -423,7 +441,7 @@ export default function Hero() {
                 lg:text-lg
                 leading-6
                 lg:leading-7
-                text-white/95
+                text-white
               "
             >
               Tell your parenting journey and inspire another family.
@@ -445,4 +463,4 @@ export default function Hero() {
       </div>
     </section>
   );
-        }
+                    }
