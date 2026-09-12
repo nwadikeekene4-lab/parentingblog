@@ -38,7 +38,7 @@ export default function Hero() {
         overflow-hidden
         flex
         items-center
-        bg-[#fff7fb]
+        bg-[#fff9f4]
         sm:bg-transparent
       "
     >
@@ -52,14 +52,12 @@ export default function Hero() {
             absolute
             inset-0
             sm:hidden
-            bg-[#fff7fb]
+            bg-[#fff9f4]
           "
         />
 
         {/* =======================================================
             FAMILY IMAGE
-
-            Keep the image itself clean and sharp.
             ======================================================= */}
         <motion.img
           src="/Images/stories/homebg.jpg"
@@ -98,40 +96,41 @@ export default function Hero() {
         />
 
         {/* =======================================================
-            MOBILE IMAGE FADE
+            MOBILE TRANSITION
 
-            Short and subtle. It only softens the bottom edge of
-            the photograph instead of washing out the whole image.
+            The photograph remains clear. The fade begins lower
+            so the heading does not visually enter the image.
             ======================================================= */}
         <div
           className="
             absolute
             inset-x-0
-            top-[30%]
-            h-[23%]
+            top-[34%]
+            h-[18%]
             sm:hidden
             bg-gradient-to-b
             from-transparent
-            via-[#fff7fb]/20
-            to-[#fff7fb]
+            via-[#fff9f4]/45
+            to-[#fff9f4]
           "
         />
 
-        {/* Very soft continuation below the image */}
+        {/* Soft warm background for the content area */}
         <div
           className="
             absolute
             inset-x-0
-            top-[48%]
+            top-[50%]
             bottom-0
             sm:hidden
             bg-gradient-to-b
-            from-[#fff7fb]
-            to-[#fdf1f7]
+            from-[#fff9f4]
+            via-[#fff9f4]
+            to-[#fff3ed]
           "
         />
 
-        {/* Desktop overlay — unchanged */}
+        {/* Desktop overlay */}
         <div
           className="
             absolute
@@ -157,8 +156,8 @@ export default function Hero() {
           sm:px-8
           lg:px-12
 
-          pt-[34svh]
-          pb-12
+          pt-[49svh]
+          pb-10
 
           sm:py-20
           lg:py-28
@@ -196,7 +195,7 @@ export default function Hero() {
               font-extrabold
               tracking-tight
 
-              text-[#351d2d]
+              text-[#3a2630]
 
               sm:text-5xl
               sm:text-white
@@ -213,7 +212,7 @@ export default function Hero() {
                 block
                 mt-1.5
                 sm:mt-3
-                text-pink-600
+                text-[#d6336c]
                 sm:text-pink-300
               "
             >
@@ -221,7 +220,12 @@ export default function Hero() {
             </span>
           </h1>
 
-          <div className="mt-4 sm:mt-6">
+          <div
+            className="
+              mt-4
+              sm:mt-6
+            "
+          >
             <RotatingText />
           </div>
 
@@ -234,7 +238,7 @@ export default function Hero() {
 
               text-sm
               leading-6
-              text-[#624653]
+              text-[#654f58]
 
               sm:text-lg
               md:text-xl
@@ -268,7 +272,9 @@ export default function Hero() {
             mx-auto
           "
         >
-          {/* Stories */}
+          {/* =====================================================
+              EXPLORE STORIES
+              ===================================================== */}
           <motion.button
             type="button"
             whileHover={
@@ -286,27 +292,26 @@ export default function Hero() {
               rounded-3xl
 
               border
-              border-[#ead7e1]
+              border-[#eadbd3]
 
-              bg-white/90
-              backdrop-blur-xl
+              bg-[#fffdf9]
 
               p-5
               sm:p-6
               lg:p-10
 
-              shadow-[0_14px_40px_rgba(111,48,82,0.09)]
+              shadow-[0_14px_40px_rgba(91,55,45,0.08)]
 
               hover:bg-white
-              hover:border-[#e4c5d5]
-              hover:shadow-[0_18px_48px_rgba(111,48,82,0.13)]
+              hover:border-[#e5cec3]
+              hover:shadow-[0_18px_48px_rgba(91,55,45,0.12)]
 
               transition-all
               duration-300
 
               focus:outline-none
               focus-visible:ring-2
-              focus-visible:ring-pink-400
+              focus-visible:ring-[#d9778f]
             "
           >
             <div className="text-3xl sm:text-4xl">
@@ -321,7 +326,7 @@ export default function Hero() {
                 sm:text-xl
                 lg:text-3xl
                 font-bold
-                text-[#351d2d]
+                text-[#3a2630]
               "
             >
               Explore Parenting Stories
@@ -335,7 +340,7 @@ export default function Hero() {
                 lg:text-lg
                 leading-6
                 lg:leading-7
-                text-[#6b5360]
+                text-[#6d5a61]
               "
             >
               Discover experiences, lessons and advice
@@ -348,14 +353,16 @@ export default function Hero() {
                 sm:mt-5
                 inline-block
                 font-semibold
-                text-pink-600
+                text-[#c93668]
               "
             >
               Browse stories →
             </span>
           </motion.button>
 
-          {/* Share */}
+          {/* =====================================================
+              SHARE STORY
+              ===================================================== */}
           <motion.button
             type="button"
             whileHover={
@@ -373,31 +380,31 @@ export default function Hero() {
               rounded-3xl
 
               border
-              border-pink-300/40
+              border-[#e8a9b9]
 
               bg-gradient-to-br
-              from-pink-500
-              via-pink-500
-              to-fuchsia-600
+              from-[#d94f7b]
+              via-[#d94672]
+              to-[#b83262]
 
               p-5
               sm:p-6
               lg:p-10
 
-              shadow-[0_18px_50px_rgba(190,24,93,0.18)]
+              shadow-[0_18px_50px_rgba(170,45,87,0.17)]
 
-              hover:from-pink-500
-              hover:via-pink-600
-              hover:to-fuchsia-600
+              hover:from-[#d84a76]
+              hover:via-[#cf3d6c]
+              hover:to-[#b52e5d]
 
-              hover:shadow-[0_22px_58px_rgba(190,24,93,0.25)]
+              hover:shadow-[0_22px_58px_rgba(170,45,87,0.23)]
 
               transition-all
               duration-300
 
               focus:outline-none
               focus-visible:ring-2
-              focus-visible:ring-pink-300
+              focus-visible:ring-[#e9a8b8]
             "
           >
             <div className="text-3xl sm:text-4xl">
@@ -449,4 +456,4 @@ export default function Hero() {
       </div>
     </section>
   );
-            }
+  }
