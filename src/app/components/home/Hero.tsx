@@ -38,79 +38,26 @@ export default function Hero() {
         overflow-hidden
         flex
         items-center
-        bg-[#180f17]
+        bg-[#3b2435]
       "
     >
       {/* =========================================================
           BACKGROUND
           ========================================================= */}
-      <div className="absolute inset-0 z-0 overflow-hidden bg-[#180f17]">
-        {/* Mobile atmospheric background */}
+      <div className="absolute inset-0 z-0 overflow-hidden bg-[#3b2435]">
+        {/* ---------------------------------------------------------
+            MOBILE BACKGROUND
+            --------------------------------------------------------- */}
         <div
           className="
             absolute
             inset-0
             sm:hidden
-            bg-[radial-gradient(circle_at_50%_18%,rgba(236,72,153,0.24),transparent_32%),radial-gradient(circle_at_10%_72%,rgba(168,85,247,0.16),transparent_30%),radial-gradient(circle_at_90%_78%,rgba(244,114,182,0.12),transparent_28%),linear-gradient(180deg,#24131f_0%,#1b1019_42%,#120b11_100%)]
+            bg-[linear-gradient(180deg,#6b4058_0%,#5a3049_42%,#47263b_72%,#382131_100%)]
           "
         />
 
-        {/* Mobile soft glow */}
-        <div
-          className="
-            absolute
-            left-1/2
-            top-[42%]
-            hidden
-            h-[360px]
-            w-[360px]
-            -translate-x-1/2
-            rounded-full
-            bg-pink-500/10
-            blur-[100px]
-            sm:block
-            sm:h-[500px]
-            sm:w-[500px]
-          "
-        />
-
-        {/* Mobile left glow */}
-        <div
-          className="
-            absolute
-            -left-24
-            bottom-16
-            hidden
-            h-56
-            w-56
-            rounded-full
-            bg-fuchsia-500/10
-            blur-[90px]
-            sm:block
-            sm:h-72
-            sm:w-72
-          "
-        />
-
-        {/* Mobile right glow */}
-        <div
-          className="
-            absolute
-            -right-24
-            bottom-24
-            hidden
-            h-56
-            w-56
-            rounded-full
-            bg-rose-400/10
-            blur-[90px]
-            sm:block
-            sm:h-72
-            sm:w-72
-          "
-        />
-
-        {/* Background Image */}
+        {/* Background image */}
         <motion.img
           src="/Images/stories/homebg.jpg"
           alt="Family background"
@@ -147,21 +94,23 @@ export default function Hero() {
           }}
         />
 
-        {/* =======================================================
-            MOBILE IMAGE TRANSITION ONLY
-            ======================================================= */}
+        {/* ---------------------------------------------------------
+            MOBILE IMAGE → BACKGROUND TRANSITION
 
+            This creates a warm, natural fade instead of a black
+            fade. Desktop is completely unaffected.
+            --------------------------------------------------------- */}
         <div
           className="
             absolute
             inset-x-0
             top-0
-            h-[55%]
+            h-[48%]
             sm:hidden
             bg-gradient-to-b
-            from-black/10
-            via-transparent
-            to-[#180f17]
+            from-transparent
+            via-[#5a3049]/15
+            to-[#5a3049]
           "
         />
 
@@ -169,20 +118,20 @@ export default function Hero() {
           className="
             absolute
             inset-x-0
-            top-[22%]
+            top-[25%]
             bottom-0
             sm:hidden
             bg-gradient-to-b
             from-transparent
-            via-[#180f17]/45
-            to-[#120b11]
+            via-[#5a3049]/65
+            to-[#382131]
           "
         />
       </div>
 
       {/* =========================================================
           DESKTOP OVERLAY
-          Kept close to the original desktop treatment.
+          Deliberately preserved independently from mobile styling.
           ========================================================= */}
       <div
         className="
@@ -193,7 +142,7 @@ export default function Hero() {
         "
       />
 
-      {/* Slight mobile readability overlay */}
+      {/* Mobile-only readability layer */}
       <div
         className="
           absolute
@@ -201,7 +150,7 @@ export default function Hero() {
           z-[1]
           sm:hidden
           bg-gradient-to-t
-          from-black/35
+          from-[#382131]/20
           via-transparent
           to-transparent
         "
@@ -240,11 +189,7 @@ export default function Hero() {
             delay: 0.1,
             ease: "easeOut",
           }}
-          className="
-            max-w-5xl
-            mx-auto
-            text-center
-          "
+          className="max-w-5xl mx-auto text-center"
         >
           <h1
             className="
@@ -463,4 +408,4 @@ export default function Hero() {
       </div>
     </section>
   );
-                    }
+      }
