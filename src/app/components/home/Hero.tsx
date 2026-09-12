@@ -38,11 +38,72 @@ export default function Hero() {
         overflow-hidden
         flex
         items-center
-        bg-[#24151d]
+        bg-[#180f17]
       "
     >
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
+      {/* =========================================================
+          MOBILE / PAGE BACKGROUND
+          ========================================================= */}
+      <div className="absolute inset-0 z-0 overflow-hidden bg-[#180f17]">
+        {/* Main atmospheric gradient */}
+        <div
+          className="
+            absolute
+            inset-0
+            bg-[radial-gradient(circle_at_50%_18%,rgba(236,72,153,0.24),transparent_32%),radial-gradient(circle_at_10%_72%,rgba(168,85,247,0.16),transparent_30%),radial-gradient(circle_at_90%_78%,rgba(244,114,182,0.12),transparent_28%),linear-gradient(180deg,#24131f_0%,#1b1019_42%,#120b11_100%)]
+          "
+        />
+
+        {/* Soft central glow */}
+        <div
+          className="
+            absolute
+            left-1/2
+            top-[42%]
+            h-[360px]
+            w-[360px]
+            -translate-x-1/2
+            rounded-full
+            bg-pink-500/10
+            blur-[100px]
+            sm:h-[500px]
+            sm:w-[500px]
+          "
+        />
+
+        {/* Subtle decorative glow — left */}
+        <div
+          className="
+            absolute
+            -left-24
+            bottom-16
+            h-56
+            w-56
+            rounded-full
+            bg-fuchsia-500/10
+            blur-[90px]
+            sm:h-72
+            sm:w-72
+          "
+        />
+
+        {/* Subtle decorative glow — right */}
+        <div
+          className="
+            absolute
+            -right-24
+            bottom-24
+            h-56
+            w-56
+            rounded-full
+            bg-rose-400/10
+            blur-[90px]
+            sm:h-72
+            sm:w-72
+          "
+        />
+
+        {/* Background image */}
         <motion.img
           src="/Images/stories/homebg.jpg"
           alt="Family background"
@@ -83,48 +144,50 @@ export default function Hero() {
           }}
         />
 
-        {/* Soft fill behind the image on small screens */}
+        {/* Smooth transition from image into the lower background */}
+        <div
+          className="
+            absolute
+            inset-x-0
+            top-0
+            h-[55%]
+            bg-gradient-to-b
+            from-black/10
+            via-transparent
+            to-[#180f17]
+          "
+        />
+
+        {/* Stronger lower fade on mobile */}
+        <div
+          className="
+            absolute
+            inset-x-0
+            top-[22%]
+            bottom-0
+            bg-gradient-to-b
+            from-transparent
+            via-[#180f17]/45
+            to-[#120b11]
+            sm:hidden
+          "
+        />
+
+        {/* Desktop readability overlay */}
         <div
           className="
             absolute
             inset-0
-            -z-10
-            bg-gradient-to-b
-            from-[#3a1d2b]
-            via-[#24151d]
-            to-[#160e13]
+            hidden
+            bg-black/25
+            sm:block
           "
         />
       </div>
 
-      {/* Background Overlay */}
-      <div
-        className="
-          absolute
-          inset-0
-          z-[1]
-          bg-gradient-to-b
-          from-black/35
-          via-black/45
-          to-black/60
-        "
-      />
-
-      {/* Extra mobile readability layer */}
-      <div
-        className="
-          absolute
-          inset-0
-          z-[1]
-          bg-gradient-to-t
-          from-black/55
-          via-transparent
-          to-black/10
-          sm:hidden
-        "
-      />
-
-      {/* Content */}
+      {/* =========================================================
+          CONTENT
+          ========================================================= */}
       <div
         className="
           relative
@@ -135,7 +198,8 @@ export default function Hero() {
           px-5
           sm:px-8
           lg:px-12
-          py-16
+          pt-[52svh]
+          pb-14
           sm:py-20
           lg:py-28
           xl:py-32
@@ -167,6 +231,7 @@ export default function Hero() {
               font-extrabold
               tracking-tight
               text-white
+              drop-shadow-[0_3px_18px_rgba(0,0,0,0.35)]
             "
           >
             Welcome to
@@ -198,6 +263,7 @@ export default function Hero() {
               md:text-xl
               md:leading-8
               text-gray-100
+              drop-shadow-[0_2px_12px_rgba(0,0,0,0.4)]
             "
           >
             Parenting is one of life's greatest journeys.
@@ -207,7 +273,9 @@ export default function Hero() {
           </p>
         </motion.div>
 
-        {/* Action Cards */}
+        {/* =========================================================
+            ACTION CARDS
+            ========================================================= */}
         <div
           className="
             mt-9
@@ -234,15 +302,16 @@ export default function Hero() {
               rounded-2xl
               sm:rounded-3xl
               border
-              border-white/25
-              bg-white/15
+              border-white/20
+              bg-white/[0.10]
               backdrop-blur-xl
               p-5
               sm:p-6
               lg:p-10
-              shadow-2xl
-              hover:bg-white/25
-              transition-colors
+              shadow-[0_20px_60px_rgba(0,0,0,0.25)]
+              hover:bg-white/[0.16]
+              hover:border-white/30
+              transition-all
               duration-300
               focus:outline-none
               focus-visible:ring-2
@@ -306,14 +375,22 @@ export default function Hero() {
               cursor-pointer
               rounded-2xl
               sm:rounded-3xl
-              bg-pink-500/90
+              border
+              border-pink-300/20
+              bg-gradient-to-br
+              from-pink-500/95
+              via-pink-500/90
+              to-fuchsia-600/90
               backdrop-blur-xl
               p-5
               sm:p-6
               lg:p-10
-              shadow-2xl
-              hover:bg-pink-600
-              transition-colors
+              shadow-[0_20px_60px_rgba(190,24,93,0.22)]
+              hover:from-pink-500
+              hover:via-pink-600
+              hover:to-fuchsia-600
+              hover:shadow-[0_24px_70px_rgba(190,24,93,0.30)]
+              transition-all
               duration-300
               focus:outline-none
               focus-visible:ring-2
@@ -346,7 +423,7 @@ export default function Hero() {
                 lg:text-lg
                 leading-6
                 lg:leading-7
-                text-white
+                text-white/95
               "
             >
               Tell your parenting journey and inspire another family.
