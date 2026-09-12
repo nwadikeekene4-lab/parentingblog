@@ -96,10 +96,7 @@ export default function Hero() {
         />
 
         {/* =======================================================
-            MOBILE TRANSITION
-
-            The photograph remains clear. The fade begins lower
-            so the heading does not visually enter the image.
+            MOBILE IMAGE TRANSITION
             ======================================================= */}
         <div
           className="
@@ -115,7 +112,9 @@ export default function Hero() {
           "
         />
 
-        {/* Soft warm background for the content area */}
+        {/* =======================================================
+            SOFT CONTENT BACKGROUND
+            ======================================================= */}
         <div
           className="
             absolute
@@ -156,7 +155,7 @@ export default function Hero() {
           sm:px-8
           lg:px-12
 
-          pt-[49svh]
+          pt-[43svh]
           pb-10
 
           sm:py-20
@@ -220,10 +219,28 @@ export default function Hero() {
             </span>
           </h1>
 
+          {/* =====================================================
+              ROTATING MESSAGE
+              Solid warm background keeps the animated text
+              readable against the photograph.
+              ===================================================== */}
           <div
             className="
               mt-4
               sm:mt-6
+              mx-auto
+              w-fit
+              max-w-full
+              rounded-full
+              bg-[#fff1e8]
+              px-4
+              py-1.5
+              shadow-sm
+
+              sm:bg-transparent
+              sm:px-0
+              sm:py-0
+              sm:shadow-none
             "
           >
             <RotatingText />
@@ -456,4 +473,4 @@ export default function Hero() {
       </div>
     </section>
   );
-  }
+        }
