@@ -226,29 +226,33 @@ export default function Hero() {
               clearly visible over the background image.
               ===================================================== */}
           <div
-            className="
-              mt-4
-              sm:mt-6
-              mx-auto
-              w-fit
-              max-w-[calc(100%-1rem)]
-              rounded-full
-              bg-[#fff4e8]
-              px-5
-              py-2
-              shadow-[0_4px_14px_rgba(80,45,35,0.10)]
-              border
-              border-[#f1d8c5]
+  className="
+    mt-4
+    sm:mt-6
+    mx-auto
+    w-fit
+    max-w-[90%]
 
-              sm:bg-transparent
-              sm:border-transparent
-              sm:px-0
-              sm:py-0
-              sm:shadow-none
-            "
-          >
-            <RotatingText />
-          </div>
+    rounded-full
+
+    bg-[#6b2345]
+    border
+    border-[#9d496d]
+
+    px-5
+    py-2.5
+
+    shadow-[0_6px_18px_rgba(80,25,50,0.18)]
+
+    sm:bg-black/25
+    sm:border-white/10
+    sm:px-5
+    sm:py-2
+    sm:shadow-none
+  "
+>
+  <RotatingText />
+</div>
 
           <p
             className="
