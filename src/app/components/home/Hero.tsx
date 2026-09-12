@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
-
 import RotatingText from "./RotatingText";
 
 export default function Hero() {
@@ -34,13 +33,12 @@ export default function Hero() {
     <section
       className="
         relative
-        flex
         min-h-[100svh]
-        items-center
-        overflow-hidden
-        bg-[#3b1828]
-        sm:min-h-screen
         lg:min-h-[900px]
+        overflow-hidden
+        flex
+        items-center
+        bg-[#24151d]
       "
     >
       {/* Background Image */}
@@ -54,69 +52,76 @@ export default function Hero() {
           className="
             absolute
             inset-0
-            h-full
             w-full
+            h-full
+
             object-cover
-            object-[50%_30%]
-            sm:object-[50%_35%]
-            md:object-center
+            object-center
+
+            max-sm:h-auto
+            max-sm:min-h-0
+            max-sm:top-0
+            max-sm:bottom-auto
+            max-sm:object-contain
+            max-sm:object-top
+
+            sm:object-cover
+            sm:object-center
           "
           initial={
             shouldReduceMotion
-              ? false
-              : {
-                  opacity: 0,
-                  scale: 1.02,
-                }
+              ? { opacity: 1 }
+              : { opacity: 0, scale: 1.015 }
           }
-          animate={
-            shouldReduceMotion
-              ? undefined
-              : {
-                  opacity: 1,
-                  scale: 1,
-                }
-          }
-          transition={{
-            opacity: {
-              duration: 0.6,
-              ease: "easeOut",
-            },
-            scale: {
-              duration: 1,
-              ease: "easeOut",
-            },
+          animate={{
+            opacity: 1,
+            scale: 1,
           }}
+          transition={{
+            duration: 0.8,
+            ease: "easeOut",
+          }}
+        />
+
+        {/* Soft fill behind the image on small screens */}
+        <div
+          className="
+            absolute
+            inset-0
+            -z-10
+            bg-gradient-to-b
+            from-[#3a1d2b]
+            via-[#24151d]
+            to-[#160e13]
+          "
         />
       </div>
 
-      {/* Readability Overlay */}
+      {/* Background Overlay */}
       <div
         className="
           absolute
           inset-0
           z-[1]
           bg-gradient-to-b
-          from-black/55
-          via-black/35
-          to-black/65
+          from-black/35
+          via-black/45
+          to-black/60
         "
-        aria-hidden="true"
       />
 
-      {/* Soft colour layer */}
+      {/* Extra mobile readability layer */}
       <div
         className="
-          pointer-events-none
           absolute
           inset-0
-          z-[2]
-          bg-gradient-to-br
-          from-pink-950/20
+          z-[1]
+          bg-gradient-to-t
+          from-black/55
           via-transparent
-          to-rose-950/30
+          to-black/10
+          sm:hidden
         "
-        aria-hidden="true"
       />
 
       {/* Content */}
@@ -124,74 +129,53 @@ export default function Hero() {
         className="
           relative
           z-10
-          mx-auto
           w-full
           max-w-7xl
-          px-4
-          py-14
-          sm:px-6
-          sm:py-20
-          md:px-8
+          mx-auto
+          px-5
+          sm:px-8
           lg:px-12
-          lg:py-24
-          xl:py-28
+          py-16
+          sm:py-20
+          lg:py-28
+          xl:py-32
         "
       >
         {/* Hero Text */}
         <motion.div
           initial={
             shouldReduceMotion
-              ? false
-              : {
-                  opacity: 0,
-                  y: 18,
-                }
+              ? { opacity: 1, y: 0 }
+              : { opacity: 0, y: 20 }
           }
-          animate={
-            shouldReduceMotion
-              ? undefined
-              : {
-                  opacity: 1,
-                  y: 0,
-                }
-          }
+          animate={{ opacity: 1, y: 0 }}
           transition={{
-            duration: 0.65,
+            duration: 0.7,
+            delay: 0.1,
             ease: "easeOut",
           }}
-          className="
-            mx-auto
-            max-w-4xl
-            text-center
-          "
+          className="max-w-5xl mx-auto text-center"
         >
           <h1
             className="
-              text-[2.45rem]
-              font-extrabold
-              leading-[1.02]
-              tracking-[-0.035em]
-              text-white
-              drop-shadow-[0_3px_12px_rgba(0,0,0,0.35)]
+              text-4xl
+              leading-[1.08]
               sm:text-5xl
               md:text-6xl
               lg:text-7xl
               xl:text-8xl
+              font-extrabold
+              tracking-tight
+              text-white
             "
           >
             Welcome to
-
             <span
               className="
-                mt-2
                 block
-                bg-gradient-to-r
-                from-pink-200
-                via-pink-300
-                to-rose-200
-                bg-clip-text
-                text-transparent
+                mt-2
                 sm:mt-3
+                text-pink-300
               "
             >
               Parenting Together
@@ -204,297 +188,184 @@ export default function Hero() {
 
           <p
             className="
-              mx-auto
               mt-5
-              max-w-2xl
-              text-[15px]
+              sm:mt-7
+              max-w-3xl
+              mx-auto
+              text-sm
               leading-6
-              text-white/90
-              drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]
-              sm:mt-6
               sm:text-lg
-              sm:leading-7
               md:text-xl
               md:leading-8
+              text-gray-100
             "
           >
-            Parenting is one of life's greatest journeys. Learn from real
-            parents, share your experiences, and become part of a supportive
-            community built to help every family grow together.
+            Parenting is one of life's greatest journeys.
+            Learn from real parents, share your experiences,
+            and become part of a supportive community built
+            to help every family grow together.
           </p>
         </motion.div>
 
-        {/* Existing Actions */}
-        <motion.div
-          initial={
-            shouldReduceMotion
-              ? false
-              : {
-                  opacity: 0,
-                  y: 20,
-                }
-          }
-          animate={
-            shouldReduceMotion
-              ? undefined
-              : {
-                  opacity: 1,
-                  y: 0,
-                }
-          }
-          transition={{
-            duration: 0.65,
-            delay: shouldReduceMotion ? 0 : 0.1,
-            ease: "easeOut",
-          }}
+        {/* Action Cards */}
+        <div
           className="
-            mx-auto
-            mt-8
+            mt-9
+            sm:mt-12
             grid
-            w-full
-            max-w-4xl
             grid-cols-1
-            gap-4
-            sm:mt-10
-            sm:gap-5
             md:grid-cols-2
+            gap-4
+            sm:gap-6
+            max-w-5xl
+            mx-auto
           "
         >
-          {/* Stories */}
+          {/* Stories Card */}
           <motion.button
             type="button"
+            whileHover={shouldReduceMotion ? undefined : { y: -5 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => router.push("/stories")}
-            whileHover={
-              shouldReduceMotion
-                ? undefined
-                : {
-                    y: -4,
-                  }
-            }
-            whileTap={
-              shouldReduceMotion
-                ? undefined
-                : {
-                    scale: 0.985,
-                  }
-            }
             className="
-              group
-              min-h-[190px]
               w-full
+              text-left
               cursor-pointer
               rounded-2xl
+              sm:rounded-3xl
               border
               border-white/25
-              bg-white/12
+              bg-white/15
+              backdrop-blur-xl
               p-5
-              text-left
-              shadow-[0_20px_50px_rgba(0,0,0,0.22)]
-              backdrop-blur-md
+              sm:p-6
+              lg:p-10
+              shadow-2xl
+              hover:bg-white/25
               transition-colors
               duration-300
-              hover:border-white/40
-              hover:bg-white/20
               focus:outline-none
-              focus:ring-2
-              focus:ring-white
-              focus:ring-offset-2
-              focus:ring-offset-[#3b1828]
-              sm:min-h-[210px]
-              sm:rounded-3xl
-              sm:p-7
-              lg:p-8
+              focus-visible:ring-2
+              focus-visible:ring-pink-300
+              focus-visible:ring-offset-2
+              focus-visible:ring-offset-transparent
             "
           >
-            <span
-              className="
-                flex
-                h-12
-                w-12
-                items-center
-                justify-center
-                rounded-2xl
-                bg-white/15
-                text-2xl
-                transition-transform
-                duration-300
-                group-hover:scale-105
-                sm:h-14
-                sm:w-14
-                sm:text-3xl
-              "
-              aria-hidden="true"
-            >
-              📖
-            </span>
+            <div className="text-3xl sm:text-4xl">📖</div>
 
-            <span
+            <h2
               className="
-                mt-4
-                block
-                text-xl
+                mt-3
+                sm:mt-4
+                text-lg
+                sm:text-xl
+                lg:text-3xl
                 font-bold
-                tracking-tight
                 text-white
-                sm:text-2xl
               "
             >
               Explore Parenting Stories
-            </span>
+            </h2>
 
-            <span
+            <p
               className="
                 mt-2
-                block
+                sm:mt-3
                 text-sm
+                lg:text-lg
                 leading-6
-                text-white/85
-                sm:text-base
-                sm:leading-7
+                lg:leading-7
+                text-gray-100
               "
             >
-              Discover experiences, lessons and advice from parents around
-              the world.
-            </span>
+              Discover experiences, lessons and advice from parents around the world.
+            </p>
 
             <span
               className="
                 mt-4
-                inline-flex
-                items-center
-                gap-1
-                text-sm
+                sm:mt-5
+                inline-block
                 font-semibold
                 text-pink-200
-                transition-transform
-                duration-300
-                group-hover:translate-x-1
-                sm:text-base
               "
             >
-              Browse stories
-              <span aria-hidden="true">→</span>
+              Browse stories →
             </span>
           </motion.button>
 
-          {/* Share Story */}
+          {/* Share Card */}
           <motion.button
             type="button"
+            whileHover={shouldReduceMotion ? undefined : { y: -5 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleShareStory}
-            whileHover={
-              shouldReduceMotion
-                ? undefined
-                : {
-                    y: -4,
-                  }
-            }
-            whileTap={
-              shouldReduceMotion
-                ? undefined
-                : {
-                    scale: 0.985,
-                  }
-            }
             className="
-              group
-              min-h-[190px]
               w-full
+              text-left
               cursor-pointer
               rounded-2xl
-              border
-              border-pink-300/25
-              bg-gradient-to-br
-              from-pink-500/95
-              to-rose-600/90
-              p-5
-              text-left
-              shadow-[0_20px_50px_rgba(0,0,0,0.22)]
-              transition-all
-              duration-300
-              hover:from-pink-500
-              hover:to-rose-600
-              focus:outline-none
-              focus:ring-2
-              focus:ring-pink-200
-              focus:ring-offset-2
-              focus:ring-offset-[#3b1828]
-              sm:min-h-[210px]
               sm:rounded-3xl
-              sm:p-7
-              lg:p-8
+              bg-pink-500/90
+              backdrop-blur-xl
+              p-5
+              sm:p-6
+              lg:p-10
+              shadow-2xl
+              hover:bg-pink-600
+              transition-colors
+              duration-300
+              focus:outline-none
+              focus-visible:ring-2
+              focus-visible:ring-pink-200
+              focus-visible:ring-offset-2
+              focus-visible:ring-offset-transparent
             "
           >
-            <span
-              className="
-                flex
-                h-12
-                w-12
-                items-center
-                justify-center
-                rounded-2xl
-                bg-white/15
-                text-2xl
-                transition-transform
-                duration-300
-                group-hover:scale-105
-                sm:h-14
-                sm:w-14
-                sm:text-3xl
-              "
-              aria-hidden="true"
-            >
-              ✍️
-            </span>
+            <div className="text-3xl sm:text-4xl">✍️</div>
 
-            <span
+            <h2
               className="
-                mt-4
-                block
-                text-xl
+                mt-3
+                sm:mt-4
+                text-lg
+                sm:text-xl
+                lg:text-3xl
                 font-bold
-                tracking-tight
                 text-white
-                sm:text-2xl
               "
             >
               Share Your Story
-            </span>
+            </h2>
 
-            <span
+            <p
               className="
                 mt-2
-                block
+                sm:mt-3
                 text-sm
+                lg:text-lg
                 leading-6
-                text-white/90
-                sm:text-base
-                sm:leading-7
+                lg:leading-7
+                text-white
               "
             >
               Tell your parenting journey and inspire another family.
-            </span>
+            </p>
 
             <span
               className="
                 mt-4
-                inline-flex
-                items-center
-                gap-1
-                text-sm
+                sm:mt-5
+                inline-block
                 font-semibold
                 text-white
-                transition-transform
-                duration-300
-                group-hover:translate-x-1
-                sm:text-base
               "
             >
-              Create a story
-              <span aria-hidden="true">→</span>
+              Create a story →
             </span>
           </motion.button>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
-  }
+        }
