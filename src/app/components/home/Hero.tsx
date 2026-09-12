@@ -38,7 +38,6 @@ export default function Hero() {
         overflow-hidden
         flex
         items-center
-
         bg-[#fff7fb]
         sm:bg-transparent
       "
@@ -47,22 +46,21 @@ export default function Hero() {
           BACKGROUND
           ========================================================= */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        {/* ---------------------------------------------------------
-            MOBILE BASE
-            A soft warm surface replaces the heavy dark background.
-            --------------------------------------------------------- */}
+        {/* Mobile base background */}
         <div
           className="
             absolute
             inset-0
             sm:hidden
-            bg-[linear-gradient(180deg,#fff8fc_0%,#fff5fa_55%,#fdf0f7_100%)]
+            bg-[#fff7fb]
           "
         />
 
-        {/* ---------------------------------------------------------
-            BACKGROUND IMAGE
-            --------------------------------------------------------- */}
+        {/* =======================================================
+            FAMILY IMAGE
+
+            Keep the image itself clean and sharp.
+            ======================================================= */}
         <motion.img
           src="/Images/stories/homebg.jpg"
           alt="Family background"
@@ -74,6 +72,7 @@ export default function Hero() {
             inset-x-0
             top-0
             w-full
+
             h-full
             object-cover
             object-center
@@ -82,68 +81,66 @@ export default function Hero() {
             max-sm:min-h-0
             max-sm:object-contain
             max-sm:object-top
+
+            sm:inset-0
+            sm:h-full
           "
           initial={
             shouldReduceMotion
               ? { opacity: 1 }
               : { opacity: 0 }
           }
-          animate={{
-            opacity: 1,
-          }}
+          animate={{ opacity: 1 }}
           transition={{
-            duration: 0.8,
+            duration: 0.7,
             ease: "easeOut",
           }}
         />
 
-        {/* ---------------------------------------------------------
-            MOBILE IMAGE BLEND
+        {/* =======================================================
+            MOBILE IMAGE FADE
 
-            Instead of ending the photograph abruptly, the image
-            gradually dissolves into the warm page background.
-            --------------------------------------------------------- */}
+            Short and subtle. It only softens the bottom edge of
+            the photograph instead of washing out the whole image.
+            ======================================================= */}
         <div
           className="
             absolute
             inset-x-0
-            top-[18%]
-            h-[38%]
+            top-[30%]
+            h-[23%]
             sm:hidden
             bg-gradient-to-b
             from-transparent
-            via-[#fff7fb]/35
+            via-[#fff7fb]/20
             to-[#fff7fb]
           "
         />
 
+        {/* Very soft continuation below the image */}
         <div
           className="
             absolute
             inset-x-0
-            top-[40%]
+            top-[48%]
             bottom-0
             sm:hidden
             bg-gradient-to-b
-            from-[#fff7fb]/80
-            via-[#fff7fb]/96
-            to-[#fdf0f7]
+            from-[#fff7fb]
+            to-[#fdf1f7]
           "
         />
 
-        {/* ---------------------------------------------------------
-            DESKTOP IMAGE
-            --------------------------------------------------------- */}
+        {/* Desktop overlay — unchanged */}
         <div
           className="
             absolute
             inset-0
             hidden
             sm:block
+            bg-black/45
           "
-        >
-          <div className="absolute inset-0 bg-black/45" />
-        </div>
+        />
       </div>
 
       {/* =========================================================
@@ -160,7 +157,7 @@ export default function Hero() {
           sm:px-8
           lg:px-12
 
-          pt-[42svh]
+          pt-[34svh]
           pb-12
 
           sm:py-20
@@ -175,15 +172,15 @@ export default function Hero() {
           initial={
             shouldReduceMotion
               ? { opacity: 1, y: 0 }
-              : { opacity: 0, y: 20 }
+              : { opacity: 0, y: 18 }
           }
           animate={{
             opacity: 1,
             y: 0,
           }}
           transition={{
-            duration: 0.7,
-            delay: 0.1,
+            duration: 0.65,
+            delay: 0.05,
             ease: "easeOut",
           }}
           className="
@@ -195,7 +192,7 @@ export default function Hero() {
           <h1
             className="
               text-4xl
-              leading-[1.08]
+              leading-[1.06]
               font-extrabold
               tracking-tight
 
@@ -214,7 +211,7 @@ export default function Hero() {
             <span
               className="
                 block
-                mt-2
+                mt-1.5
                 sm:mt-3
                 text-pink-600
                 sm:text-pink-300
@@ -224,19 +221,19 @@ export default function Hero() {
             </span>
           </h1>
 
-          <div className="mt-5 sm:mt-6">
+          <div className="mt-4 sm:mt-6">
             <RotatingText />
           </div>
 
           <p
             className="
-              mt-5
+              mt-4
               sm:mt-7
               max-w-3xl
               mx-auto
+
               text-sm
               leading-6
-
               text-[#624653]
 
               sm:text-lg
@@ -257,7 +254,7 @@ export default function Hero() {
             ======================================================= */}
         <div
           className="
-            mt-9
+            mt-7
             sm:mt-12
 
             grid
@@ -271,9 +268,7 @@ export default function Hero() {
             mx-auto
           "
         >
-          {/* -----------------------------------------------------
-              STORIES
-              ----------------------------------------------------- */}
+          {/* Stories */}
           <motion.button
             type="button"
             whileHover={
@@ -293,18 +288,18 @@ export default function Hero() {
               border
               border-[#ead7e1]
 
-              bg-white/85
+              bg-white/90
               backdrop-blur-xl
 
               p-5
               sm:p-6
               lg:p-10
 
-              shadow-[0_16px_45px_rgba(111,48,82,0.10)]
+              shadow-[0_14px_40px_rgba(111,48,82,0.09)]
 
               hover:bg-white
-              hover:border-[#e5c5d5]
-              hover:shadow-[0_20px_55px_rgba(111,48,82,0.14)]
+              hover:border-[#e4c5d5]
+              hover:shadow-[0_18px_48px_rgba(111,48,82,0.13)]
 
               transition-all
               duration-300
@@ -322,11 +317,9 @@ export default function Hero() {
               className="
                 mt-3
                 sm:mt-4
-
                 text-lg
                 sm:text-xl
                 lg:text-3xl
-
                 font-bold
                 text-[#351d2d]
               "
@@ -338,13 +331,10 @@ export default function Hero() {
               className="
                 mt-2
                 sm:mt-3
-
                 text-sm
                 lg:text-lg
-
                 leading-6
                 lg:leading-7
-
                 text-[#6b5360]
               "
             >
@@ -356,9 +346,7 @@ export default function Hero() {
               className="
                 mt-4
                 sm:mt-5
-
                 inline-block
-
                 font-semibold
                 text-pink-600
               "
@@ -367,9 +355,7 @@ export default function Hero() {
             </span>
           </motion.button>
 
-          {/* -----------------------------------------------------
-              SHARE STORY
-              ----------------------------------------------------- */}
+          {/* Share */}
           <motion.button
             type="button"
             whileHover={
@@ -398,13 +384,13 @@ export default function Hero() {
               sm:p-6
               lg:p-10
 
-              shadow-[0_18px_50px_rgba(190,24,93,0.20)]
+              shadow-[0_18px_50px_rgba(190,24,93,0.18)]
 
               hover:from-pink-500
               hover:via-pink-600
               hover:to-fuchsia-600
 
-              hover:shadow-[0_22px_60px_rgba(190,24,93,0.28)]
+              hover:shadow-[0_22px_58px_rgba(190,24,93,0.25)]
 
               transition-all
               duration-300
@@ -422,11 +408,9 @@ export default function Hero() {
               className="
                 mt-3
                 sm:mt-4
-
                 text-lg
                 sm:text-xl
                 lg:text-3xl
-
                 font-bold
                 text-white
               "
@@ -438,13 +422,10 @@ export default function Hero() {
               className="
                 mt-2
                 sm:mt-3
-
                 text-sm
                 lg:text-lg
-
                 leading-6
                 lg:leading-7
-
                 text-white/95
               "
             >
@@ -456,9 +437,7 @@ export default function Hero() {
               className="
                 mt-4
                 sm:mt-5
-
                 inline-block
-
                 font-semibold
                 text-white
               "
@@ -470,4 +449,4 @@ export default function Hero() {
       </div>
     </section>
   );
-  }
+            }
