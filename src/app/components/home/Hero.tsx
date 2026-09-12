@@ -220,10 +220,31 @@ export default function Hero() {
             </span>
           </h1>
 
+          {/* =====================================================
+              ROTATING MESSAGE
+              Solid warm background keeps the animated text
+              clearly visible over the background image.
+              ===================================================== */}
           <div
             className="
               mt-4
               sm:mt-6
+              mx-auto
+              w-fit
+              max-w-[calc(100%-1rem)]
+              rounded-full
+              bg-[#fff4e8]
+              px-5
+              py-2
+              shadow-[0_4px_14px_rgba(80,45,35,0.10)]
+              border
+              border-[#f1d8c5]
+
+              sm:bg-transparent
+              sm:border-transparent
+              sm:px-0
+              sm:py-0
+              sm:shadow-none
             "
           >
             <RotatingText />
