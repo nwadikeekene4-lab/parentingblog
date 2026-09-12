@@ -38,27 +38,90 @@ export default function Hero() {
         overflow-hidden
         flex
         items-center
+
         bg-[#fff9f4]
+
         sm:bg-transparent
+        sm:block
       "
     >
       {/* =========================================================
-          BACKGROUND
+          MOBILE BACKGROUND
           ========================================================= */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        {/* Mobile base background */}
+      <div
+        className="
+          relative
+          z-0
+          w-full
+          shrink-0
+          sm:hidden
+          bg-[#fff9f4]
+        "
+      >
+        {/* Responsive image area */}
         <div
           className="
-            absolute
-            inset-0
-            sm:hidden
+            relative
+            w-full
+            h-[clamp(250px,68vw,390px)]
+            overflow-hidden
             bg-[#fff9f4]
           "
-        />
+        >
+          <motion.img
+            src="/Images/stories/homebg.jpg"
+            alt="Family background"
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
+            className="
+              absolute
+              inset-0
+              w-full
+              h-full
+              object-contain
+              object-top
+            "
+            initial={
+              shouldReduceMotion
+                ? { opacity: 1 }
+                : { opacity: 0 }
+            }
+            animate={{ opacity: 1 }}
+            transition={{
+              duration: 0.7,
+              ease: "easeOut",
+            }}
+          />
 
-        {/* =======================================================
-            FAMILY IMAGE
-            ======================================================= */}
+          {/* Gentle image-to-content transition */}
+          <div
+            className="
+              absolute
+              inset-x-0
+              bottom-0
+              h-20
+              bg-gradient-to-b
+              from-transparent
+              to-[#fff9f4]
+            "
+          />
+        </div>
+      </div>
+
+      {/* =========================================================
+          DESKTOP BACKGROUND
+          ========================================================= */}
+      <div
+        className="
+          absolute
+          inset-0
+          z-0
+          hidden
+          sm:block
+          overflow-hidden
+        "
+      >
         <motion.img
           src="/Images/stories/homebg.jpg"
           alt="Family background"
@@ -67,21 +130,11 @@ export default function Hero() {
           decoding="async"
           className="
             absolute
-            inset-x-0
-            top-0
+            inset-0
             w-full
-
             h-full
             object-cover
             object-center
-
-            max-sm:h-auto
-            max-sm:min-h-0
-            max-sm:object-contain
-            max-sm:object-top
-
-            sm:inset-0
-            sm:h-full
           "
           initial={
             shouldReduceMotion
@@ -95,47 +148,11 @@ export default function Hero() {
           }}
         />
 
-        {/* =======================================================
-            MOBILE IMAGE TRANSITION
-            ======================================================= */}
-        <div
-          className="
-            absolute
-            inset-x-0
-            top-[34%]
-            h-[18%]
-            sm:hidden
-            bg-gradient-to-b
-            from-transparent
-            via-[#fff9f4]/45
-            to-[#fff9f4]
-          "
-        />
-
-        {/* =======================================================
-            SOFT CONTENT BACKGROUND
-            ======================================================= */}
-        <div
-          className="
-            absolute
-            inset-x-0
-            top-[50%]
-            bottom-0
-            sm:hidden
-            bg-gradient-to-b
-            from-[#fff9f4]
-            via-[#fff9f4]
-            to-[#fff3ed]
-          "
-        />
-
         {/* Desktop overlay */}
         <div
           className="
             absolute
             inset-0
-            hidden
-            sm:block
             bg-black/45
           "
         />
@@ -152,14 +169,15 @@ export default function Hero() {
           max-w-7xl
           mx-auto
           px-5
-          sm:px-8
-          lg:px-12
 
-          pt-[43svh]
           pb-10
 
+          sm:px-8
           sm:py-20
+
+          lg:px-12
           lg:py-28
+
           xl:py-32
         "
       >
@@ -185,6 +203,10 @@ export default function Hero() {
             max-w-5xl
             mx-auto
             text-center
+
+            pt-3
+
+            sm:pt-0
           "
         >
           <h1
@@ -221,8 +243,6 @@ export default function Hero() {
 
           {/* =====================================================
               ROTATING MESSAGE
-              Solid warm background keeps the animated text
-              readable against the photograph.
               ===================================================== */}
           <div
             className="
@@ -230,14 +250,20 @@ export default function Hero() {
               sm:mt-6
               mx-auto
               w-fit
-              max-w-full
+              max-w-[calc(100vw-2rem)]
               rounded-full
-              bg-[#fff1e8]
+
+              bg-[#fff0e6]
+              border
+              border-[#f3d6c8]
+
               px-4
               py-1.5
-              shadow-sm
+
+              shadow-[0_4px_14px_rgba(100,55,45,0.06)]
 
               sm:bg-transparent
+              sm:border-0
               sm:px-0
               sm:py-0
               sm:shadow-none
