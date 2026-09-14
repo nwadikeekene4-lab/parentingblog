@@ -210,13 +210,20 @@ export default function FeaturedStories() {
               text-[#4a3540]
               shadow-[0_4px_16px_rgba(76,42,56,0.04)]
               outline-none
+
               transition-all
-              duration-200
+              duration-150
+              ease-out
+
               placeholder:text-[#aa929d]
+
               focus:border-[#d94f7b]
               focus:bg-white
               focus:ring-4
               focus:ring-[#d94f7b]/10
+              focus:shadow-[0_6px_22px_rgba(201,54,104,0.08)]
+
+              motion-reduce:transition-none
 
               sm:rounded-full
               sm:py-4
