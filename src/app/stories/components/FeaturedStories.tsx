@@ -65,26 +65,26 @@ export default function FeaturedStories() {
     fetchFeaturedStories();
   }, []);
 
-  const cleanText = (text: string) =>
-    text
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "")
-      .trim();
+  const normalizeSearchText = (text: string) =>
+  text
+    .toLocaleLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
 
-  const search = cleanText(searchTerm);
+const search = normalizeSearchText(searchTerm);
 
-  const filteredStories =
-    featuredStories.filter((story) => {
-      const searchableContent = cleanText(
-        `${story.title}
-         ${story.category}
-         ${story.excerpt}
-         ${story.author}
-         ${story.readTime}`
-      );
+const filteredStories =
+  featuredStories.filter((story) => {
+    const searchableContent = normalizeSearchText(
+      `${story.title}
+       ${story.category}
+       ${story.excerpt}
+       ${story.author}
+       ${story.readTime}`
+    );
 
-      return searchableContent.includes(search);
-    });
+    return searchableContent.includes(search);
+  });
 
   return (
     <section
