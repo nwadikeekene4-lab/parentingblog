@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,6 +19,27 @@ export default function LoginForm() {
 
   const [error, setError] =
     useState("");
+
+  /*
+  |--------------------------------------------------------------------------
+  | SAFE REDIRECT DESTINATION
+  |--------------------------------------------------------------------------
+  | Allows pages such as "Share Your Story" to send the user through
+  | authentication and then continue to the intended destination.
+  |
+  | Only internal paths are accepted. External URLs are ignored.
+  |--------------------------------------------------------------------------
+  */
+
+  const requestedRedirect =
+    searchParams.get("redirect");
+
+  const redirectPath =
+    requestedRedirect &&
+    requestedRedirect.startsWith("/") &&
+    !requestedRedirect.startsWith("//")
+      ? requestedRedirect
+      : null;
 
   async function handleSubmit(
     e: React.FormEvent<HTMLFormElement>
@@ -83,8 +105,22 @@ export default function LoginForm() {
         return;
       }
 
+      /*
+      |--------------------------------------------------------------------------
+      | ROLE-BASED REDIRECT
+      |--------------------------------------------------------------------------
+      |
+      | Admins always go to the admin dashboard.
+      |
+      | Normal users are sent to the requested internal destination when
+      | one exists. Otherwise they go to the normal users dashboard.
+      |--------------------------------------------------------------------------
+      */
+
       if (data.user?.role === "admin") {
         router.push("/admin");
+      } else if (redirectPath) {
+        router.push(redirectPath);
       } else {
         router.push("/users-dashboard");
       }
@@ -341,4 +377,4 @@ export default function LoginForm() {
       </button>
     </form>
   );
-        }
+}
