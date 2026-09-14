@@ -80,13 +80,21 @@ export default function StoryCategories() {
                   py-2.5
                   text-sm
                   font-semibold
+
                   transition-all
-                  duration-200
-                  active:scale-[0.97]
+                  duration-150
+                  ease-out
+
+                  active:scale-[0.94]
+                  active:brightness-95
+
                   focus:outline-none
                   focus-visible:ring-2
                   focus-visible:ring-[#d94f7b]
                   focus-visible:ring-offset-2
+
+                  motion-reduce:transition-none
+                  motion-reduce:active:transform-none
 
                   sm:px-5
                   sm:py-3
@@ -98,15 +106,22 @@ export default function StoryCategories() {
                         bg-[#c93668]
                         text-white
                         shadow-[0_6px_18px_rgba(201,54,104,0.22)]
+
+                        active:bg-[#b92e5d]
+                        active:shadow-[0_3px_10px_rgba(201,54,104,0.18)]
                       `
                       : `
                         border-[#f0dce4]
                         bg-white
                         text-[#624653]
                         shadow-[0_3px_12px_rgba(76,42,56,0.05)]
+
                         hover:border-[#e6bfd0]
                         hover:bg-[#fff8fb]
                         hover:text-[#b52e5d]
+
+                        active:bg-[#fff0f5]
+                        active:border-[#e1b7c8]
                       `
                   }
                 `}
@@ -131,6 +146,7 @@ export default function StoryCategories() {
             to-transparent
             transition-opacity
             duration-300
+
             ${
               showIndicator
                 ? "opacity-100"
@@ -181,4 +197,4 @@ export default function StoryCategories() {
       </div>
     </section>
   );
-     }
+      }
