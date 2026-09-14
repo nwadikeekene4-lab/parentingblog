@@ -24,91 +24,213 @@ export default function StoryPreviewCard({
   author,
   readTime,
 }: StoryPreviewCardProps) {
-
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+    <article
+      className="
+        group
+        flex
+        h-full
+        flex-col
+        overflow-hidden
+        rounded-[24px]
+        border
+        border-[#f0dce4]
+        bg-white
+        shadow-[0_6px_22px_rgba(76,42,56,0.06)]
+        transition-all
+        duration-300
 
+        sm:rounded-3xl
+
+        md:hover:-translate-y-1.5
+        md:hover:shadow-[0_16px_38px_rgba(76,42,56,0.11)]
+      "
+    >
       {/* Story Image */}
+      <div
+        className="
+          relative
+          aspect-[16/10]
+          w-full
+          overflow-hidden
+          bg-[#f8edf2]
 
-      <div className="relative h-56 w-full overflow-hidden">
-
+          sm:aspect-[16/10]
+        "
+      >
         <Image
           src={image}
           alt={title}
           fill
-          sizes="(max-width: 768px) 100vw,
-                 (max-width: 1200px) 50vw,
-                 33vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          sizes="
+            (max-width: 640px) 100vw,
+            (max-width: 768px) 100vw,
+            (max-width: 1200px) 50vw,
+            33vw
+          "
+          className="
+            object-cover
+            transition-transform
+            duration-500
+            md:group-hover:scale-[1.04]
+          "
+        />
+
+        {/* Image shade */}
+        <div
+          className="
+            pointer-events-none
+            absolute
+            inset-x-0
+            bottom-0
+            h-20
+            bg-gradient-to-t
+            from-black/25
+            to-transparent
+          "
         />
 
         {/* Category Badge */}
+        <span
+          className="
+            absolute
+            left-3
+            top-3
+            z-10
+            rounded-full
+            border
+            border-white/50
+            bg-white/90
+            px-3
+            py-1.5
+            text-[11px]
+            font-bold
+            text-[#624653]
+            shadow-sm
+            backdrop-blur-md
 
-        <span className="absolute left-4 top-4 z-10 rounded-full bg-white/90 px-4 py-1.5 text-xs font-semibold text-slate-700 shadow-md backdrop-blur-sm">
+            sm:left-4
+            sm:top-4
+            sm:px-4
+            sm:py-1.5
+            sm:text-xs
+          "
+        >
           {category}
         </span>
-
       </div>
 
-
       {/* Card Content */}
+      <div className="flex flex-1 flex-col p-4 sm:p-6">
+        <h3
+          className="
+            line-clamp-2
+            text-lg
+            font-bold
+            leading-snug
+            text-[#35232d]
+            transition-colors
+            duration-200
 
-      <div className="flex flex-1 flex-col p-6">
+            sm:text-xl
 
-        <h3 className="text-xl font-bold leading-snug text-slate-900 transition-colors duration-300 group-hover:text-slate-700">
+            md:group-hover:text-[#b52e5d]
+          "
+        >
           {title}
         </h3>
 
+        <p
+          className="
+            mt-2
+            line-clamp-3
+            flex-1
+            text-sm
+            leading-6
+            text-[#735f68]
 
-        <p className="mt-4 flex-1 text-base leading-7 text-slate-600">
+            sm:mt-4
+            sm:text-base
+            sm:leading-7
+          "
+        >
           {excerpt}
         </p>
 
-
         {/* Footer */}
+        <div
+          className="
+            mt-5
+            border-t
+            border-[#f1e2e8]
+            pt-4
 
-        <div className="mt-8 border-t border-stone-200 pt-5">
+            sm:mt-7
+            sm:pt-5
+          "
+        >
+          <div
+            className="
+              flex
+              items-center
+              justify-between
+              gap-3
+              text-xs
+              text-[#927b86]
 
-          <div className="flex items-center justify-between text-sm text-slate-500">
-
-            <span className="font-medium">
+              sm:text-sm
+            "
+          >
+            <span className="min-w-0 truncate font-semibold text-[#624653]">
               {author}
             </span>
 
-            <span>
+            <span className="shrink-0">
               {readTime}
             </span>
-
           </div>
 
-
           {/* Actions */}
-
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-
-            {/* Bookmark */}
-
+          <div
+            className="
+              mt-4
+              flex
+              items-center
+              justify-between
+              gap-3
+            "
+          >
             <BookmarkButton
               storyId={storyId}
               storySlug={slug}
             />
 
-
-            {/* Read Story */}
-
             <Link
               href={`/stories/${slug}`}
-              className="font-semibold text-slate-800 transition-all duration-300 hover:text-blue-600 group-hover:translate-x-1"
+              className="
+                rounded-full
+                px-3
+                py-2
+                text-sm
+                font-bold
+                text-[#b52e5d]
+                transition-all
+                duration-200
+                hover:bg-[#fff0f5]
+                focus:outline-none
+                focus-visible:ring-2
+                focus-visible:ring-[#d94f7b]
+                focus-visible:ring-offset-2
+
+                md:group-hover:translate-x-0.5
+              "
             >
               Read Story →
             </Link>
-
           </div>
-
         </div>
-
       </div>
-
     </article>
   );
-}
+  }
+  
