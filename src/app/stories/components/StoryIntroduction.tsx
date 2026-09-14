@@ -2,8 +2,15 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 export default function StoryIntroduction() {
+  const router = useRouter();
+
+  function handleShareYourStory() {
+    router.push("/users-dashboard/write-story");
+  }
+
   return (
     <section
       className="
@@ -155,6 +162,7 @@ export default function StoryIntroduction() {
 
         <button
           type="button"
+          onClick={handleShareYourStory}
           className="
             mt-7
             rounded-full
