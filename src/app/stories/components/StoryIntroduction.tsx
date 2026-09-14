@@ -126,7 +126,6 @@ export default function StoryIntroduction() {
             sm:text-5xl
 
             md:text-6xl
-
             lg:text-6xl
             xl:text-7xl
           "
@@ -166,16 +165,28 @@ export default function StoryIntroduction() {
             font-bold
             text-[#9d2857]
             shadow-[0_10px_30px_rgba(0,0,0,0.18)]
+
             transition-all
-            duration-300
+            duration-150
+            ease-out
+
             hover:-translate-y-1
             hover:bg-[#fff7fa]
-            active:scale-[0.97]
+
+            active:translate-y-[1px]
+            active:scale-[0.96]
+            active:brightness-95
+            active:shadow-[0_4px_14px_rgba(0,0,0,0.14)]
+
             focus:outline-none
             focus-visible:ring-2
             focus-visible:ring-white
             focus-visible:ring-offset-2
             focus-visible:ring-offset-[#9d2857]
+
+            motion-reduce:transition-none
+            motion-reduce:hover:transform-none
+            motion-reduce:active:transform-none
 
             sm:px-8
             sm:py-4
@@ -187,4 +198,4 @@ export default function StoryIntroduction() {
       </motion.div>
     </section>
   );
-        }
+      }
