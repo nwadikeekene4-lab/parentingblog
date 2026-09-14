@@ -246,9 +246,7 @@ export default function FeaturedStories() {
           sm:mt-9
           sm:gap-6
 
-          md:grid-cols-2
-
-          xl:grid-cols-3
+          lg:grid-cols-[repeat(auto-fit,minmax(320px,1fr))]
         "
       >
         {/* Loading */}
