@@ -24,7 +24,6 @@ export default function StoryCategories() {
 
   useEffect(() => {
     const container = scrollRef.current;
-
     if (!container) return;
 
     const handleScroll = () => {
@@ -41,17 +40,29 @@ export default function StoryCategories() {
 
     handleScroll();
 
-    container.addEventListener('scroll', handleScroll);
+    container.addEventListener("scroll", handleScroll);
 
-    return () => container.removeEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
   return (
-    <section className="mb-12">
+    <section className="mb-8 sm:mb-12">
       <div className="relative">
         <div
           ref={scrollRef}
-          className="flex gap-3 overflow-x-auto pb-3 pr-16 scrollbar-hide scroll-smooth"
+          className="
+            flex
+            gap-2.5
+            overflow-x-auto
+            pb-2
+            pr-10
+            scroll-smooth
+            scrollbar-hide
+            overscroll-x-contain
+            [-webkit-overflow-scrolling:touch]
+          "
         >
           {categories.map((category) => {
             const active = pathname === category.link;
@@ -60,11 +71,45 @@ export default function StoryCategories() {
               <Link
                 key={category.name}
                 href={category.link}
-                className={`whitespace-nowrap rounded-full px-5 py-3 text-sm font-semibold transition-all duration-300 active:scale-95 ${
-                  active
-                    ? 'bg-slate-900 text-white shadow-lg'
-                    : 'bg-stone-100 text-slate-700 hover:bg-stone-200'
-                }`}
+                className={`
+                  shrink-0
+                  whitespace-nowrap
+                  rounded-full
+                  border
+                  px-4
+                  py-2.5
+                  text-sm
+                  font-semibold
+                  transition-all
+                  duration-200
+                  active:scale-[0.97]
+                  focus:outline-none
+                  focus-visible:ring-2
+                  focus-visible:ring-[#d94f7b]
+                  focus-visible:ring-offset-2
+
+                  sm:px-5
+                  sm:py-3
+
+                  ${
+                    active
+                      ? `
+                        border-[#c93668]
+                        bg-[#c93668]
+                        text-white
+                        shadow-[0_6px_18px_rgba(201,54,104,0.22)]
+                      `
+                      : `
+                        border-[#f0dce4]
+                        bg-white
+                        text-[#624653]
+                        shadow-[0_3px_12px_rgba(76,42,56,0.05)]
+                        hover:border-[#e6bfd0]
+                        hover:bg-[#fff8fb]
+                        hover:text-[#b52e5d]
+                      `
+                  }
+                `}
               >
                 {category.name}
               </Link>
@@ -72,20 +117,68 @@ export default function StoryCategories() {
           })}
         </div>
 
+        {/* Scroll fade */}
         <div
-          className={`pointer-events-none absolute right-0 top-0 h-full w-20 bg-gradient-to-l from-gray-50 to-transparent transition-opacity duration-300 ${
-            showIndicator ? 'opacity-100' : 'opacity-0'
-          }`}
+          className={`
+            pointer-events-none
+            absolute
+            right-0
+            top-0
+            h-full
+            w-14
+            bg-gradient-to-l
+            from-[#fff9f6]
+            to-transparent
+            transition-opacity
+            duration-300
+            ${
+              showIndicator
+                ? "opacity-100"
+                : "opacity-0"
+            }
+          `}
         />
 
+        {/* Small scroll cue */}
         <div
-          className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-2 py-1 text-xl font-bold text-slate-700 shadow-lg transition-all duration-300 ${
-            showIndicator ? 'opacity-100' : 'opacity-0'
-          } ${animateArrow && showIndicator ? 'animate-bounce' : ''}`}
+          className={`
+            pointer-events-none
+            absolute
+            right-1
+            top-1/2
+            flex
+            h-8
+            w-8
+            -translate-y-1/2
+            items-center
+            justify-center
+            rounded-full
+            border
+            border-[#f0dce4]
+            bg-white
+            text-lg
+            font-bold
+            text-[#b52e5d]
+            shadow-[0_4px_12px_rgba(76,42,56,0.10)]
+            transition-all
+            duration-300
+
+            ${
+              showIndicator
+                ? "opacity-100"
+                : "opacity-0"
+            }
+
+            ${
+              animateArrow && showIndicator
+                ? "animate-pulse"
+                : ""
+            }
+          `}
         >
           ›
         </div>
       </div>
     </section>
   );
-}
+     }
