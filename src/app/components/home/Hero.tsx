@@ -97,9 +97,6 @@ export default function Hero() {
 
         {/* =======================================================
             MOBILE TRANSITION
-
-            The photograph remains clear. The fade begins lower
-            so the heading does not visually enter the image.
             ======================================================= */}
         <div
           className="
@@ -156,7 +153,7 @@ export default function Hero() {
           sm:px-8
           lg:px-12
 
-          pt-[49svh]
+          pt-[calc(66.5vw_+_1rem)]
           pb-10
 
           sm:py-20
@@ -222,37 +219,35 @@ export default function Hero() {
 
           {/* =====================================================
               ROTATING MESSAGE
-              Solid warm background keeps the animated text
-              clearly visible over the background image.
               ===================================================== */}
           <div
-  className="
-    mt-4
-    sm:mt-6
-    mx-auto
-    w-fit
-    max-w-[90%]
+            className="
+              mt-4
+              sm:mt-6
+              mx-auto
+              w-fit
+              max-w-[90%]
 
-    rounded-full
+              rounded-full
 
-    bg-[#6b2345]
-    border
-    border-[#9d496d]
+              bg-[#6b2345]
+              border
+              border-[#9d496d]
 
-    px-5
-    py-2.5
+              px-5
+              py-2.5
 
-    shadow-[0_6px_18px_rgba(80,25,50,0.18)]
+              shadow-[0_6px_18px_rgba(80,25,50,0.18)]
 
-    sm:bg-black/25
-    sm:border-white/10
-    sm:px-5
-    sm:py-2
-    sm:shadow-none
-  "
->
-  <RotatingText />
-</div>
+              sm:bg-black/25
+              sm:border-white/10
+              sm:px-5
+              sm:py-2
+              sm:shadow-none
+            "
+          >
+            <RotatingText />
+          </div>
 
           <p
             className="
@@ -481,4 +476,4 @@ export default function Hero() {
       </div>
     </section>
   );
-  }
+                    }
