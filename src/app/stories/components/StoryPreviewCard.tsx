@@ -37,8 +37,16 @@ export default function StoryPreviewCard({
         border-[#f0dce4]
         bg-white
         shadow-[0_6px_22px_rgba(76,42,56,0.06)]
+
         transition-all
-        duration-300
+        duration-150
+        ease-out
+
+        active:scale-[0.99]
+        active:shadow-[0_3px_14px_rgba(76,42,56,0.08)]
+
+        motion-reduce:transition-none
+        motion-reduce:active:transform-none
 
         sm:rounded-3xl
 
@@ -214,13 +222,24 @@ export default function StoryPreviewCard({
                 text-sm
                 font-bold
                 text-[#b52e5d]
+
                 transition-all
-                duration-200
+                duration-150
+                ease-out
+
                 hover:bg-[#fff0f5]
+
+                active:scale-[0.95]
+                active:bg-[#ffe8f0]
+                active:text-[#9f2450]
+
                 focus:outline-none
                 focus-visible:ring-2
                 focus-visible:ring-[#d94f7b]
                 focus-visible:ring-offset-2
+
+                motion-reduce:transition-none
+                motion-reduce:active:transform-none
 
                 md:group-hover:translate-x-0.5
               "
@@ -232,5 +251,5 @@ export default function StoryPreviewCard({
       </div>
     </article>
   );
-  }
-  
+}
+
