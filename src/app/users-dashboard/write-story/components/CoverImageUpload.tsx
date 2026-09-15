@@ -67,20 +67,28 @@ export default function CoverImageUpload() {
         error
       );
 
-      setCoverImage((current) => {
-        if (!current || current.id !== id) {
-          return current;
-        }
+      /*
+      |--------------------------------------------------------------------------
+      | The context setter accepts an image value,
+      | not a functional state updater.
+      |--------------------------------------------------------------------------
+      */
 
-        return {
-          ...current,
+      const currentImage = coverImage;
+
+      if (
+        currentImage &&
+        currentImage.id === id
+      ) {
+        setCoverImage({
+          ...currentImage,
           uploading: false,
           error:
             error instanceof Error
               ? error.message
               : "Unable to upload cover image.",
-        };
-      });
+        });
+      }
     } finally {
       setUploading(false);
     }
@@ -128,7 +136,9 @@ export default function CoverImageUpload() {
         {!coverImage ? (
           <button
             type="button"
-            onClick={() => inputRef.current?.click()}
+            onClick={() =>
+              inputRef.current?.click()
+            }
             className="flex h-64 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 transition hover:border-blue-500 hover:bg-blue-50"
           >
             <span className="text-5xl">
@@ -194,4 +204,4 @@ export default function CoverImageUpload() {
       </div>
     </section>
   );
-      }
+        }
