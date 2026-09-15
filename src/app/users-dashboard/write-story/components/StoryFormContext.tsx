@@ -10,6 +10,7 @@ import {
 
 import {
   useParams,
+  usePathname,
   useSearchParams,
 } from "next/navigation";
 
@@ -21,6 +22,24 @@ export type UploadedImage = {
   publicId?: string;
   uploading: boolean;
   error?: string;
+};
+
+type SavedAdminProgress = {
+  title: string;
+  content: string;
+  category: string;
+  coverImage: {
+    id: string;
+    preview: string;
+    url?: string;
+    publicId?: string;
+  } | null;
+  storyImages: {
+    id: string;
+    preview: string;
+    url?: string;
+    publicId?: string;
+  }[];
 };
 
 type StoryFormContextType = {
@@ -69,6 +88,9 @@ const StoryFormContext =
     null
   );
 
+const ADMIN_PROGRESS_KEY =
+  "admin-write-story-progress";
+
 export function StoryFormProvider({
   children,
 }: {
@@ -78,6 +100,11 @@ export function StoryFormProvider({
     useSearchParams();
 
   const params = useParams();
+
+  const pathname = usePathname();
+
+  const isAdminWriteStory =
+    pathname === "/admin/write-story";
 
   const routeStoryId =
     typeof params?.id === "string"
@@ -93,8 +120,11 @@ export function StoryFormProvider({
     routeStoryId ??
     queryStoryId;
 
-  const mode = searchParams.get("mode");
-  const isPublishedEdit = mode === "published";
+  const mode =
+    searchParams.get("mode");
+
+  const isPublishedEdit =
+    mode === "published";
 
   const [title, setTitle] =
     useState("");
@@ -120,17 +150,226 @@ export function StoryFormProvider({
 
   /*
   |--------------------------------------------------------------------------
-  | Load existing draft, pending story, or published story for editing
+  | Restore Admin unfinished progress
+  |--------------------------------------------------------------------------
+  */
+
+  useEffect(() => {
+    if (
+      !isAdminWriteStory ||
+      editStoryId ||
+      isPublishedEdit
+    ) {
+      return;
+    }
+
+    try {
+      const saved =
+        window.localStorage.getItem(
+          ADMIN_PROGRESS_KEY
+        );
+
+      if (!saved) {
+        setLoadingStory(false);
+        return;
+      }
+
+      const progress =
+        JSON.parse(
+          saved
+        ) as SavedAdminProgress;
+
+      setTitle(
+        progress.title ?? ""
+      );
+
+      setContent(
+        progress.content ?? ""
+      );
+
+      setCategory(
+        progress.category ?? ""
+      );
+
+      if (
+        progress.coverImage
+      ) {
+        setCoverImage({
+          id:
+            progress.coverImage.id,
+          file: new File(
+            [],
+            "saved-admin-cover-image"
+          ),
+          preview:
+            progress.coverImage.preview,
+          url:
+            progress.coverImage.url,
+          publicId:
+            progress.coverImage.publicId,
+          uploading: false,
+        });
+      }
+
+      if (
+        Array.isArray(
+          progress.storyImages
+        )
+      ) {
+        setStoryImages(
+          progress.storyImages.map(
+            (image) => ({
+              id: image.id,
+              file: new File(
+                [],
+                "saved-admin-story-image"
+              ),
+              preview:
+                image.preview,
+              url:
+                image.url,
+              publicId:
+                image.publicId,
+              uploading: false,
+            })
+          )
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Restore admin story progress error:",
+        error
+      );
+
+      window.localStorage.removeItem(
+        ADMIN_PROGRESS_KEY
+      );
+    } finally {
+      setLoadingStory(false);
+    }
+  }, [
+    isAdminWriteStory,
+    editStoryId,
+    isPublishedEdit,
+  ]);
+
+  /*
+  |--------------------------------------------------------------------------
+  | Automatically save Admin progress
+  |--------------------------------------------------------------------------
+  */
+
+  useEffect(() => {
+    if (
+      !isAdminWriteStory ||
+      editStoryId ||
+      isPublishedEdit ||
+      loadingStory
+    ) {
+      return;
+    }
+
+    const timeout =
+      window.setTimeout(() => {
+        try {
+          const progress:
+            SavedAdminProgress = {
+            title,
+            content,
+            category,
+
+            coverImage:
+              coverImage
+                ? {
+                    id:
+                      coverImage.id,
+                    preview:
+                      coverImage.preview,
+                    url:
+                      coverImage.url,
+                    publicId:
+                      coverImage.publicId,
+                  }
+                : null,
+
+            storyImages:
+              storyImages.map(
+                (image) => ({
+                  id: image.id,
+                  preview:
+                    image.preview,
+                  url:
+                    image.url,
+                  publicId:
+                    image.publicId,
+                })
+              ),
+          };
+
+          /*
+           * Don't create unnecessary storage
+           * when the editor is completely empty.
+           */
+          const hasProgress =
+            title.trim() ||
+            content.trim() ||
+            category.trim() ||
+            coverImage ||
+            storyImages.length > 0;
+
+          if (hasProgress) {
+            window.localStorage.setItem(
+              ADMIN_PROGRESS_KEY,
+              JSON.stringify(
+                progress
+              )
+            );
+          } else {
+            window.localStorage.removeItem(
+              ADMIN_PROGRESS_KEY
+            );
+          }
+        } catch (error) {
+          console.error(
+            "Save admin story progress error:",
+            error
+          );
+        }
+      }, 500);
+
+    return () =>
+      window.clearTimeout(
+        timeout
+      );
+  }, [
+    isAdminWriteStory,
+    editStoryId,
+    isPublishedEdit,
+    loadingStory,
+    title,
+    content,
+    category,
+    coverImage,
+    storyImages,
+  ]);
+
+  /*
+  |--------------------------------------------------------------------------
+  | Load existing draft, pending story, or published story
   |--------------------------------------------------------------------------
   */
 
   useEffect(() => {
     if (!editStoryId) {
-      setLoadingStory(false);
+      if (!isAdminWriteStory) {
+        setLoadingStory(false);
+      }
+
       return;
     }
 
-    const storyId = editStoryId;
+    const storyId =
+      editStoryId;
 
     let cancelled = false;
 
@@ -138,17 +377,23 @@ export function StoryFormProvider({
       try {
         setLoadingStory(true);
 
-        const endpoint = isPublishedEdit
-          ? `/api/story-edits/${encodeURIComponent(storyId)}`
-          : `/api/drafts/${encodeURIComponent(storyId)}`;
+        const endpoint =
+          isPublishedEdit
+            ? `/api/story-edits/${encodeURIComponent(
+                storyId
+              )}`
+            : `/api/drafts/${encodeURIComponent(
+                storyId
+              )}`;
 
-        const response = await fetch(
-          endpoint,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
+        const response =
+          await fetch(
+            endpoint,
+            {
+              method: "GET",
+              cache: "no-store",
+            }
+          );
 
         const data =
           await response.json();
@@ -160,7 +405,9 @@ export function StoryFormProvider({
           );
         }
 
-        const story = data.story ?? data.draft;
+        const story =
+          data.story ??
+          data.draft;
 
         if (!story) {
           throw new Error(
@@ -181,18 +428,16 @@ export function StoryFormProvider({
         );
 
         setCategory(
-          typeof story.category === "string"
+          typeof story.category ===
+            "string"
             ? story.category
-            : story.category?.name ?? ""
+            : story.category?.name ??
+                ""
         );
 
-        /*
-        |--------------------------------------------------------------------------
-        | Existing cover
-        |--------------------------------------------------------------------------
-        */
-
-        if (story.coverImage) {
+        if (
+          story.coverImage
+        ) {
           setCoverImage({
             id:
               `existing-cover-${story.id ?? storyId}`,
@@ -218,14 +463,10 @@ export function StoryFormProvider({
           setCoverImage(null);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Existing story images
-        |--------------------------------------------------------------------------
-        */
-
         const existingImages =
-          Array.isArray(story.images)
+          Array.isArray(
+            story.images
+          )
             ? story.images
             : [];
 
@@ -238,7 +479,9 @@ export function StoryFormProvider({
               publicId?: string | null;
               caption?: string | null;
             }) => ({
-              id: image.id ?? `img-${Math.random()}`,
+              id:
+                image.id ??
+                `img-${Math.random()}`,
 
               file: new File(
                 [],
@@ -246,10 +489,14 @@ export function StoryFormProvider({
               ),
 
               preview:
-                image.imageUrl ?? image.url ?? "",
+                image.imageUrl ??
+                image.url ??
+                "",
 
               url:
-                image.imageUrl ?? image.url ?? "",
+                image.imageUrl ??
+                image.url ??
+                "",
 
               publicId:
                 image.publicId ??
@@ -284,8 +531,11 @@ export function StoryFormProvider({
     return () => {
       cancelled = true;
     };
-
-  }, [editStoryId, isPublishedEdit]);
+  }, [
+    editStoryId,
+    isPublishedEdit,
+    isAdminWriteStory,
+  ]);
 
   /*
   |--------------------------------------------------------------------------
@@ -297,27 +547,33 @@ export function StoryFormProvider({
     url: string,
     publicId: string
   ) {
-    setCoverImage((current) => {
-      if (!current) {
+    setCoverImage(
+      (current) => {
+        if (!current) {
+          return {
+            id:
+              `new-cover-${Date.now()}`,
+            file: new File(
+              [],
+              "cover-image"
+            ),
+            preview: url,
+            url,
+            publicId,
+            uploading: false,
+          };
+        }
+
         return {
-          id: `new-cover-${Date.now()}`,
-          file: new File([], "cover-image"),
-          preview: url,
+          ...current,
           url,
           publicId,
+          preview: url,
           uploading: false,
+          error: undefined,
         };
       }
-
-      return {
-        ...current,
-        url,
-        publicId,
-        preview: url,
-        uploading: false,
-        error: undefined,
-      };
-    });
+    );
   }
 
   /*
@@ -332,34 +588,35 @@ export function StoryFormProvider({
       publicId: string;
     }[]
   ) {
-    setStoryImages((current) =>
-      current.map(
-        (image, index) => {
-          const uploaded =
-            images[index];
+    setStoryImages(
+      (current) =>
+        current.map(
+          (image, index) => {
+            const uploaded =
+              images[index];
 
-          if (!uploaded) {
-            return image;
+            if (!uploaded) {
+              return image;
+            }
+
+            return {
+              ...image,
+
+              url:
+                uploaded.url,
+
+              publicId:
+                uploaded.publicId,
+
+              preview:
+                uploaded.url,
+
+              uploading: false,
+
+              error: undefined,
+            };
           }
-
-          return {
-            ...image,
-
-            url:
-              uploaded.url,
-
-            publicId:
-              uploaded.publicId,
-
-            preview:
-              uploaded.url,
-
-            uploading: false,
-
-            error: undefined,
-          };
-        }
-      )
+        )
     );
   }
 
@@ -376,6 +633,21 @@ export function StoryFormProvider({
     setCoverImage(null);
     setStoryImages([]);
     setLoadingStory(false);
+
+    if (
+      isAdminWriteStory
+    ) {
+      try {
+        window.localStorage.removeItem(
+          ADMIN_PROGRESS_KEY
+        );
+      } catch (error) {
+        console.error(
+          "Clear admin story progress error:",
+          error
+        );
+      }
+    }
   }
 
   return (
@@ -427,5 +699,4 @@ export function useStoryForm() {
   }
 
   return context;
-  }
-    
+}
