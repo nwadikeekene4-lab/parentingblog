@@ -356,15 +356,15 @@ export async function POST(
     */
 
     if (user.role === "admin") {
-      return NextResponse.json(
-        {
-          message:
-            "Admin accounts cannot create stories through the Users Dashboard.",
-        },
-        {
-          status: 403,
-        }
-      );
+  return NextResponse.json(
+    {
+      message:
+        "Admin accounts cannot create stories through the Users Dashboard.",
+    },
+    {
+      status: 403,
+    }
+  );
     }
 
     /*
