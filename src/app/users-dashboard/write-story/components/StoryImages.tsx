@@ -1,189 +1,206 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useState } from "react";
+import { ChangeEvent, useRef, useState } from "react";
 
+import { useStoryForm } from "./StoryFormContext";
 import { uploadImage } from "@/lib/uploadImage";
-import {
-  UploadedImage,
-  useStoryForm,
-} from "./StoryFormContext";
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function StoryImages() {
-  const {
-    storyImages,
-    setStoryImages,
-  } = useStoryForm();
+  const { storyImages, setStoryImages } = useStoryForm();
 
-  const [uploadingIds, setUploadingIds] =
-    useState<string[]>([]);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingIds, setUploadingIds] = useState<string[]>([]);
 
-  async function handleImages(
-    e: React.ChangeEvent<HTMLInputElement>
+  function createId() {
+    return `story-image-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 9)}`;
+  }
+
+  async function handleFiles(
+    event: ChangeEvent<HTMLInputElement>
   ) {
-    const files = e.target.files;
+    const files = Array.from(event.target.files ?? []);
 
-    if (!files) return;
+    if (files.length === 0) return;
 
-    const newImages: UploadedImage[] = [];
+    /*
+    |--------------------------------------------------------------------------
+    | Add selected images to the form immediately
+    |--------------------------------------------------------------------------
+    */
 
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith("image/")) {
-        alert(`${file.name} is not a valid image.`);
-        continue;
-      }
+    const newImages = files.map((file) => ({
+      id: createId(),
+      file,
+      preview: URL.createObjectURL(file),
+      uploading: true,
+    }));
 
-      if (file.size > MAX_FILE_SIZE) {
-        alert(`${file.name} is larger than 10MB.`);
-        continue;
-      }
-
-      newImages.push({
-        id: crypto.randomUUID(),
-        file,
-        preview: URL.createObjectURL(file),
-        uploading: true,
-      });
-    }
-
-    if (newImages.length === 0) {
-      e.target.value = "";
-      return;
-    }
-
-    setStoryImages([
-      ...storyImages,
-      ...newImages,
-    ]);
+    setStoryImages([...storyImages, ...newImages]);
 
     setUploadingIds((current) => [
       ...current,
       ...newImages.map((image) => image.id),
     ]);
 
-    e.target.value = "";
+    /*
+    |--------------------------------------------------------------------------
+    | Upload images
+    |--------------------------------------------------------------------------
+    |
+    | uploadImage() already compresses large images before sending
+    | them to Cloudinary.
+    |--------------------------------------------------------------------------
+    */
 
-    await Promise.all(
+    const uploadedResults = await Promise.all(
       newImages.map(async (image) => {
         try {
-          const uploaded = await uploadImage(
+          const result = await uploadImage(
             image.file,
             "parenting-blog/story-images"
           );
 
-          setStoryImages((current) =>
-            current.map((currentImage) =>
-              currentImage.id === image.id
-                ? {
-                    ...currentImage,
-                    url: uploaded.url,
-                    publicId:
-                      uploaded.publicId,
-                    preview: uploaded.url,
-                    uploading: false,
-                    error: undefined,
-                  }
-                : currentImage
-            )
-          );
+          return {
+            id: image.id,
+            url: result.url,
+            publicId: result.publicId,
+            error: undefined as string | undefined,
+          };
         } catch (error) {
           console.error(
             "Story image upload error:",
             error
           );
 
-          setStoryImages((current) =>
-            current.map((currentImage) =>
-              currentImage.id === image.id
-                ? {
-                    ...currentImage,
-                    uploading: false,
-                    error:
-                      error instanceof Error
-                        ? error.message
-                        : "Unable to upload image.",
-                  }
-                : currentImage
-            )
-          );
-        } finally {
-          setUploadingIds((current) =>
-            current.filter(
-              (id) => id !== image.id
-            )
-          );
+          return {
+            id: image.id,
+            url: "",
+            publicId: "",
+            error:
+              error instanceof Error
+                ? error.message
+                : "Image upload failed.",
+          };
         }
       })
     );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Apply upload results
+    |--------------------------------------------------------------------------
+    |
+    | We use the current storyImages state captured before this
+    | upload batch and add the completed results to it.
+    |
+    | No functional React setter is used because the context
+    | intentionally exposes setStoryImages as a direct setter.
+    |--------------------------------------------------------------------------
+    */
+
+    const resultMap = new Map(
+      uploadedResults.map((result) => [
+        result.id,
+        result,
+      ])
+    );
+
+    const updatedImages = [
+      ...storyImages,
+      ...newImages,
+    ].map((image) => {
+      const result = resultMap.get(image.id);
+
+      if (!result) {
+        return image;
+      }
+
+      return {
+        ...image,
+        url: result.url || undefined,
+        publicId: result.publicId || undefined,
+        preview: result.url || image.preview,
+        uploading: false,
+        error: result.error,
+      };
+    });
+
+    setStoryImages(updatedImages);
+
+    setUploadingIds((current) =>
+      current.filter(
+        (id) =>
+          !newImages.some(
+            (image) => image.id === id
+          )
+      )
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reset file input so the same image can be selected again
+    |--------------------------------------------------------------------------
+    */
+
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
   }
 
   function removeImage(id: string) {
     const image = storyImages.find(
-      (img) => img.id === id
+      (item) => item.id === id
     );
 
-    if (
-      image?.preview?.startsWith("blob:")
-    ) {
+    if (image?.preview.startsWith("blob:")) {
       URL.revokeObjectURL(image.preview);
     }
 
     setStoryImages(
-      storyImages.filter(
-        (img) => img.id !== id
-      )
+      storyImages.filter((item) => item.id !== id)
     );
 
     setUploadingIds((current) =>
-      current.filter(
-        (uploadingId) =>
-          uploadingId !== id
-      )
+      current.filter((itemId) => itemId !== id)
     );
   }
 
-  useEffect(() => {
-    return () => {
-      storyImages.forEach((image) => {
-        if (
-          image.preview?.startsWith("blob:")
-        ) {
-          URL.revokeObjectURL(
-            image.preview
-          );
-        }
-      });
-    };
-  }, [storyImages]);
+  const hasImages = storyImages.length > 0;
 
   return (
     <section className="rounded-2xl bg-white p-6 shadow-sm">
       <div className="mb-5">
-        <h2 className="text-xl font-bold text-gray-900">
+        <h2 className="text-lg font-bold text-gray-900">
           Story Images
         </h2>
 
-        <p className="mt-2 text-sm text-gray-500">
-          Add extra images to support your parenting story.
+        <p className="mt-1 text-sm text-gray-500">
+          Add additional images to appear inside your
+          published story.
         </p>
       </div>
 
       <input
+        ref={inputRef}
         type="file"
-        multiple
         accept="image/*"
-        onChange={handleImages}
-        className="mb-6 block w-full cursor-pointer rounded-lg border border-gray-300 p-3 transition hover:border-blue-400 hover:bg-blue-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+        multiple
+        onChange={handleFiles}
+        className="hidden"
       />
 
-      {storyImages.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-500">
-          No additional images selected.
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 active:bg-gray-200 cursor-pointer"
+      >
+        Add Story Images
+      </button>
+
+      {hasImages && (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {storyImages.map((image) => {
             const isUploading =
               uploadingIds.includes(image.id) ||
@@ -192,33 +209,31 @@ export default function StoryImages() {
             return (
               <div
                 key={image.id}
-                className="overflow-hidden rounded-xl border border-gray-200 transition hover:shadow-md"
+                className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-50"
               >
-                <div className="relative h-48">
-                  <Image
-                    src={image.preview}
-                    alt="Story Image"
-                    fill
-                    unoptimized
-                    className="object-cover"
-                  />
+                <img
+                  src={image.preview}
+                  alt=""
+                  className="h-48 w-full object-cover"
+                />
 
-                  {isUploading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/45">
-                      <div className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-gray-800 shadow-lg">
+                {isUploading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                    <div className="rounded-xl bg-white px-4 py-3 text-center shadow-lg">
+                      <p className="text-sm font-semibold text-gray-900">
                         Uploading...
-                      </div>
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Compressing and uploading image
+                      </p>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                {image.error && (
-                  <p
-                    className="p-3 text-xs text-red-600"
-                    role="alert"
-                  >
+                {image.error && !isUploading && (
+                  <div className="absolute inset-x-0 bottom-0 bg-red-600/90 p-3 text-xs text-white">
                     {image.error}
-                  </p>
+                  </div>
                 )}
 
                 <button
@@ -227,7 +242,7 @@ export default function StoryImages() {
                     removeImage(image.id)
                   }
                   disabled={isUploading}
-                  className="w-full cursor-pointer border-t border-gray-200 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50 active:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="absolute right-2 top-2 rounded-lg bg-black/70 px-3 py-2 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
                 >
                   Remove
                 </button>
@@ -238,4 +253,4 @@ export default function StoryImages() {
       )}
     </section>
   );
-}
+      }
