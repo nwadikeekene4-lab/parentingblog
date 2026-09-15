@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import {
+  usePathname,
   useRouter,
   useSearchParams,
   useParams,
-  usePathname,
 } from "next/navigation";
 
 import { useStoryForm } from "./StoryFormContext";
-import { uploadImage } from "@/lib/uploadImage";
 
 type UploadedResult = {
   url: string;
@@ -20,9 +19,7 @@ function getSafeErrorMessage(
   error: unknown,
   fallback: string
 ): string {
-  if (!(error instanceof Error)) {
-    return fallback;
-  }
+  if (!(error instanceof Error)) return fallback;
 
   const message = error.message.toLowerCase();
 
@@ -61,9 +58,9 @@ function getSafeErrorMessage(
 
 export default function StoryActions() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const params = useParams();
-  const pathname = usePathname();
 
   const isAdminWriteStory =
     pathname === "/admin/write-story";
@@ -109,35 +106,33 @@ export default function StoryActions() {
   const [showPreview, setShowPreview] =
     useState(false);
 
+  const imagesUploading =
+    Boolean(coverImage?.uploading) ||
+    storyImages.some(
+      (image) => image.uploading
+    );
+
   const busy =
     savingDraft ||
-    publishing;
+    publishing ||
+    imagesUploading;
 
   async function submitStory(
-    requestedStatus:
-      | "draft"
-      | "published"
+    requestedStatus: "draft" | "published"
   ) {
-    if (busy) {
-      return;
-    }
+    if (busy) return;
 
     setErrorMessage("");
 
-    const cleanTitle =
-      title.trim();
-
-    const cleanContent =
-      content.trim();
-
-    const cleanCategory =
-      category.trim();
+    const cleanTitle = title.trim();
+    const cleanContent = content.trim();
+    const cleanCategory = category.trim();
 
     /*
-     * ---------------------------------------------------------
-     * Validate required fields
-     * ---------------------------------------------------------
-     */
+    |--------------------------------------------------------------------------
+    | Basic validation
+    |--------------------------------------------------------------------------
+    */
 
     if (!cleanTitle) {
       setErrorMessage(
@@ -161,8 +156,7 @@ export default function StoryActions() {
     }
 
     if (
-      requestedStatus ===
-        "published" &&
+      requestedStatus === "published" &&
       !coverImage
     ) {
       setErrorMessage(
@@ -172,15 +166,55 @@ export default function StoryActions() {
     }
 
     /*
-     * ---------------------------------------------------------
-     * Start appropriate operation
-     * ---------------------------------------------------------
-     */
+    |--------------------------------------------------------------------------
+    | Make sure image uploads have finished
+    |--------------------------------------------------------------------------
+    */
+
+    if (imagesUploading) {
+      setErrorMessage(
+        "Please wait for your images to finish uploading."
+      );
+      return;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Do not publish if an image upload failed
+    |--------------------------------------------------------------------------
+    */
+
+    const failedImage = storyImages.find(
+      (image) => image.error
+    );
 
     if (
-      requestedStatus ===
-      "draft"
+      requestedStatus === "published" &&
+      failedImage
     ) {
+      setErrorMessage(
+        "One of your story images failed to upload. Please remove it and upload it again."
+      );
+      return;
+    }
+
+    if (
+      requestedStatus === "published" &&
+      coverImage?.error
+    ) {
+      setErrorMessage(
+        "Your cover image failed to upload. Please remove it and upload it again."
+      );
+      return;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Start submission
+    |--------------------------------------------------------------------------
+    */
+
+    if (requestedStatus === "draft") {
       setSavingDraft(true);
       setStatusMessage(
         "Saving your draft..."
@@ -188,224 +222,165 @@ export default function StoryActions() {
       setProgress(10);
     } else {
       setPublishing(true);
-
       setStatusMessage(
         isPublishedEdit
           ? "Submitting your published story edits for review..."
-          : "Preparing your story..."
+          : isAdminWriteStory
+            ? "Publishing your story..."
+            : "Preparing your story..."
       );
-
-      setProgress(5);
+      setProgress(10);
     }
 
     try {
       /*
-       * -------------------------------------------------------
-       * Upload / reuse cover image
-       * -------------------------------------------------------
-       */
+      |--------------------------------------------------------------------------
+      | Images are already uploaded by the image components.
+      |
+      | We deliberately do NOT upload them again here.
+      |--------------------------------------------------------------------------
+      */
 
-      let uploadedCover:
-        | UploadedResult
-        | null = null;
-
-      if (coverImage) {
-        if (coverImage.url) {
-          uploadedCover = {
-            url: coverImage.url,
-            publicId:
-              coverImage.publicId ??
-              "",
-          };
-        } else {
-          setStatusMessage(
-            "Uploading cover image..."
-          );
-
-          uploadedCover =
-            await uploadImage(
-              coverImage.file,
-              "parenting-blog/cover-images"
-            );
-        }
-      }
-
-      setProgress(30);
-
-      /*
-       * -------------------------------------------------------
-       * Upload / reuse story images
-       * -------------------------------------------------------
-       */
-
-      const uploadedStoryImages:
-        UploadedResult[] =
-        await Promise.all(
-          storyImages.map(
-            async (image) => {
-              if (image.url) {
-                return {
-                  url: image.url,
-                  publicId:
-                    image.publicId ??
-                    "",
-                };
-              }
-
-              return uploadImage(
-                image.file,
-                "parenting-blog/story-images"
-              );
+      const uploadedCover: UploadedResult | null =
+        coverImage?.url
+          ? {
+              url: coverImage.url,
+              publicId:
+                coverImage.publicId ?? "",
             }
+          : null;
+
+      const uploadedStoryImages: UploadedResult[] =
+        storyImages
+          .filter(
+            (image) =>
+              image.url &&
+              image.url.trim().length > 0
           )
-        );
+          .map((image) => ({
+            url: image.url!,
+            publicId:
+              image.publicId ?? "",
+          }));
 
-      setProgress(70);
+      setProgress(40);
 
       /*
-       * -------------------------------------------------------
-       * Prepare API request
-       * -------------------------------------------------------
-       */
+      |--------------------------------------------------------------------------
+      | Determine API endpoint
+      |--------------------------------------------------------------------------
+      */
 
-      setStatusMessage(
-        requestedStatus ===
-          "draft"
-          ? "Saving your draft..."
-          : isPublishedEdit
-            ? "Submitting changes for administrator review..."
-            : "Submitting your story for review..."
-      );
-
-      const endpoint =
-        isPublishedEdit
-          ? `/api/story-edits/${encodeURIComponent(
-              draftId || ""
+      const endpoint = isPublishedEdit
+        ? `/api/story-edits/${encodeURIComponent(
+            draftId || ""
+          )}`
+        : draftId
+          ? `/api/drafts/${encodeURIComponent(
+              draftId
             )}`
-          : draftId
-            ? `/api/drafts/${encodeURIComponent(
-                draftId
-              )}`
-            : "/api/stories";
+          : "/api/stories";
 
-      const method =
-        isPublishedEdit
-          ? "PUT"
-          : draftId
-            ? "PATCH"
-            : "POST";
+      const method = isPublishedEdit
+        ? "PUT"
+        : draftId
+          ? "PATCH"
+          : "POST";
 
       /*
-       * -------------------------------------------------------
-       * Save story
-       * -------------------------------------------------------
-       */
+      |--------------------------------------------------------------------------
+      | Prepare request body
+      |--------------------------------------------------------------------------
+      */
 
       const validStoryImages =
         uploadedStoryImages.filter(
           (image) =>
-            image &&
             image.url &&
-            image.url.trim().length >
-              0
+            image.url.trim().length > 0
         );
 
       const requestBody =
         isPublishedEdit
           ? {
-              title:
-                cleanTitle,
-
-              content:
-                cleanContent,
-
-              category:
-                cleanCategory,
-
+              title: cleanTitle,
+              content: cleanContent,
+              category: cleanCategory,
               coverImageUrl:
-                uploadedCover?.url ??
-                null,
-
+                uploadedCover?.url ?? null,
               coverImagePublicId:
                 uploadedCover?.publicId ||
                 null,
-
               storyImages:
                 validStoryImages.map(
                   (image) => ({
-                    url:
-                      image.url,
-
+                    url: image.url,
                     publicId:
-                      image.publicId ||
-                      "",
+                      image.publicId || "",
                   })
                 ),
             }
           : {
-              title:
-                cleanTitle,
-
-              content:
-                cleanContent,
-
-              category:
-                cleanCategory,
-
-              status:
-                requestedStatus,
-
+              title: cleanTitle,
+              content: cleanContent,
+              category: cleanCategory,
+              status: requestedStatus,
               coverImageUrl:
-                uploadedCover?.url ??
-                null,
-
+                uploadedCover?.url ?? null,
               coverImagePublicId:
                 uploadedCover?.publicId ||
                 null,
-
               storyImages:
                 validStoryImages.map(
                   (image) => ({
-                    url:
-                      image.url,
-
+                    url: image.url,
                     publicId:
-                      image.publicId ||
-                      "",
+                      image.publicId || "",
                   })
                 ),
             };
 
-      const response =
-        await fetch(
-          endpoint,
-          {
-            method,
+      setProgress(60);
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            credentials:
-              "same-origin",
-
-            cache: "no-store",
-
-            body: JSON.stringify(
-              requestBody
-            ),
-          }
-        );
+      setStatusMessage(
+        requestedStatus === "draft"
+          ? "Saving your draft..."
+          : isPublishedEdit
+            ? "Submitting changes for administrator review..."
+            : isAdminWriteStory
+              ? "Publishing your story..."
+              : "Submitting your story for review..."
+      );
 
       /*
-       * -------------------------------------------------------
-       * Read server response safely
-       * -------------------------------------------------------
-       */
+      |--------------------------------------------------------------------------
+      | Submit to API
+      |--------------------------------------------------------------------------
+      */
+
+      const response = await fetch(
+        endpoint,
+        {
+          method,
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          credentials: "same-origin",
+          cache: "no-store",
+          body: JSON.stringify(
+            requestBody
+          ),
+        }
+      );
 
       let data: {
         message?: string;
+        story?: {
+          id?: string;
+          title?: string;
+          slug?: string;
+        };
       } = {};
 
       const responseText =
@@ -413,10 +388,9 @@ export default function StoryActions() {
 
       if (responseText) {
         try {
-          data =
-            JSON.parse(
-              responseText
-            );
+          data = JSON.parse(
+            responseText
+          );
         } catch {
           if (!response.ok) {
             throw new Error(
@@ -425,12 +399,6 @@ export default function StoryActions() {
           }
         }
       }
-
-      /*
-       * -------------------------------------------------------
-       * Only response.ok determines success.
-       * -------------------------------------------------------
-       */
 
       if (!response.ok) {
         throw new Error(
@@ -445,45 +413,68 @@ export default function StoryActions() {
       }
 
       /*
-       * -------------------------------------------------------
-       * SUCCESS
-       * -------------------------------------------------------
-       */
+      |--------------------------------------------------------------------------
+      | Successful submission
+      |--------------------------------------------------------------------------
+      */
 
       setProgress(100);
 
       setStatusMessage(
-        requestedStatus ===
-          "draft"
+        requestedStatus === "draft"
           ? "Draft saved successfully!"
           : isPublishedEdit
             ? "Changes submitted for review successfully!"
-            : "Story submitted successfully!"
+            : isAdminWriteStory
+              ? "Story published successfully!"
+              : "Story submitted successfully!"
       );
 
       /*
-       * Clear the form and, for Admin,
-       * clear the automatically saved progress.
-       */
+      |--------------------------------------------------------------------------
+      | Clear form and Admin autosave data
+      |--------------------------------------------------------------------------
+      */
 
       resetForm();
 
       /*
-       * -------------------------------------------------------
-       * Redirect
-       * -------------------------------------------------------
-       */
+      |--------------------------------------------------------------------------
+      | Redirect
+      |--------------------------------------------------------------------------
+      */
 
       if (
         requestedStatus ===
         "published"
       ) {
+        if (isPublishedEdit) {
+          router.replace(
+            "/users-dashboard/my-stories?revised=true"
+          );
+          return;
+        }
+
+        if (isAdminWriteStory) {
+          const slug =
+            data.story?.slug;
+
+          if (!slug) {
+            throw new Error(
+              "Story was published, but its URL could not be determined."
+            );
+          }
+
+          router.replace(
+            `/stories/${encodeURIComponent(
+              slug
+            )}`
+          );
+          return;
+        }
+
         router.replace(
-          isPublishedEdit
-            ? "/users-dashboard/my-stories?revised=true"
-            : isAdminWriteStory
-              ? "/admin/my-stories"
-              : "/users-dashboard/pending-review?submitted=true"
+          "/users-dashboard/pending-review?submitted=true"
         );
       } else {
         router.replace(
@@ -519,23 +510,21 @@ export default function StoryActions() {
   }
 
   async function publishStory() {
-    if (busy) {
-      return;
-    }
+    if (busy) return;
 
     const confirmMessage =
       isPublishedEdit
         ? "Are you sure you want to submit these edits for administrator review? Your current published story will remain live until approved."
-        : "Are you sure you want to submit this story for review?";
+        : isAdminWriteStory
+          ? "Are you sure you want to publish this story now?"
+          : "Are you sure you want to submit this story for review?";
 
     const confirmed =
       window.confirm(
         confirmMessage
       );
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     await submitStory(
       "published"
@@ -578,7 +567,9 @@ export default function StoryActions() {
             >
               {isPublishedEdit
                 ? "Submitting Published Story Edits"
-                : "Submitting Story"}
+                : isAdminWriteStory
+                  ? "Publishing Story"
+                  : "Submitting Story"}
             </h2>
 
             <p className="mt-2 text-sm text-gray-600">
@@ -631,7 +622,7 @@ export default function StoryActions() {
                 onClick={() =>
                   setShowPreview(false)
                 }
-                className="rounded-lg px-3 py-2 text-gray-600 transition hover:bg-gray-100 active:bg-gray-200 cursor-pointer"
+                className="cursor-pointer rounded-lg px-3 py-2 text-gray-600 transition hover:bg-gray-100 active:bg-gray-200"
               >
                 Close
               </button>
@@ -640,17 +631,14 @@ export default function StoryActions() {
             <article className="p-6 md:p-10">
               {coverImage?.preview && (
                 <img
-                  src={
-                    coverImage.preview
-                  }
+                  src={coverImage.preview}
                   alt=""
                   className="mb-8 h-64 w-full rounded-2xl object-cover md:h-96"
                 />
               )}
 
               <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-blue-600">
-                {category ||
-                  "Story"}
+                {category || "Story"}
               </p>
 
               <h1 className="text-3xl font-bold leading-tight text-gray-900 md:text-5xl">
@@ -667,12 +655,8 @@ export default function StoryActions() {
                   {storyImages.map(
                     (image) => (
                       <img
-                        key={
-                          image.id
-                        }
-                        src={
-                          image.preview
-                        }
+                        key={image.id}
+                        src={image.preview}
                         alt=""
                         className="h-64 w-full rounded-2xl object-cover"
                       />
@@ -687,8 +671,8 @@ export default function StoryActions() {
 
       <section className="rounded-2xl bg-white p-6 shadow-sm">
         {isPublishedEdit && (
-          <div className="mb-4 rounded-xl bg-amber-50 p-4 border border-amber-200 text-amber-800 text-sm">
-            <span className="font-semibold block mb-1">
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            <span className="mb-1 block font-semibold">
               Edit Published Story
             </span>
 
@@ -699,11 +683,9 @@ export default function StoryActions() {
         <div className="flex flex-col gap-4 md:flex-row md:justify-end">
           <button
             type="button"
-            onClick={
-              openPreview
-            }
+            onClick={openPreview}
             disabled={busy}
-            className="rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-100 active:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+            className="cursor-pointer rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-100 active:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Preview Story
           </button>
@@ -712,11 +694,9 @@ export default function StoryActions() {
             !isAdminWriteStory && (
               <button
                 type="button"
-                onClick={
-                  saveDraft
-                }
+                onClick={saveDraft}
                 disabled={busy}
-                className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-white transition hover:bg-yellow-600 active:bg-yellow-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                className="cursor-pointer rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-white transition hover:bg-yellow-600 active:bg-yellow-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {savingDraft
                   ? "Saving..."
@@ -726,17 +706,17 @@ export default function StoryActions() {
 
           <button
             type="button"
-            onClick={
-              publishStory
-            }
+            onClick={publishStory}
             disabled={busy}
-            className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 active:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+            className="cursor-pointer rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 active:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {publishing
               ? "Submitting..."
               : isPublishedEdit
                 ? "Submit Changes for Review"
-                : "Publish Story"}
+                : isAdminWriteStory
+                  ? "Publish Story"
+                  : "Publish Story"}
           </button>
         </div>
 
@@ -752,4 +732,4 @@ export default function StoryActions() {
       </section>
     </>
   );
-  }
+        }
