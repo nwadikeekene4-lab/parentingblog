@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
 import LoginForm from "./components/LoginForm";
 import SignupForm from "./components/SignupForm";
@@ -165,13 +165,15 @@ export default function AuthPage() {
             sm:p-8
           "
         >
-          {mode === "login" ? (
-            <LoginForm />
-          ) : (
-            <SignupForm />
-          )}
+          <Suspense fallback={null}>
+            {mode === "login" ? (
+              <LoginForm />
+            ) : (
+              <SignupForm />
+            )}
+          </Suspense>
         </div>
       </section>
     </main>
   );
-        }
+      }
