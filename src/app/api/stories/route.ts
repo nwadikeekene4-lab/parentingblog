@@ -313,7 +313,8 @@ export async function GET() {
 | User request:
 |
 | draft     -> draft
-| published -> pending_review
+| published -> pending_review for normal users
+| published -> published for administrators
 |
 | A normal user cannot directly publish a story.
 |--------------------------------------------------------------------------
@@ -342,29 +343,6 @@ export async function POST(
           status: 401,
         }
       );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Role protection
-    |--------------------------------------------------------------------------
-    | Admin accounts use the Admin Dashboard and must not create
-    | stories through the normal Users Dashboard story API.
-    |
-    | Moderator behavior is intentionally left unchanged.
-    |--------------------------------------------------------------------------
-    */
-
-    if (user.role === "admin") {
-  return NextResponse.json(
-    {
-      message:
-        "Admin accounts cannot create stories through the Users Dashboard.",
-    },
-    {
-      status: 403,
-    }
-  );
     }
 
     /*
@@ -640,14 +618,21 @@ export async function POST(
     | Determine database status
     |--------------------------------------------------------------------------
     |
-    | draft     -> draft
-    | published -> pending_review
+    | Normal user:
+    |   draft     -> draft
+    |   published -> pending_review
+    |
+    | Admin:
+    |   draft     -> draft
+    |   published -> published
     |--------------------------------------------------------------------------
     */
 
     const databaseStatus =
       status === "published"
-        ? "pending_review"
+        ? user.role === "admin"
+          ? "published"
+          : "pending_review"
         : "draft";
 
     /*
@@ -661,11 +646,15 @@ export async function POST(
 
     /*
     |--------------------------------------------------------------------------
-    | A pending story is not published yet.
+    | Set published timestamp only when
+    | the story is actually published.
     |--------------------------------------------------------------------------
     */
 
-    const publishedAt = null;
+    const publishedAt =
+      databaseStatus === "published"
+        ? new Date()
+        : null;
 
     /*
     |--------------------------------------------------------------------------
@@ -769,7 +758,9 @@ export async function POST(
             "story_submitted",
 
           message:
-            `You submitted "${story.title}" for review.`,
+            databaseStatus === "published"
+              ? `You published "${story.title}".`
+              : `You submitted "${story.title}" for review.`,
 
           storyId:
             story.id,
@@ -813,9 +804,11 @@ export async function POST(
         success: true,
 
         message:
-          status === "published"
-            ? "Story submitted for review successfully."
-            : "Draft saved successfully.",
+          databaseStatus === "published"
+            ? "Story published successfully."
+            : status === "published"
+              ? "Story submitted for review successfully."
+              : "Draft saved successfully.",
 
         story,
 
@@ -842,4 +835,4 @@ export async function POST(
       }
     );
   }
-  }
+}
