@@ -28,16 +28,16 @@ type SavedAdminProgress = {
   title: string;
   content: string;
   category: string;
+
   coverImage: {
     id: string;
-    preview: string;
-    url?: string;
+    url: string;
     publicId?: string;
   } | null;
+
   storyImages: {
     id: string;
-    preview: string;
-    url?: string;
+    url: string;
     publicId?: string;
   }[];
 };
@@ -163,6 +163,8 @@ export function StoryFormProvider({
       return;
     }
 
+    let restored = false;
+
     try {
       const saved =
         window.localStorage.getItem(
@@ -180,59 +182,151 @@ export function StoryFormProvider({
         ) as SavedAdminProgress;
 
       setTitle(
-        progress.title ?? ""
+        typeof progress.title === "string"
+          ? progress.title
+          : ""
       );
 
       setContent(
-        progress.content ?? ""
+        typeof progress.content === "string"
+          ? progress.content
+          : ""
       );
 
       setCategory(
-        progress.category ?? ""
+        typeof progress.category === "string"
+          ? progress.category
+          : ""
       );
 
+      /*
+      |--------------------------------------------------------------------------
+      | Restore uploaded cover image
+      |--------------------------------------------------------------------------
+      |
+      | Only restore images that have a permanent uploaded URL.
+      | A browser blob URL cannot be relied upon after leaving
+      | and reopening the page.
+      |--------------------------------------------------------------------------
+      */
+
       if (
-        progress.coverImage
+        progress.coverImage &&
+        typeof progress.coverImage.url === "string" &&
+        progress.coverImage.url.trim()
       ) {
         setCoverImage({
           id:
-            progress.coverImage.id,
+            progress.coverImage.id ||
+            `saved-cover-${Date.now()}`,
+
           file: new File(
             [],
             "saved-admin-cover-image"
           ),
+
           preview:
-            progress.coverImage.preview,
+            progress.coverImage.url,
+
           url:
             progress.coverImage.url,
+
           publicId:
             progress.coverImage.publicId,
+
           uploading: false,
         });
+
+        restored = true;
+      } else {
+        setCoverImage(null);
       }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Restore uploaded story images
+      |--------------------------------------------------------------------------
+      */
 
       if (
         Array.isArray(
           progress.storyImages
         )
       ) {
+        const restoredImages =
+          progress.storyImages
+            .filter(
+              (image) =>
+                image &&
+                typeof image.url === "string" &&
+                image.url.trim()
+            )
+            .map(
+              (image, index) => ({
+                id:
+                  image.id ||
+                  `saved-story-image-${index}-${Date.now()}`,
+
+                file: new File(
+                  [],
+                  "saved-admin-story-image"
+                ),
+
+                preview:
+                  image.url,
+
+                url:
+                  image.url,
+
+                publicId:
+                  image.publicId,
+
+                uploading: false,
+              })
+            );
+
         setStoryImages(
-          progress.storyImages.map(
-            (image) => ({
-              id: image.id,
-              file: new File(
-                [],
-                "saved-admin-story-image"
-              ),
-              preview:
-                image.preview,
-              url:
-                image.url,
-              publicId:
-                image.publicId,
-              uploading: false,
-            })
-          )
+          restoredImages
+        );
+
+        if (
+          restoredImages.length > 0
+        ) {
+          restored = true;
+        }
+      } else {
+        setStoryImages([]);
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Keep the saved progress if it contains text or uploaded images.
+      |--------------------------------------------------------------------------
+      */
+
+      if (
+        progress.title?.trim() ||
+        progress.content?.trim() ||
+        progress.category?.trim() ||
+        progress.coverImage?.url ||
+        progress.storyImages?.some(
+          (image) =>
+            typeof image?.url === "string" &&
+            image.url.trim()
+        )
+      ) {
+        restored = true;
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | If the saved data is malformed/empty, remove it.
+      |--------------------------------------------------------------------------
+      */
+
+      if (!restored) {
+        window.localStorage.removeItem(
+          ADMIN_PROGRESS_KEY
         );
       }
     } catch (error) {
@@ -272,6 +366,42 @@ export function StoryFormProvider({
     const timeout =
       window.setTimeout(() => {
         try {
+          /*
+          |--------------------------------------------------------------------------
+          | Only persist permanent uploaded image URLs.
+          |--------------------------------------------------------------------------
+          |
+          | Temporary blob URLs and File objects cannot be reliably
+          | restored after the page is closed.
+          |--------------------------------------------------------------------------
+          */
+
+          const savedCoverImage =
+            coverImage?.url
+              ? {
+                  id: coverImage.id,
+                  url: coverImage.url,
+                  publicId:
+                    coverImage.publicId,
+                }
+              : null;
+
+          const savedStoryImages =
+            storyImages
+              .filter(
+                (image) =>
+                  typeof image.url === "string" &&
+                  image.url.trim().length > 0
+              )
+              .map(
+                (image) => ({
+                  id: image.id,
+                  url: image.url as string,
+                  publicId:
+                    image.publicId,
+                })
+              );
+
           const progress:
             SavedAdminProgress = {
             title,
@@ -279,43 +409,24 @@ export function StoryFormProvider({
             category,
 
             coverImage:
-              coverImage
-                ? {
-                    id:
-                      coverImage.id,
-                    preview:
-                      coverImage.preview,
-                    url:
-                      coverImage.url,
-                    publicId:
-                      coverImage.publicId,
-                  }
-                : null,
+              savedCoverImage,
 
             storyImages:
-              storyImages.map(
-                (image) => ({
-                  id: image.id,
-                  preview:
-                    image.preview,
-                  url:
-                    image.url,
-                  publicId:
-                    image.publicId,
-                })
-              ),
+              savedStoryImages,
           };
 
           /*
-           * Don't create unnecessary storage
-           * when the editor is completely empty.
-           */
+          |--------------------------------------------------------------------------
+          | Determine whether there is anything worth saving.
+          |--------------------------------------------------------------------------
+          */
+
           const hasProgress =
-            title.trim() ||
-            content.trim() ||
-            category.trim() ||
-            coverImage ||
-            storyImages.length > 0;
+            title.trim().length > 0 ||
+            content.trim().length > 0 ||
+            category.trim().length > 0 ||
+            Boolean(savedCoverImage) ||
+            savedStoryImages.length > 0;
 
           if (hasProgress) {
             window.localStorage.setItem(
@@ -553,23 +664,33 @@ export function StoryFormProvider({
           return {
             id:
               `new-cover-${Date.now()}`,
+
             file: new File(
               [],
               "cover-image"
             ),
+
             preview: url,
+
             url,
+
             publicId,
+
             uploading: false,
           };
         }
 
         return {
           ...current,
+
           url,
+
           publicId,
+
           preview: url,
+
           uploading: false,
+
           error: undefined,
         };
       }
@@ -699,4 +820,4 @@ export function useStoryForm() {
   }
 
   return context;
-}
+  }
