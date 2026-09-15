@@ -10,10 +10,11 @@ export default async function UsersDashboardLayout({
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
-
-  if (!user) {
-    redirect("/auth");
-  }
+if (!user) {
+  redirect(
+    "/auth?redirect=/users-dashboard/write-story"
+  );
+}
 
   /*
    * Admin accounts belong in the Admin Dashboard.
