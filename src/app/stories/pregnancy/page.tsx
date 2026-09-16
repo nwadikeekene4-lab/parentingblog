@@ -1,8 +1,23 @@
+import type { Metadata } from "next";
+
 import StoryCategoryLayout from "../components/StoryCategoryLayout";
 import { getStoriesByCategory } from "@/lib/getStoriesByCategory";
 
-export default async function PregnancyPage() {
+export const metadata: Metadata = {
+  title: "Pregnancy Stories",
+  description:
+    "Explore real pregnancy experiences, memorable moments, challenges and journeys shared by parents.",
+  alternates: {
+    canonical:
+      "https://parentingblog-76yt.vercel.app/stories/pregnancy",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
+export default async function PregnancyPage() {
   const stories =
     await getStoriesByCategory(
       "Pregnancy"
