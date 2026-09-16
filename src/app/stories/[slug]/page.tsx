@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
@@ -15,6 +16,86 @@ type Props = {
     slug: string;
   }>;
 };
+
+const siteUrl = "https://parentingblog-76yt.vercel.app";
+
+export async function generateMetadata({
+  params,
+}: Props): Promise<Metadata> {
+  const { slug } = await params;
+
+  const story = await db.query.stories.findFirst({
+    where: eq(stories.slug, slug),
+    with: {
+      author: true,
+      category: true,
+    },
+  });
+
+  if (!story || story.isDeleted || story.status !== "published") {
+    return {
+      title: "Story Not Found",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const description =
+    story.excerpt?.trim() ||
+    story.content
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 160);
+
+  const canonicalUrl = `${siteUrl}/stories/${story.slug}`;
+
+  return {
+    title: story.title,
+    description,
+
+    alternates: {
+      canonical: canonicalUrl,
+    },
+
+    robots: {
+      index: true,
+      follow: true,
+    },
+
+    openGraph: {
+      type: "article",
+      url: canonicalUrl,
+      siteName: "Parenting Together",
+      title: story.title,
+      description,
+      publishedTime: story.publishedAt
+        ? new Date(story.publishedAt).toISOString()
+        : undefined,
+      authors: story.author?.displayName
+        ? [story.author.displayName]
+        : undefined,
+      images: story.coverImage
+        ? [
+            {
+              url: story.coverImage,
+              alt: story.title,
+            },
+          ]
+        : undefined,
+    },
+
+    twitter: {
+      card: "summary_large_image",
+      title: story.title,
+      description,
+      images: story.coverImage
+        ? [story.coverImage]
+        : undefined,
+    },
+  };
+  }
 
 export default async function StoryPage({
   params,
@@ -84,8 +165,43 @@ export default async function StoryPage({
     Math.ceil(words / 200)
   );
 
+  const storyStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: story.title,
+  description:
+    story.excerpt?.trim() ||
+    story.content.replace(/\s+/g, " ").trim().slice(0, 160),
+  url: `${siteUrl}/stories/${story.slug}`,
+  datePublished: story.publishedAt
+    ? new Date(story.publishedAt).toISOString()
+    : undefined,
+  dateModified: story.updatedAt
+    ? new Date(story.updatedAt).toISOString()
+    : undefined,
+  author: {
+    "@type": "Person",
+    name: story.author.displayName,
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "Parenting Together",
+    url: siteUrl,
+  },
+  image: story.coverImage
+    ? [story.coverImage]
+    : undefined,
+  articleSection: story.category.name,
+};
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify(storyStructuredData),
+  }}
+/>
 
       {/* Cover Image */}
 
