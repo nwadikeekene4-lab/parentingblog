@@ -11,7 +11,7 @@ import {
 
 export async function GET() {
   try {
-    const publishedStories = await db
+    const featuredStories = await db
       .select({
         id: stories.id,
         title: stories.title,
@@ -25,7 +25,9 @@ export async function GET() {
 
         category: categories.name,
       })
+
       .from(stories)
+
       .innerJoin(
         users,
         eq(
@@ -33,6 +35,7 @@ export async function GET() {
           users.id
         )
       )
+
       .innerJoin(
         categories,
         eq(
@@ -40,18 +43,26 @@ export async function GET() {
           categories.id
         )
       )
+
       .where(
         and(
           eq(
             stories.status,
             "published"
           ),
+
+          eq(
+            stories.featured,
+            true
+          ),
+
           eq(
             stories.isDeleted,
             false
           )
         )
       )
+
       .orderBy(
         desc(
           stories.publishedAt
@@ -59,7 +70,7 @@ export async function GET() {
       );
 
     const formattedStories =
-      publishedStories.map(
+      featuredStories.map(
         (story) => {
           const words =
             story.content
@@ -111,20 +122,22 @@ export async function GET() {
         status: 200,
       }
     );
+
   } catch (error) {
+
     console.error(
-      "Fetch published stories error:",
+      "Fetch featured stories error:",
       error
     );
 
     return NextResponse.json(
       {
         message:
-          "Unable to fetch published stories.",
+          "Unable to fetch featured stories.",
       },
       {
         status: 500,
       }
     );
   }
-}
+        }
