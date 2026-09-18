@@ -7,8 +7,8 @@ import { stories } from "@/db/schema";
 const siteUrl = "https://parentingblog-76yt.vercel.app";
 
 const categoryUrls = [
-  "single-dads",
-  "single-moms",
+  "one-parent-dads",
+  "one-parent-moms",
   "pregnancy",
   "newborn",
   "toddlers",
@@ -65,4 +65,4 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
 
   return [...staticPages, ...storyPages];
-    }
+}
