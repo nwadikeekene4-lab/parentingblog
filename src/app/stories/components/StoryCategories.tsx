@@ -13,8 +13,8 @@ export default function StoryCategories() {
   const [animateArrow, setAnimateArrow] = useState(true);
 
   const categories = [
-    { name: 'Single Dads', link: '/stories/single-dads' },
-    { name: 'Single Moms', link: '/stories/single-moms' },
+    { name: 'One-Parent Dads', link: '/stories/one-parent-dads' },
+    { name: 'One-Parent Moms', link: '/stories/one-parent-moms' },
     { name: 'Pregnancy', link: '/stories/pregnancy' },
     { name: 'Newborn', link: '/stories/newborn' },
     { name: 'Toddlers', link: '/stories/toddlers' },
@@ -40,10 +40,10 @@ export default function StoryCategories() {
 
     handleScroll();
 
-    container.addEventListener("scroll", handleScroll);
+    container.addEventListener('scroll', handleScroll);
 
     return () => {
-      container.removeEventListener("scroll", handleScroll);
+      container.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
@@ -197,4 +197,4 @@ export default function StoryCategories() {
       </div>
     </section>
   );
-      }
+     }
