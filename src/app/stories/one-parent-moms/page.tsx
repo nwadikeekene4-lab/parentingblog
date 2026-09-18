@@ -4,12 +4,12 @@ import StoryCategoryLayout from "../components/StoryCategoryLayout";
 import { getStoriesByCategory } from "@/lib/getStoriesByCategory";
 
 export const metadata: Metadata = {
-  title: "Single Moms Stories",
+  title: "One-Parent Moms Stories",
   description:
     "Discover honest experiences, challenges, strength and inspiring journeys from mothers raising children on their own.",
   alternates: {
     canonical:
-      "https://parentingblog-76yt.vercel.app/stories/single-moms",
+      "https://parentingblog-76yt.vercel.app/stories/one-parent-moms",
   },
   robots: {
     index: true,
@@ -17,18 +17,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function SingleMomsPage() {
+export default async function OneParentMomsPage() {
   const stories =
     await getStoriesByCategory(
-      "Single Moms"
+      "One-Parent Moms"
     );
 
   return (
     <StoryCategoryLayout
-      title="Single Moms"
+      title="One-Parent Moms"
       description="Discover honest experiences, challenges, strength and inspiring journeys from mothers raising children on their own."
       image="/Images/stories/singlemum.jpg"
       stories={stories}
     />
   );
-}
+    }
