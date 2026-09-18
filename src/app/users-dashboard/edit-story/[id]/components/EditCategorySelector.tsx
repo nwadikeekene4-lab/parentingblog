@@ -5,8 +5,8 @@ const categories = [
   "Newborn",
   "Toddlers",
   "Teenagers",
-  "Single Moms",
-  "Single Dads",
+  "One-Parent Moms",
+  "One-Parent Dads",
   "Success Stories",
 ];
 
@@ -67,4 +67,4 @@ export default function EditCategorySelector({
 
     </section>
   );
-}
+      }
