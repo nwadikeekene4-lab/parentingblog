@@ -4,12 +4,12 @@ import StoryCategoryLayout from "../components/StoryCategoryLayout";
 import { getStoriesByCategory } from "@/lib/getStoriesByCategory";
 
 export const metadata: Metadata = {
-  title: "Single Dads Stories",
+  title: "One-Parent Dads Stories",
   description:
     "Read inspiring stories, challenges and victories from fathers raising children on their own.",
   alternates: {
     canonical:
-      "https://parentingblog-76yt.vercel.app/stories/single-dads",
+      "https://parentingblog-76yt.vercel.app/stories/one-parent-dads",
   },
   robots: {
     index: true,
@@ -17,18 +17,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function SingleDadsPage() {
+export default async function OneParentDadsPage() {
   const stories =
     await getStoriesByCategory(
-      "Single Dads"
+      "One-Parent Dads"
     );
 
   return (
     <StoryCategoryLayout
-      title="Single Dads"
+      title="One-Parent Dads"
       description="Read inspiring stories, challenges and victories from fathers raising children on their own."
       image="/Images/stories/singledad.jpg"
       stories={stories}
     />
   );
-}
+    }
