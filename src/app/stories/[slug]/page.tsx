@@ -151,7 +151,9 @@ export default async function StoryPage({
       notFound();
     }
   }
-
+const canManageStory =
+  currentUser?.id === story.authorId ||
+  currentUser?.role === "admin";
   /*
   |--------------------------------------------------------------------------
   | Calculate reading time
@@ -259,7 +261,11 @@ export default async function StoryPage({
         </div>
       </header>
 
-
+      {canManageStory && (
+        <section className="mx-auto mb-10 max-w-3xl">
+          <StoryOwnerActions storyId={story.id} />
+        </section>
+      )}
 
       {/* Story Content */}
 
