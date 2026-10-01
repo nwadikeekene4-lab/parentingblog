@@ -152,9 +152,8 @@ export default async function StoryPage({
   }
 
   const canManageStory =
-    currentUser?.id === story.authorId ||
-    currentUser?.role === "admin";
-
+  currentUser?.role !== "admin" &&
+  currentUser?.id === story.authorId;
   /*
   |--------------------------------------------------------------------------
   | Calculate reading time
