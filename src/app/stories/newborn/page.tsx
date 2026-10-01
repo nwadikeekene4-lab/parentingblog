@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import StoryCategoryLayout from "../components/StoryCategoryLayout";
 import { getStoriesByCategory } from "@/lib/getStoriesByCategory";
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Newborn Parenting Stories",
