@@ -11,7 +11,6 @@ import StoryLikeButton from "@/app/components/storylikebutton";
 import CommentsSection from "@/app/components/comments/CommentsSection";
 import StoryOwnerActions from "@/app/components/story/StoryOwnerActions";
 
-
 type Props = {
   params: Promise<{
     slug: string;
@@ -96,7 +95,7 @@ export async function generateMetadata({
         : undefined,
     },
   };
-  }
+}
 
 export default async function StoryPage({
   params,
@@ -151,9 +150,11 @@ export default async function StoryPage({
       notFound();
     }
   }
-const canManageStory =
-  currentUser?.id === story.authorId ||
-  currentUser?.role === "admin";
+
+  const canManageStory =
+    currentUser?.id === story.authorId ||
+    currentUser?.role === "admin";
+
   /*
   |--------------------------------------------------------------------------
   | Calculate reading time
@@ -169,42 +170,52 @@ const canManageStory =
   );
 
   const storyStructuredData = {
-  "@context": "https://schema.org",
-  "@type": "Article",
-  headline: story.title,
-  description:
-    story.excerpt?.trim() ||
-    story.content.replace(/\s+/g, " ").trim().slice(0, 160),
-  url: `${siteUrl}/stories/${story.slug}`,
-  datePublished: story.publishedAt
-    ? new Date(story.publishedAt).toISOString()
-    : undefined,
-  dateModified: story.updatedAt
-    ? new Date(story.updatedAt).toISOString()
-    : undefined,
-  author: {
-    "@type": "Person",
-    name: story.author.displayName,
-  },
-  publisher: {
-    "@type": "Organization",
-    name: "Parenting Together",
-    url: siteUrl,
-  },
-  image: story.coverImage
-    ? [story.coverImage]
-    : undefined,
-  articleSection: story.category.name,
-};
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: story.title,
+    description:
+      story.excerpt?.trim() ||
+      story.content
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 160),
+    url: `${siteUrl}/stories/${story.slug}`,
+    datePublished: story.publishedAt
+      ? new Date(
+          story.publishedAt
+        ).toISOString()
+      : undefined,
+    dateModified: story.updatedAt
+      ? new Date(
+          story.updatedAt
+        ).toISOString()
+      : undefined,
+    author: {
+      "@type": "Person",
+      name: story.author.displayName,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Parenting Together",
+      url: siteUrl,
+    },
+    image: story.coverImage
+      ? [story.coverImage]
+      : undefined,
+    articleSection: story.category.name,
+  };
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
       <script
-  type="application/ld+json"
-  dangerouslySetInnerHTML={{
-    __html: JSON.stringify(storyStructuredData),
-  }}
-/>
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html:
+            JSON.stringify(
+              storyStructuredData
+            ),
+        }}
+      />
 
       {/* Cover Image */}
 
@@ -225,7 +236,6 @@ const canManageStory =
       {/* Story Header */}
 
       <header className="mx-auto mb-12 max-w-3xl">
-
         <span className="inline-flex rounded-full bg-slate-100 px-4 py-1.5 text-sm font-semibold text-slate-700">
           {story.category.name}
         </span>
@@ -235,7 +245,6 @@ const canManageStory =
         </h1>
 
         <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-
           <span className="font-semibold">
             {story.author.displayName}
           </span>
@@ -257,22 +266,24 @@ const canManageStory =
           <span>
             {readTime} min read
           </span>
-
         </div>
       </header>
 
       {canManageStory && (
         <section className="mx-auto mb-10 max-w-3xl">
-          <StoryOwnerActions storyId={story.id} />
+          <StoryOwnerActions
+            storyId={story.id}
+            isAdmin={
+              currentUser?.role === "admin"
+            }
+          />
         </section>
       )}
 
       {/* Story Content */}
 
       <article className="mx-auto mt-12 max-w-3xl">
-
         <div className="text-lg leading-9 text-slate-700">
-
           {story.content
             .split(/\n\s*\n/)
             .filter(
@@ -289,24 +300,19 @@ const canManageStory =
                 </p>
               )
             )}
-
         </div>
-
       </article>
 
       {/* Story Images */}
 
       {story.images.length > 0 && (
         <section className="mx-auto mt-16 max-w-4xl space-y-12">
-
           {story.images.map((image) => (
             <figure
               key={image.id}
               className="overflow-hidden rounded-3xl bg-white shadow-lg"
             >
-
               <div className="relative h-72 w-full md:h-[520px]">
-
                 <Image
                   src={image.imageUrl}
                   alt={
@@ -318,7 +324,6 @@ const canManageStory =
                   unoptimized
                   className="object-cover"
                 />
-
               </div>
 
               {image.caption && (
@@ -326,17 +331,14 @@ const canManageStory =
                   {image.caption}
                 </figcaption>
               )}
-
             </figure>
           ))}
-
         </section>
       )}
 
       {/* End of Story */}
 
       <section className="mx-auto mt-20 max-w-3xl border-t border-slate-200 pt-10 text-center">
-
         <h2 className="text-2xl font-bold text-slate-900">
           End of Story
         </h2>
@@ -346,23 +348,26 @@ const canManageStory =
           story. We hope it inspired, encouraged
           or helped you in some way.
         </p>
-
       </section>
 
       {/* Story Like */}
 
       {story.status === "published" && (
         <section className="mx-auto mt-10 flex max-w-3xl justify-center">
-          <StoryLikeButton storyId={story.id} />
+          <StoryLikeButton
+            storyId={story.id}
+          />
         </section>
       )}
 
       {/* Comments - Only show for published stories */}
 
       {story.status === "published" && (
-        <CommentsSection storyId={story.id} />
+        <CommentsSection
+          storyId={story.id}
+        />
       )}
-
     </main>
   );
-        }
+}
+
