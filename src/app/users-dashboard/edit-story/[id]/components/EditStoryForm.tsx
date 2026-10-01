@@ -598,19 +598,32 @@ if (!isAdmin) {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-        <h2 className="font-semibold text-yellow-900">
-          Story is awaiting review
-        </h2>
+{isAdmin ? (
+  <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+    <h2 className="font-semibold text-blue-900">
+      Administrator Editing Mode
+    </h2>
 
-        <p className="mt-1 text-sm text-yellow-800">
-          You are editing a proposed revision.
-          Your currently published story will
-          remain unchanged until an administrator
-          approves these changes.
-        </p>
-      </section>
+    <p className="mt-1 text-sm text-blue-800">
+      You are editing the published story directly.
+      Your changes will become visible immediately
+      after saving.
+    </p>
+  </section>
+) : (
+  <section className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+    <h2 className="font-semibold text-yellow-900">
+      Story is awaiting review
+    </h2>
 
+    <p className="mt-1 text-sm text-yellow-800">
+      You are editing a proposed revision.
+      Your currently published story will
+      remain unchanged until an administrator
+      approves these changes.
+    </p>
+  </section>
+)}
       <EditStoryEditor
         title={title}
         content={content}
