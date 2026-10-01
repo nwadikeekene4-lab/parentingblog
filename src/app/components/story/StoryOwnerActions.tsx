@@ -48,8 +48,13 @@ export default function StoryOwnerActions({
 
       setShowDeleteDialog(false);
 
-      router.push("/users-dashboard/my-stories");
-      router.refresh();
+router.push(
+  isAdmin
+    ? "/admin"
+    : "/users-dashboard/my-stories"
+);
+
+router.refresh();
     } catch (error) {
       console.error(
         "Delete published story error:",
