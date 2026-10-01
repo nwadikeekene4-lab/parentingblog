@@ -779,9 +779,13 @@ if (!isAdmin) {
             disabled={saving}
             className="rounded-xl bg-blue-600 px-8 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {saving
-              ? "Submitting..."
-              : "Submit Changes for Review"}
+          {saving
+  ? isAdmin
+    ? "Saving..."
+    : "Submitting..."
+  : isAdmin
+  ? "Save Changes"
+  : "Submit Changes for Review"}
           </button>
         </div>
       </section>
