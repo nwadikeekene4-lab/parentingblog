@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/session";
 
 import StoryLikeButton from "@/app/components/storylikebutton";
 import CommentsSection from "@/app/components/comments/CommentsSection";
+import StoryOwnerActions from "@/app/components/story/StoryOwnerActions";
 
 
 type Props = {
