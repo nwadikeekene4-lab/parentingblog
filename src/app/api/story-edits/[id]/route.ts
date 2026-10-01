@@ -527,15 +527,21 @@ export async function PUT(
     const storyResult = await db
       .select()
       .from(stories)
-      .where(
-        and(
-          eq(stories.id, id),
-          eq(stories.authorId, user.id),
-          eq(stories.status, "published"),
-          eq(stories.isDeleted, false)
-        )
+ .where(
+  isAdmin
+    ? and(
+        eq(stories.id, id),
+        eq(stories.status, "published"),
+        eq(stories.isDeleted, false)
       )
-      .limit(1);
+    : and(
+        eq(stories.id, id),
+        eq(stories.authorId, user.id),
+        eq(stories.status, "published"),
+        eq(stories.isDeleted, false)
+      )
+)
+.limit(1);
 
     const story = storyResult[0];
 
@@ -579,6 +585,183 @@ export async function PUT(
       );
     }
 
+        /*
+    |--------------------------------------------------------------------------
+    | ADMIN DIRECT EDIT
+    |--------------------------------------------------------------------------
+    | Administrators can edit any published story directly.
+    | Normal users continue through the pending-review process below.
+    |--------------------------------------------------------------------------
+    */
+
+    if (isAdmin) {
+      const titleChanged = title !== story.title;
+      const contentChanged = content !== story.content;
+      const categoryChanged =
+        categoryRow.id !== story.categoryId;
+
+      const coverChanged =
+        body.coverImageUrl !== undefined ||
+        body.coverImagePublicId !== undefined;
+
+      const imagesChanged =
+        images !== undefined;
+
+      let updatedSlug = story.slug;
+
+      if (titleChanged) {
+        const baseSlug =
+          slugify(title) ||
+          `story-${Date.now()}`;
+
+        updatedSlug = baseSlug;
+
+        let counter = 1;
+
+        while (true) {
+          const slugResult = await db
+            .select({
+              id: stories.id,
+            })
+            .from(stories)
+            .where(
+              eq(
+                stories.slug,
+                updatedSlug
+              )
+            )
+            .limit(1);
+
+          const existingStory =
+            slugResult[0];
+
+          if (
+            !existingStory ||
+            existingStory.id === story.id
+          ) {
+            break;
+          }
+
+          updatedSlug =
+            `${baseSlug}-${counter}`;
+
+          counter++;
+        }
+      }
+
+      const updatedCoverImage =
+        body.coverImageUrl === undefined
+          ? story.coverImage
+          : coverImageUrl ?? null;
+
+      const updatedCoverPublicId =
+        body.coverImagePublicId === undefined
+          ? story.coverImagePublicId
+          : coverImagePublicId ?? null;
+
+      await db.transaction(async (tx) => {
+        const updateData: Record<
+          string,
+          unknown
+        > = {
+          updatedAt: new Date(),
+        };
+
+        if (titleChanged) {
+          updateData.title = title;
+          updateData.slug = updatedSlug;
+        }
+
+        if (contentChanged) {
+          updateData.content = content;
+          updateData.excerpt =
+            generateExcerpt(content);
+        }
+
+        if (categoryChanged) {
+          updateData.categoryId =
+            categoryRow.id;
+        }
+
+        if (coverChanged) {
+          updateData.coverImage =
+            updatedCoverImage;
+
+          updateData.coverImagePublicId =
+            updatedCoverPublicId;
+        }
+
+        await tx
+          .update(stories)
+          .set(updateData)
+          .where(
+            eq(
+              stories.id,
+              story.id
+            )
+          );
+
+        if (imagesChanged) {
+          await tx
+            .delete(storyImages)
+            .where(
+              eq(
+                storyImages.storyId,
+                story.id
+              )
+            );
+
+          if (
+            images &&
+            images.length > 0
+          ) {
+            await tx
+              .insert(storyImages)
+              .values(
+                images.map(
+                  (image, index) => ({
+                    storyId: story.id,
+                    imageUrl: image.url,
+                    publicId: image.publicId,
+                    caption:
+                      image.caption ?? null,
+                    displayOrder: index,
+                  })
+                )
+              );
+          }
+        }
+      });
+
+      const updatedImages =
+        await getStoryImages(story.id);
+
+      return NextResponse.json({
+        success: true,
+        message:
+          "Story updated successfully.",
+        isAdmin: true,
+        story: {
+          ...story,
+          title,
+          content,
+          excerpt:
+            content !== story.content
+              ? generateExcerpt(content)
+              : story.excerpt,
+          slug: updatedSlug,
+          categoryId:
+            categoryRow.id,
+          category:
+            categoryRow.name,
+          coverImage:
+            updatedCoverImage,
+          coverImagePublicId:
+            updatedCoverPublicId,
+          images: updatedImages,
+        },
+      });
+                           }
     /*
     |--------------------------------------------------------------------------
     | Find existing pending revision.
