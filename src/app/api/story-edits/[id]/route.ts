@@ -80,6 +80,7 @@ export async function GET(
       );
     }
 
+    const isAdmin = user.role === "admin";
     const { id } = await context.params;
 
     if (!id) {
@@ -113,14 +114,20 @@ export async function GET(
         eq(stories.categoryId, categories.id)
       )
       .where(
-        and(
-          eq(stories.id, id),
-          eq(stories.authorId, user.id),
-          eq(stories.status, "published"),
-          eq(stories.isDeleted, false)
-        )
+  isAdmin
+    ? and(
+        eq(stories.id, id),
+        eq(stories.status, "published"),
+        eq(stories.isDeleted, false)
       )
-      .limit(1);
+    : and(
+        eq(stories.id, id),
+        eq(stories.authorId, user.id),
+        eq(stories.status, "published"),
+        eq(stories.isDeleted, false)
+      )
+)
+.limit(1);
 
     const story = result[0];
 
@@ -152,7 +159,7 @@ export async function GET(
       .limit(1);
 
     const existingRevision =
-      pendingRevisionResult[0];
+  isAdmin ? undefined : pendingRevisionResult[0];
 
     if (existingRevision) {
       const revisionImages = await db
@@ -201,7 +208,8 @@ export async function GET(
       }
 
       return NextResponse.json({
-        story: {
+  isAdmin,
+  story: {
           ...story,
           title: existingRevision.title,
           content: existingRevision.content,
@@ -222,11 +230,12 @@ export async function GET(
     const images = await getStoryImages(id);
 
     return NextResponse.json({
-      story: {
-        ...story,
-        images,
-      },
-    });
+  isAdmin,
+  story: {
+    ...story,
+    images,
+  },
+});
   } catch (error) {
     console.error(
       "GET published story edit error:",
@@ -278,6 +287,7 @@ export async function PUT(
         { status: 401 }
       );
     }
+    const isAdmin = user.role === "admin";
 
     const { id } = await context.params;
 
