@@ -65,6 +65,7 @@ export default function EditStoryForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const initial = useRef<InitialState | null>(null);
 
@@ -98,6 +99,7 @@ export default function EditStoryForm({
         }
 
         const s = data.story as StoryData;
+        setIsAdmin(data.isAdmin === true);
 
         if (cancelled) return;
 
@@ -527,18 +529,23 @@ export default function EditStoryForm({
       }
 
       setSuccess(
-        data.message ??
-          "Your changes have been submitted for administrator review. Your published story remains unchanged until approved."
-      );
+  data.message ??
+    (isAdmin
+      ? "Story updated successfully."
+      : "Your changes have been submitted for administrator review.")
+);
 
-      /*
-       * Keep the editor on the page briefly so the
-       * author can see the successful submission message.
-       */
-      setTimeout(() => {
-        window.location.href =
-          "/users-dashboard/pending-review";
-      }, 1200);
+/*
+ * Normal users are taken to pending review.
+ * Administrators stay here because their changes
+ * are applied directly to the published story.
+ */
+if (!isAdmin) {
+  setTimeout(() => {
+    window.location.href =
+      "/users-dashboard/pending-review";
+  }, 1200);
+}
     } catch (err) {
       console.error(
         "Save edited story error:",
